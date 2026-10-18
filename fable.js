@@ -9,9 +9,11 @@
   var TORT = '<svg viewBox="0 0 120 90"><ellipse cx="38" cy="76" rx="9" ry="8" fill="#9ccc65"/><ellipse cx="82" cy="76" rx="9" ry="8" fill="#9ccc65"/><path d="M14 66 l-9 3 9 5z" fill="#9ccc65"/><circle cx="104" cy="54" r="13" fill="#aed581"/><circle cx="109" cy="50" r="3" fill="#2b2d42"/><circle cx="110" cy="49" r="1" fill="#fff"/><path d="M104 60 q5 4 10 0" fill="none" stroke="#2b2d42" stroke-width="2" stroke-linecap="round"/><circle cx="101" cy="58" r="3" fill="#ffb4a2" opacity=".7"/><path d="M18 72 Q18 20 60 20 Q102 20 102 72 Z" fill="#2e9e5b" stroke="#1b6b3a" stroke-width="3"/><path d="M60 20 V72 M36 36 L60 48 L84 36 M26 58 L60 48 L94 58" fill="none" stroke="#1b6b3a" stroke-width="2.4" opacity=".55"/><path d="M34 38 Q44 26 58 25" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/></svg>';
 
   var css = [
-    '#quote-container{position:relative}',
+    '#quote-container{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:190px}',
+    '#quote-container #quote{max-width:40%;margin:0 0 18px;font-size:clamp(1.15rem,1.2vw + .5rem,1.6rem);line-height:1.5}',
+    '.fb-qby{display:block;margin-top:8px;font-size:.62em;font-style:normal;font-weight:600;letter-spacing:.3px;color:#1e5f74;opacity:.85}',
     '#quote-container #quote,#quote-container #new-quote{position:relative;z-index:2}',
-    '.fb-stage{position:absolute;top:0;bottom:0;right:0;width:62%;overflow:hidden;pointer-events:none;z-index:1;container-type:size;border-radius:0 15px 15px 0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 8%);mask-image:linear-gradient(to right,transparent 0,#000 8%)}',
+    '.fb-stage{position:absolute;top:0;bottom:0;right:0;width:58%;overflow:hidden;pointer-events:none;z-index:1;container-type:size;border-radius:0 15px 15px 0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 8%);mask-image:linear-gradient(to right,transparent 0,#000 8%)}',
     '.fb-stage *{box-sizing:border-box}',
     '.fb-sky{position:absolute;inset:0;background:linear-gradient(180deg,#b9e6ff 0%,#e6f7ff 58%,#fff3cf 100%)}',
     '.fb-sun{position:absolute;top:8%;right:6%;width:13cqh;height:13cqh;min-width:22px;min-height:22px;border-radius:50%;background:radial-gradient(circle,#fffbe0 0%,#ffd54a 60%,#ffb300 100%);box-shadow:0 0 18px 8px rgba(255,214,74,.55);animation:fbPulse 4s ease-in-out infinite}',
@@ -56,7 +58,7 @@
     '@keyframes fbSleep{0%,19.9%{opacity:0}20%,65.9%{opacity:1}66%,100%{opacity:0}}',
     '@keyframes fbWow{0%,79%{opacity:0;transform:scale(.4)}81%,93%{opacity:1;transform:scale(1)}95%,100%{opacity:0}}',
     '@keyframes fbWin{0%,77%{opacity:0;transform:translateY(10px) scale(.4)}80%,93%{opacity:1;transform:none}96%,100%{opacity:0}}',
-    '@media (max-width:820px){.fb-stage{width:100%;opacity:.4;border-radius:15px;-webkit-mask-image:none;mask-image:none}.fb-cap{display:none}}',
+    '@media (max-width:820px){#quote-container{min-height:150px}#quote-container #quote{max-width:100%}.fb-stage{width:100%;opacity:.4;border-radius:15px;-webkit-mask-image:none;mask-image:none}.fb-cap{display:none}}',
     '@media (prefers-reduced-motion:reduce){.fb-stage{display:none}}'
   ];
 
@@ -99,6 +101,15 @@
     var st = document.createElement('style'); st.textContent = css.join('\n'); document.head.appendChild(st);
     var stage = document.createElement('div'); stage.className = 'fb-stage'; stage.setAttribute('aria-hidden', 'true');
     stage.innerHTML = html; box.insertBefore(stage, box.firstChild);
+    var q = document.getElementById('quote');
+    function fmt() {
+      if (!q || q.querySelector('.fb-qby')) return;
+      var t = q.textContent, i = t.lastIndexOf(' – ');
+      if (i < 8) return;
+      var by = document.createElement('span'); by.className = 'fb-qby'; by.textContent = '— ' + t.slice(i + 3);
+      q.textContent = t.slice(0, i); q.appendChild(by);
+    }
+    if (q) { fmt(); try { new MutationObserver(fmt).observe(q, { childList: true }); } catch (e) {} }
     return true;
   }
   if (!init()) {
