@@ -2,7 +2,11 @@
    Không thêm chiều cao, không đẩy bố cục: toàn bộ nằm đè (absolute) vào khoảng trống bên phải câu danh ngôn. */
 (function () {
   if (window.__fableLoaded) return; window.__fableLoaded = true;
-  try { console.log('[fable] v4: cành hoa + danh ngôn chạy trong vùng trắng'); } catch (e) {}
+  try { console.log('[fable] v5: cành hoa + danh ngôn chạy (side/bottom)'); } catch (e) {}
+  /* ===== CẤU HÌNH (có thể sửa) ===== */
+  var QUOTE_MODE = window.FABLE_QUOTE_MODE || 'side';  /* 'side' = chữ chạy trong vùng trắng bên trái | 'bottom' = chữ chạy ngang trang, dưới hoạt cảnh */
+  var BOTTOM_DIR = window.FABLE_BOTTOM_DIR || 'ltr';   /* chỉ dùng cho 'bottom': 'ltr' = chạy từ trái sang phải | 'rtl' = từ phải sang trái */
+  var SPEED = window.FABLE_SPEED || 32;                /* tốc độ chạy chữ (điểm ảnh/giây) - số nhỏ = chậm */
   var D = 44; /* thời lượng 1 vòng truyện (giây) */
 
   var HARE = '<svg viewBox="0 0 120 100"><ellipse cx="54" cy="64" rx="32" ry="20" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><circle cx="20" cy="58" r="9" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><ellipse cx="82" cy="16" rx="5.5" ry="19" fill="#fff" stroke="#c9ccdb" stroke-width="2" transform="rotate(-10 82 16)"/><ellipse cx="82" cy="17" rx="2.6" ry="13" fill="#ffb3c7" transform="rotate(-10 82 17)"/><ellipse cx="97" cy="16" rx="5.5" ry="19" fill="#fff" stroke="#c9ccdb" stroke-width="2" transform="rotate(8 97 16)"/><ellipse cx="97" cy="17" rx="2.6" ry="13" fill="#ffb3c7" transform="rotate(8 97 17)"/><ellipse cx="89" cy="44" rx="17" ry="14" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><circle cx="96" cy="41" r="3" fill="#2b2d42"/><circle cx="97" cy="40" r="1" fill="#fff"/><ellipse cx="104" cy="47" rx="3" ry="2.2" fill="#ff7aa2"/><circle cx="92" cy="49" r="3.5" fill="#ffc2d4" opacity=".7"/><ellipse cx="78" cy="86" rx="15" ry="6" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><ellipse cx="36" cy="86" rx="17" ry="7" fill="#fff" stroke="#c9ccdb" stroke-width="2"/></svg>';
@@ -107,8 +111,19 @@
     '@keyframes fbScent{0%{stroke-dashoffset:70;opacity:0}15%{opacity:.95}100%{stroke-dashoffset:-210;opacity:0}}',
     '@keyframes fbWind{0%{opacity:0;transform:translateX(0)}20%,75%{opacity:.5}100%{opacity:0;transform:translateX(210px)}}',
     '@keyframes fbPetal{0%{opacity:0;transform:translate(0,0) rotate(0)}15%{opacity:1}100%{opacity:0;transform:translate(-58px,-16px) rotate(200deg)}}',
+    '#quote-container.fb-bottom{box-sizing:border-box;min-height:240px;padding-bottom:52px}',
+    '#quote-container.fb-bottom #quote{display:none}',
+    '#quote-container.fb-bottom .fb-stage{bottom:52px;border-radius:0 15px 0 0}',
+    '#quote-container.fb-bottom .fb-flower-box{bottom:52px}',
+    '.fb-qlabel{position:relative;z-index:2;font-size:.95rem;font-weight:700;color:#1e5f74;margin:0 0 12px}',
+    '.fb-ticker{position:absolute;left:0;right:0;bottom:0;height:46px;overflow:hidden;white-space:nowrap;display:flex;align-items:center;z-index:2;background:linear-gradient(90deg,#f1fbfa,#fff9e8);border-top:1px solid rgba(44,120,115,.18);-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 4%,#000 96%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 4%,#000 96%,transparent 100%)}',
+    '.fb-tk-t{display:inline-flex;white-space:nowrap;font-size:clamp(1.05rem,.9vw + .7rem,1.45rem);font-style:italic;color:#2c7873;animation:fbTickR var(--fbd,30s) linear infinite}',
+    '.fb-tk-t.ltr{animation-name:fbTickL}.fb-tk-t:hover{animation-play-state:paused}',
+    '.fb-tk-i{display:inline-block;padding-right:120px}',
+    '@keyframes fbTickR{from{transform:translateX(0)}to{transform:translateX(-50%)}}',
+    '@keyframes fbTickL{from{transform:translateX(-50%)}to{transform:translateX(0)}}',
     '@media (max-width:820px){.fb-flower-box{display:none}#quote-container{min-height:150px}#quote-container #quote{max-width:100%}.fb-stage{width:100%;opacity:.4;border-radius:15px;-webkit-mask-image:none;mask-image:none}.fb-cap{display:none}}',
-    '@media (prefers-reduced-motion:reduce){.fb-qv,.fb-qv.run{white-space:normal!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}.fb-qv .fb-qt{animation:none!important;display:block;white-space:normal}.fb-qv .fb-qt>span{padding:0!important}.fb-qv .fb-qt>span+span{display:none!important}.fb-stage{display:none}.fb-flower-box *{animation:none!important}.fb-sc,.fb-wd,.fb-fp{display:none}}'
+    '@media (prefers-reduced-motion:reduce){.fb-ticker{white-space:normal;height:auto;min-height:46px;padding:6px 12px}.fb-tk-t{display:block;animation:none!important;white-space:normal}.fb-tk-i{display:none;padding:0}.fb-tk-i:first-child{display:block}.fb-qv,.fb-qv.run{white-space:normal!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}.fb-qv .fb-qt{animation:none!important;display:block;white-space:normal}.fb-qv .fb-qt>span{padding:0!important}.fb-qv .fb-qt>span+span{display:none!important}.fb-stage{display:none}.fb-flower-box *{animation:none!important}.fb-sc,.fb-wd,.fb-fp{display:none}}'
   ];
 
   /* Phụ đề từng đoạn truyện: [bắt đầu %, kết thúc %, nội dung] */
@@ -154,6 +169,28 @@
     fl.innerHTML = FLOWER + '<div class="fb-flabel">Tri thức là hương<br>bay ngược gió</div>';
     box.insertBefore(fl, stage.nextSibling);
     var q = document.getElementById('quote');
+    if (QUOTE_MODE === 'bottom') {
+      box.classList.add('fb-bottom');
+      var lb = document.createElement('div'); lb.className = 'fb-qlabel'; lb.textContent = '💡 Danh ngôn mỗi ngày';
+      box.insertBefore(lb, document.getElementById('new-quote') || null);
+      var tk = document.createElement('div'); tk.className = 'fb-ticker'; box.appendChild(tk);
+      var tick = function () {
+        var t = ((q && q.textContent) || '').trim(); if (!t) return;
+        var vw = tk.clientWidth; if (tk.getAttribute('data-t') === t && tk.getAttribute('data-w') === String(vw)) return;
+        tk.setAttribute('data-t', t); tk.setAttribute('data-w', String(vw));
+        var m = document.createElement('span'); m.className = 'fb-tk-i'; m.textContent = t; tk.innerHTML = ''; tk.appendChild(m);
+        var w = m.getBoundingClientRect().width || 300, k = Math.max(1, Math.ceil(vw / w));
+        var inner = document.createElement('span'); inner.className = 'fb-tk-t' + (BOTTOM_DIR === 'rtl' ? '' : ' ltr');
+        for (var g = 0; g < 2 * k; g++) { var sp = document.createElement('span'); sp.className = 'fb-tk-i'; sp.textContent = t; inner.appendChild(sp); }
+        inner.style.setProperty('--fbd', Math.max(8, Math.round(k * w / SPEED)) + 's');
+        tk.innerHTML = ''; tk.appendChild(inner);
+      };
+      tick();
+      if (q) { try { new MutationObserver(tick).observe(q, { childList: true, characterData: true, subtree: true }); } catch (e) {} }
+      var rz2; window.addEventListener('resize', function () { clearTimeout(rz2); rz2 = setTimeout(tick, 150); });
+      window.addEventListener('load', function () { setTimeout(tick, 100); });
+      return true;
+    }
     /* Chữ danh ngôn chỉ được hiện trong vùng trắng bên trái cành hoa; câu dài sẽ tự chạy ngang trong vùng đó */
     function fit() {
       var qv = q && q.querySelector('.fb-qv'); if (!qv) return;
@@ -163,7 +200,7 @@
       q.style.width = (inner + 40) + 'px'; qv.style.width = inner + 'px';
       var t = qv.querySelector('.fb-qt'); qv.classList.remove('run');
       var w = t.firstChild.getBoundingClientRect().width;
-      if (w > inner + 1) { t.style.setProperty('--fbd', Math.round((w + 70) / 32) + 's'); qv.classList.add('run'); }
+      if (w > inner + 1) { t.style.setProperty('--fbd', Math.round((w + 70) / SPEED) + 's'); qv.classList.add('run'); }
     }
     function fmt() {
       if (!q || q.querySelector('.fb-qv')) return;
