@@ -2,6 +2,7 @@
    Không thêm chiều cao, không đẩy bố cục: toàn bộ nằm đè (absolute) vào khoảng trống bên phải câu danh ngôn. */
 (function () {
   if (window.__fableLoaded) return; window.__fableLoaded = true;
+  try { console.log('[fable] v4: cành hoa + danh ngôn chạy trong vùng trắng'); } catch (e) {}
   var D = 44; /* thời lượng 1 vòng truyện (giây) */
 
   var HARE = '<svg viewBox="0 0 120 100"><ellipse cx="54" cy="64" rx="32" ry="20" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><circle cx="20" cy="58" r="9" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><ellipse cx="82" cy="16" rx="5.5" ry="19" fill="#fff" stroke="#c9ccdb" stroke-width="2" transform="rotate(-10 82 16)"/><ellipse cx="82" cy="17" rx="2.6" ry="13" fill="#ffb3c7" transform="rotate(-10 82 17)"/><ellipse cx="97" cy="16" rx="5.5" ry="19" fill="#fff" stroke="#c9ccdb" stroke-width="2" transform="rotate(8 97 16)"/><ellipse cx="97" cy="17" rx="2.6" ry="13" fill="#ffb3c7" transform="rotate(8 97 17)"/><ellipse cx="89" cy="44" rx="17" ry="14" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><circle cx="96" cy="41" r="3" fill="#2b2d42"/><circle cx="97" cy="40" r="1" fill="#fff"/><ellipse cx="104" cy="47" rx="3" ry="2.2" fill="#ff7aa2"/><circle cx="92" cy="49" r="3.5" fill="#ffc2d4" opacity=".7"/><ellipse cx="78" cy="86" rx="15" ry="6" fill="#fff" stroke="#c9ccdb" stroke-width="2"/><ellipse cx="36" cy="86" rx="17" ry="7" fill="#fff" stroke="#c9ccdb" stroke-width="2"/></svg>';
@@ -39,7 +40,7 @@
     '#quote-container #quote{box-sizing:border-box;max-width:none;margin:0 0 18px;font-size:clamp(1.15rem,1.2vw + .5rem,1.6rem);line-height:1.5}',
     '.fb-qv{display:block;overflow:hidden;white-space:nowrap}',
     '.fb-qt{display:inline-block;white-space:nowrap}.fb-qt>span{display:inline-block}.fb-qt>span+span{display:none}',
-    '.fb-qv.run{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 88%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 88%,transparent 100%)}',
+    '.fb-qv.run{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 80%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 80%,transparent 100%)}',
     '.fb-qv.run .fb-qt>span{padding-right:70px}.fb-qv.run .fb-qt>span+span{display:inline-block}',
     '.fb-qv.run .fb-qt{animation:fbMarq var(--fbd,14s) linear 1.5s infinite}.fb-qv.run:hover .fb-qt{animation-play-state:paused}',
     '@keyframes fbMarq{to{transform:translateX(-50%)}}',
@@ -162,7 +163,7 @@
       q.style.width = (inner + 40) + 'px'; qv.style.width = inner + 'px';
       var t = qv.querySelector('.fb-qt'); qv.classList.remove('run');
       var w = t.firstChild.getBoundingClientRect().width;
-      if (w > inner + 1) { t.style.setProperty('--fbd', Math.round((w + 70) / 55) + 's'); qv.classList.add('run'); }
+      if (w > inner + 1) { t.style.setProperty('--fbd', Math.round((w + 70) / 32) + 's'); qv.classList.add('run'); }
     }
     function fmt() {
       if (!q || q.querySelector('.fb-qv')) return;
