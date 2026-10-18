@@ -2,7 +2,7 @@
    v6: chế độ 'grid' (mặc định) chia 3 cột: Danh ngôn | Cành hoa | Hoạt cảnh -> chữ không còn che hoạt cảnh. */
 (function () {
   if (window.__fableLoaded) return; window.__fableLoaded = true;
-  try { console.log('[fable] v6.1 grid 1/3: danh ngôn | cành hoa | hoạt cảnh'); } catch (e) {}
+  try { console.log('[fable] v6.2 grid 1/3 compact: danh ngôn | cành hoa | hoạt cảnh'); } catch (e) {}
   /* ===== CẤU HÌNH (có thể sửa) ===== */
   var QUOTE_MODE = window.FABLE_QUOTE_MODE || 'grid';  /* 'grid' = 3 cột, chữ tự xuống dòng (khuyên dùng) | 'side' = chữ chạy trong vùng trắng bên trái | 'bottom' = chữ chạy ngang trang, dưới hoạt cảnh */
   var BOTTOM_DIR = window.FABLE_BOTTOM_DIR || 'ltr';   /* chỉ dùng cho 'bottom': 'ltr' = chạy từ trái sang phải | 'rtl' = từ phải sang trái */
@@ -124,10 +124,10 @@
     '@keyframes fbTickL{from{transform:translateX(-50%)}to{transform:translateX(0)}}',
     '@media (max-width:820px){.fb-flower-box{display:none}#quote-container{min-height:150px}#quote-container #quote{max-width:100%}.fb-stage{width:100%;opacity:.4;border-radius:15px;-webkit-mask-image:none;mask-image:none}.fb-cap{display:none}}',
     /* ===== Chế độ GRID: 3 cột (đặt SAU khối @media cũ để thắng quy tắc cũ) ===== */
-    '#quote-container.fb-grid{display:grid;grid-template-columns:minmax(0,33.333%) clamp(80px,7vw,130px) minmax(0,1fr);grid-template-rows:1fr auto;align-items:stretch;justify-content:stretch;min-height:190px}',
-    '#quote-container.fb-grid #quote{grid-column:1;grid-row:1;align-self:end;width:auto!important;max-width:100%;margin:0 0 8px;white-space:normal;overflow-wrap:anywhere;font-size:clamp(1rem,.6vw + .62rem,1.3rem);line-height:1.4}',
+    '#quote-container.fb-grid{display:grid;grid-template-columns:minmax(0,33.333%) clamp(80px,7vw,130px) minmax(0,1fr);grid-template-rows:auto 1fr;align-items:stretch;justify-content:stretch;min-height:140px}',
+    '#quote-container.fb-grid #quote{grid-column:1;grid-row:1;align-self:start;width:auto!important;max-width:100%;margin:0 0 6px;padding-top:12px;white-space:normal;overflow-wrap:anywhere;font-size:clamp(1rem,.6vw + .62rem,1.3rem);line-height:1.4}',
     '#quote-container.fb-grid #new-quote{grid-column:1;grid-row:2;justify-self:start;align-self:start}',
-    '#quote-container.fb-grid .fb-flower-box{position:relative;right:auto;top:auto;bottom:auto;width:auto;grid-column:2;grid-row:1 / span 2;display:flex}',
+    '#quote-container.fb-grid .fb-flower-box{position:relative;right:auto;top:auto;bottom:auto;width:auto;grid-column:2;grid-row:1 / span 2;display:flex;contain:size;min-height:0}',
     '#quote-container.fb-grid .fb-stage{position:relative;top:auto;right:auto;bottom:auto;width:auto;opacity:1;grid-column:3;grid-row:1 / span 2;min-height:0;-webkit-mask-image:none;mask-image:none;border-radius:0 15px 15px 0}',
     '#quote-container.fb-grid .fb-cap{display:block;font-size:11px;padding:3px 10px}',
     '@media (max-width:820px){#quote-container.fb-grid{grid-template-columns:1fr;grid-template-rows:auto}#quote-container.fb-grid #quote,#quote-container.fb-grid #new-quote{grid-column:1;grid-row:auto}#quote-container.fb-grid .fb-stage{grid-column:1;grid-row:auto;min-height:130px;border-radius:15px}#quote-container.fb-grid .fb-flower-box{display:none}#quote-container.fb-grid .fb-cap{display:none}}',
