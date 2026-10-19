@@ -1,9 +1,9 @@
 /* =====================================================================
-   exam_pack_tools.js — Cải tiến xuất "Gói đề" cho TestOline
+   exam_pack_tools.js — Cải tiến xuất "Gói đề" cho TestOline  (v1.3)
    Nhúng 1 dòng ở cuối trang, ngay TRƯỚC reward.js (cạnh hinh_thieu.js):
      <script src="https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@main/exam_pack_tools.js"></script>
 
-   Gồm 2 chức năng, gọi từ generateCompleteExamPackage:
+   Gồm 3 chức năng, gọi từ generateCompleteExamPackage:
      1. ExamPack.guardImages(originals, ctx)  — chạy TRƯỚC khi tạo đề xáo.
         Câu nào trong đề gốc có ảnh giữ chỗ (src rỗng / transparent.gif) hoặc link ảnh
         không tải được -> tự thay bằng câu khác CÙNG bài, CÙNG dạng, CÙNG mức độ nhưng hình tốt.
@@ -16,6 +16,9 @@
      3. ExamPack.manualAI(prompt, reason) — khi Gemini hết quota/không có key: hiện hộp thoại
         "sao chép yêu cầu -> dán vào AI khác -> dán kết quả JSON về", rồi trả kết quả như aiGemini().
         Có nút nổi "🧩 AI dán tay: BẬT/TẮT" (góc trái dưới, chỉ Admin thấy) để bật/tắt, nhớ lựa chọn.
+
+   v1.3: extractJson tự đổi dấu ngoặc kép/đơn "cong" (“ ” ‘ ’) thành dấu thẳng khi dán kết quả
+         từ khung chat của ChatGPT/Claude/Gemini (khung chat hay tự đổi dấu khi copy).
    ===================================================================== */
 (function () {
   'use strict';
@@ -225,13 +228,24 @@
   var MANUAL = { skippedAt: 0, count: 0, queue: Promise.resolve() };
   var SKIP_MS = 5 * 60 * 1000;   // bấm "Bỏ qua AI" thì 5 phút sau (hoặc sau khi xuất xong) mới hỏi lại
 
+  // Khung chat của AI hay tự đổi dấu " thẳng thành “ ” cong khi người dùng copy -> JSON hỏng.
+  function fixQuotes(s) {
+    return String(s || '')
+      .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+      .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'");
+  }
   function extractJson(text) {
-    var s = String(text || '').trim();
-    var fence = /```(?:json|JSON)?\s*([\s\S]*?)```/.exec(s);
-    if (fence) s = fence[1].trim();
-    try { return JSON.parse(s); } catch (e) {}
-    var a = s.search(/[\[{]/), b = Math.max(s.lastIndexOf(']'), s.lastIndexOf('}'));
-    if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (e) {} }
+    var raw = String(text || '').trim();
+    // thử nguyên bản trước (không phá dấu “ ” nằm trong nội dung chữ); không được thì mới đổi dấu cong thành thẳng
+    var variants = [raw, fixQuotes(raw)];
+    for (var v = 0; v < variants.length; v++) {
+      var s = variants[v];
+      var fence = /```(?:json|JSON)?\s*([\s\S]*?)```/.exec(s);
+      if (fence) s = fence[1].trim();
+      try { return JSON.parse(s); } catch (e) {}
+      var a = s.search(/[\[{]/), b = Math.max(s.lastIndexOf(']'), s.lastIndexOf('}'));
+      if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (e) {} }
+    }
     throw new Error('Không đọc được JSON. Hãy copy toàn bộ kết quả của AI (từ dấu { hoặc [ đến hết).');
   }
   function copyText(txt) {
@@ -340,7 +354,7 @@
     setInterval(ensure, 2000);   // Admin đăng nhập sau khi tải trang -> nút tự hiện
   }
 
-  var ExamPack = { guardImages: guardImages, arrange: arrange, manualAI: manualAI, setManual: setManual, resetManual: resetManual, extractJson: extractJson, hasPlaceholder: hasPlaceholder, badReason: badReason, lastOrderText: '', version: '1.2' };
+  var ExamPack = { guardImages: guardImages, arrange: arrange, manualAI: manualAI, setManual: setManual, resetManual: resetManual, extractJson: extractJson, hasPlaceholder: hasPlaceholder, badReason: badReason, lastOrderText: '', version: '1.3' };
   window.ExamPack = ExamPack;
   initToggle();
 })();
