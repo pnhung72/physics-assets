@@ -13,6 +13,9 @@
         Xếp thứ tự xuất file xen kẽ giữa các đề gốc: 101,104,107,102,105,108,103,106,109...
         In nguyên file (nhiều bản, sắp xếp từng bộ) rồi phát lần lượt -> hai bạn ngồi cạnh
         nhau không bao giờ cùng đề gốc.
+     3. ExamPack.manualAI(prompt, reason) — khi Gemini hết quota/không có key: hiện hộp thoại
+        "sao chép yêu cầu -> dán vào AI khác -> dán kết quả JSON về", rồi trả kết quả như aiGemini().
+        Có nút nổi "🧩 AI dán tay: BẬT/TẮT" (góc trái dưới, chỉ Admin thấy) để bật/tắt, nhớ lựa chọn.
    ===================================================================== */
 (function () {
   'use strict';
@@ -209,6 +212,7 @@
     var out = [];
     for (var k = 0; k < max; k++) groups.forEach(function (g) { if (g[k]) out.push(g[k]); });
     out.forEach(function (e, i) { e.printSeq = i + 1; });
+    resetManual();
     var text = out.map(function (e) { return e.code; }).join(' → ');
     ExamPack.lastOrderText = text;
     try { console.log('🔀 Thứ tự đề trong file (xen kẽ đề gốc): ' + text); } catch (e) {}
@@ -216,6 +220,127 @@
     return out;
   }
 
-  var ExamPack = { guardImages: guardImages, arrange: arrange, hasPlaceholder: hasPlaceholder, badReason: badReason, lastOrderText: '', version: '1.0' };
+
+  /* ---------- 3) AI dán tay: hết quota / không có key -> sao chép yêu cầu, dán vào AI khác, dán kết quả về ---------- */
+  var MANUAL = { skippedAt: 0, count: 0, queue: Promise.resolve() };
+  var SKIP_MS = 5 * 60 * 1000;   // bấm "Bỏ qua AI" thì 5 phút sau (hoặc sau khi xuất xong) mới hỏi lại
+
+  function extractJson(text) {
+    var s = String(text || '').trim();
+    var fence = /```(?:json|JSON)?\s*([\s\S]*?)```/.exec(s);
+    if (fence) s = fence[1].trim();
+    try { return JSON.parse(s); } catch (e) {}
+    var a = s.search(/[\[{]/), b = Math.max(s.lastIndexOf(']'), s.lastIndexOf('}'));
+    if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (e) {} }
+    throw new Error('Không đọc được JSON. Hãy copy toàn bộ kết quả của AI (từ dấu { hoặc [ đến hết).');
+  }
+  function copyText(txt) {
+    var done = function () { return true; };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt).then(done, function () { return legacyCopy(txt); }); } catch (e) {}
+    return Promise.resolve(legacyCopy(txt));
+  }
+  function legacyCopy(txt) {
+    try {
+      var ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      document.body.appendChild(ta); ta.select(); var ok = document.execCommand('copy'); ta.remove(); return !!ok;
+    } catch (e) { return false; }
+  }
+
+  function openManualDialog(promptText, reason) {
+    return new Promise(function (resolve, reject) {
+      var n = ++MANUAL.count;
+      var el = function (tag, css, text) { var x = document.createElement(tag); if (css) x.style.cssText = css; if (text != null) x.textContent = text; return x; };
+      var btn = function (color, text) { return el('button', 'background:' + color + ';color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;margin:4px 6px 4px 0;font-size:14px;', text); };
+      var ov = el('div', 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:12px;');
+      var box = el('div', 'background:#fff;color:#222;max-width:880px;width:100%;max-height:92vh;overflow:auto;border-radius:14px;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.4);text-align:left;');
+      box.appendChild(el('h3', 'margin:0 0 6px;color:#4361ee;', '🧩 Nhờ AI khác xử lý (dán tay) — lượt ' + n));
+      if (reason) box.appendChild(el('div', 'background:#fff3cd;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;', 'AI tự động đang lỗi hoặc hết hạn mức: ' + reason));
+      box.appendChild(el('div', 'font-size:14px;line-height:1.5;margin-bottom:6px;',
+        'Cách làm: (1) Bấm "Sao chép yêu cầu". (2) Dán vào ChatGPT, Claude hoặc Gemini bản web rồi gửi. (3) Copy toàn bộ kết quả JSON, dán vào ô bên dưới và bấm "Dùng kết quả này". Trang sẽ làm tiếp như thể AI tự động đã trả lời.'));
+      var full = String(promptText) + '\n\n(Chỉ trả về đúng MỘT khối JSON hợp lệ, không giải thích thêm bên ngoài JSON.)';
+      var pbox = el('textarea', 'width:100%;height:110px;font-size:12px;margin:6px 0;box-sizing:border-box;'); pbox.readOnly = true; pbox.value = full;
+      var bCopy = btn('#2563eb', '📋 Sao chép yêu cầu');
+      var ta = el('textarea', 'width:100%;height:150px;font-family:monospace;font-size:12px;margin:6px 0;box-sizing:border-box;');
+      ta.placeholder = 'Dán kết quả JSON của AI vào đây...';
+      var bUse = btn('#16a34a', '✅ Dùng kết quả này');
+      var bSkip = btn('#6b7280', 'Bỏ qua AI, tiếp tục xuất đề');
+      var msg = el('div', 'font-size:13px;margin-top:4px;min-height:18px;');
+      bCopy.onclick = function () {
+        copyText(full).then(function (ok) { msg.textContent = ok ? '✅ Đã sao chép. Hãy dán vào AI khác rồi gửi.' : 'Chưa tự sao chép được: bấm vào ô yêu cầu, Ctrl+A rồi Ctrl+C.'; });
+      };
+      bUse.onclick = function () {
+        var raw = ta.value.trim();
+        if (!raw) { msg.textContent = 'Chưa có nội dung để dùng.'; return; }
+        var obj;
+        try { obj = extractJson(raw); } catch (e) { msg.textContent = '❌ ' + e.message; return; }
+        ov.remove(); resolve(obj);
+      };
+      bSkip.onclick = function () {
+        MANUAL.skippedAt = Date.now();
+        ov.remove(); reject(new Error('Đã bỏ qua AI (chế độ dán tay)'));
+      };
+      box.appendChild(pbox); box.appendChild(bCopy); box.appendChild(ta); box.appendChild(bUse); box.appendChild(bSkip); box.appendChild(msg);
+      ov.appendChild(box); document.body.appendChild(ov);
+    });
+  }
+
+  // Trả về Promise<object JSON>, giống hệt aiGemini(); từ chối khi người dùng bấm "Bỏ qua AI".
+  function manualAI(promptText, reason) {
+    if (Date.now() - MANUAL.skippedAt < SKIP_MS) return Promise.reject(new Error('Đã bỏ qua AI (chế độ dán tay)'));
+    var run = MANUAL.queue.then(function () {
+      if (Date.now() - MANUAL.skippedAt < SKIP_MS) throw new Error('Đã bỏ qua AI (chế độ dán tay)');
+      return openManualDialog(promptText, reason);
+    });
+    MANUAL.queue = run.catch(function () {});
+    return run;
+  }
+  function resetManual() { MANUAL.skippedAt = 0; MANUAL.count = 0; }
+
+
+  /* ---------- 4) Nút bật/tắt "AI dán tay" (chỉ hiện với Admin, nhớ lựa chọn trên máy) ---------- */
+  var LS_MANUAL = 'exam_manual_ai_off';   // '1' = đã tắt
+  function manualOn() { return window.AI_MANUAL_FALLBACK !== false; }
+  function setManual(on) {
+    window.AI_MANUAL_FALLBACK = on ? true : false;
+    try { if (on) localStorage.removeItem(LS_MANUAL); else localStorage.setItem(LS_MANUAL, '1'); } catch (e) {}
+    paintToggle();
+  }
+  var TOGGLE = null;
+  function isAdminNow() {
+    try { if (isAdminAuthenticated === true && adminRole === 'full') return true; } catch (e) {}
+    return false;
+  }
+  function paintToggle() {
+    if (!TOGGLE) return;
+    var on = manualOn();
+    TOGGLE.textContent = '🧩 AI dán tay: ' + (on ? 'BẬT' : 'TẮT');
+    TOGGLE.style.background = on ? '#16a34a' : '#6b7280';
+    TOGGLE.title = on
+      ? 'Khi Gemini hết quota/không có key, trang sẽ hiện hộp "sao chép yêu cầu -> dán vào AI khác -> dán kết quả về". Bấm để TẮT.'
+      : 'Đang tắt: Gemini lỗi thì bỏ qua bước AI, vẫn xuất đề bình thường. Bấm để BẬT.';
+  }
+  function initToggle() {
+    try { if (localStorage.getItem(LS_MANUAL) === '1') window.AI_MANUAL_FALLBACK = false; } catch (e) {}
+    if (typeof document === 'undefined') return;
+    function ensure() {
+      var admin = isAdminNow();
+      if (admin && !TOGGLE && document.body) {
+        TOGGLE = document.createElement('button');
+        TOGGLE.id = 'exam-manual-ai-toggle';
+        TOGGLE.type = 'button';
+        TOGGLE.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147482000;color:#fff;border:0;border-radius:20px;' +
+          'padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);opacity:.92;';
+        TOGGLE.onclick = function () { setManual(!manualOn()); };
+        document.body.appendChild(TOGGLE);
+        paintToggle();
+      }
+      if (TOGGLE) TOGGLE.style.display = admin ? '' : 'none';
+    }
+    ensure();
+    setInterval(ensure, 2000);   // Admin đăng nhập sau khi tải trang -> nút tự hiện
+  }
+
+  var ExamPack = { guardImages: guardImages, arrange: arrange, manualAI: manualAI, setManual: setManual, resetManual: resetManual, extractJson: extractJson, hasPlaceholder: hasPlaceholder, badReason: badReason, lastOrderText: '', version: '1.2' };
   window.ExamPack = ExamPack;
+  initToggle();
 })();
