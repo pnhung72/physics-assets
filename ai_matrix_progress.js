@@ -43,6 +43,8 @@
 #ai-progress-panel .ap-chip.done{background:${TEAL};color:#fff;}
 #ai-progress-panel .ap-chip.fail,#ai-progress-panel .ap-chip.skip{border-color:#dc2626;color:#b91c1c;background:#fef2f2;}
 #ai-progress-panel .ap-chip.manual{border-color:#d97706;color:#92400e;background:#fffbeb;}
+#ai-progress-panel .ap-why{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;font-size:.86em;}
+#ai-progress-panel .ap-why ul{margin:4px 0 0 18px;padding:0;}
 #ai-progress-panel .ap-sum{margin-top:8px;font-size:.88em;color:#134e4a;}
 #ai-progress-panel button.ap-x{width:auto;padding:2px 10px;font-size:.8em;background:${TEAL_D};border-radius:6px;}
 #matrix-table td.aiprog-cell{position:relative;}
@@ -144,13 +146,15 @@
       // tổng hợp đã tạo theo Loại × Mức
       const agg = {};
       list.forEach(j => { if (j.got > 0) { const k = typeName(j.type); (agg[k] = agg[k] || {}); agg[k][j.level] = (agg[k][j.level] || 0) + j.got; } });
+      const bad = list.filter(j => j.why.length && j.state !== 'done');
+      const whyHtml = bad.length ? '<div class="ap-why"><b>Vì sao chưa đủ câu:</b><ul>' + bad.map(j => '<li><b>' + esc(j.label) + ' · ' + esc(typeName(j.type)) + ' · ' + esc(j.level) + '</b>: ' + j.why.map(esc).join('; ') + '</li>').join('') + '</ul></div>' : '';
       const sum = Object.keys(agg).map(k => `<b>${esc(k)}</b>: ` + ['B', 'H', 'VD', 'VDC'].filter(l => agg[k][l]).map(l => `${l} ×${agg[k][l]}`).join(', ')).join(' &nbsp;|&nbsp; ');
       p.innerHTML =
          `<div class="ap-head"><span>🤖 AI tạo câu: ${got}/${total} câu (${percent}%) · ${doneN}/${list.length} ô xong</span>` +
          (finished ? '<button type="button" class="ap-x" id="ap-close">Ẩn</button>' : '') + '</div>' +
          `<div class="ap-track"><div class="ap-fill" style="width:${percent}%"></div></div>` +
          `<div class="ap-now">${now}</div><div class="ap-list">${chips}</div>` +
-         `<div class="ap-sum">${sum ? 'Đã tạo được → ' + sum : 'Chưa có câu nào được tạo.'}</div>`;
+         `<div class="ap-sum">${sum ? 'Đã tạo được → ' + sum : 'Chưa có câu nào được tạo.'}</div>` + whyHtml;
       const x = p.querySelector('#ap-close');
       if (x) x.onclick = () => { dismissed = true; clearCells(); renderPanel(); };
    }
@@ -178,7 +182,7 @@
             (failed || []).forEach(f => {
                const k = jobKey(f);
                if (jobs[k]) return;
-               jobs[k] = { label: f.label, type: f.type, level: f.level, need: f.missing, target: Math.max(f.missing, minNew), got: 0, state: 'queued' };
+               jobs[k] = { label: f.label, type: f.type, level: f.level, need: f.missing, target: Math.max(f.missing, minNew), got: 0, state: 'queued', why: [] };
                order.push(k);
             });
             refresh(); watchTable();
@@ -195,6 +199,7 @@
          } catch (e) {}
       },
       add(b, n) { try { const j = findJob(b); if (j && n > 0) { j.got += n; refresh(); } } catch (e) {} },
+      note(b, msg) { try { const j = findJob(b); if (j && msg && j.why.indexOf(msg) < 0) { j.why.push(msg); refresh(); } } catch (e) {} },
       manual(b) { try { const j = findJob(b); if (j && j.state !== 'done') { j.state = 'manual'; refresh(); } } catch (e) {} },
       // kết thúc: ô nào không còn trong danh sách "vẫn thiếu" là đã xong
       finish(failed, result) {
@@ -208,6 +213,32 @@
    };
   })();
 
+  function dropReason(dropped) {
+    try {
+      var r = dropped.map(function (d) { return typeof d === 'string' ? d : (d && (d.reason || d.error || d.message)) || ''; }).filter(Boolean);
+      return r.length ? ' — ' + Array.from(new Set(r)).slice(0, 2).join(' / ').slice(0, 200) : '';
+    } catch (e) { return ''; }
+  }
+  // câu AI lưu về có đúng loại/mức/bài và có được trang xếp vào đúng phần của đề không
+  function checkSaved(body, saved) {
+    try {
+      var want = body.type === 'essay-multi' ? 'essay_multi' : body.type;
+      var partOf = (window.ExamRules && window.ExamRules.partOf) || null;
+      var badType = 0, badPart = 0, badLevel = 0, noLesson = 0, types = {};
+      saved.forEach(function (q) {
+        var t = q && q.type; types[t] = 1;
+        if ((t === 'essay-multi' ? 'essay_multi' : t) !== want) badType++;
+        if (partOf && !partOf(t)) badPart++;
+        if (String((q && q.level) || '').toUpperCase() !== String(body.level).toUpperCase()) badLevel++;
+        if (q && q.lesson != null && String(q.lesson) !== String(body.lesson)) noLesson++;
+      });
+      if (badType) AIPROG.note(body, 'AI trả về ' + badType + ' câu sai loại (type = ' + Object.keys(types).join(', ') + ', cần ' + want + ')');
+      if (badPart) AIPROG.note(body, badPart + ' câu có type không được trang nhận diện nên sẽ KHÔNG vào đề (type = ' + Object.keys(types).join(', ') + ')');
+      if (badLevel) AIPROG.note(body, badLevel + ' câu sai mức độ so với ô ma trận');
+      if (noLesson) AIPROG.note(body, noLesson + ' câu bị gán sai bài');
+    } catch (e) {}
+  }
+
   /* ---------- móc vào các hàm AI của trang (không cần sửa mã trang) ---------- */
   function hasToken() { try { return typeof aiGenToken === 'function' && !!aiGenToken(); } catch (e) { return false; } }
   function wrap(name, make) {
@@ -218,11 +249,15 @@
   function install() {
     var ok1 = wrap('aiFillShortage', function (orig) {
       return async function (failed, ctx) {
-        var on = hasToken() && Array.isArray(failed) && failed.length;
+        var tokenOk = hasToken();
+        var on = tokenOk && Array.isArray(failed) && failed.length;
+        if (!tokenOk && Array.isArray(failed) && failed.length) {
+          try { if (typeof showNotification === 'function') showNotification('⚠️ Chưa đăng nhập Admin nên AI không tạo được câu còn thiếu (' + failed.length + ' ô).', 'warning'); } catch (e) {}
+        }
         if (on) AIPROG.start(failed);
         try {
           var r = await orig.apply(this, arguments);
-          if (on) AIPROG.finish(failed, r);
+          if (on) { AIPROG.finish(failed, r); try { if (typeof updateAvailableCounts === 'function') updateAvailableCounts(); } catch (e) {} }
           return r;
         } catch (e) { if (on) AIPROG.abort(); throw e; }
       };
@@ -230,9 +265,19 @@
     var ok2 = wrap('aiGenCall', function (orig) {
       return async function (body) {
         var act = body && body.action;
-        if (act === 'bank_ai_generate' && AIPROG.active()) AIPROG.run(body);
-        var res = await orig.apply(this, arguments);
-        if ((act === 'bank_ai_generate' || act === 'bank_ai_import') && res && AIPROG.active()) AIPROG.add(body, (res.saved || []).length);
+        var track = (act === 'bank_ai_generate' || act === 'bank_ai_import') && AIPROG.active();
+        if (track && act === 'bank_ai_generate') AIPROG.run(body);
+        var res;
+        try { res = await orig.apply(this, arguments); }
+        catch (e) { if (track) AIPROG.note(body, 'máy chủ báo lỗi: ' + String((e && e.message) || e).slice(0, 160)); throw e; }
+        if (track && res) {
+          var saved = res.saved || [], dropped = res.dropped || [];
+          AIPROG.add(body, saved.length);
+          if (!saved.length) AIPROG.note(body, 'máy chủ không lưu được câu nào' + (dropped.length ? '' : ' (không rõ lý do — mở Console xem phản hồi)'));
+          if (dropped.length) AIPROG.note(body, 'máy chủ loại ' + dropped.length + ' câu không đạt kiểm tra' + dropReason(dropped));
+          checkSaved(body, saved);
+          try { console.log('🤖 AI trả về', body.label, body.type, body.level, { saved: saved.length, dropped: dropped }); } catch (e) {}
+        }
         return res;
       };
     });
