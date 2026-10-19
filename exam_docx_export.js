@@ -1,14 +1,17 @@
 /*!
- * exam_docx_export.js  (v1.0)
+ * exam_docx_export.js  (v2.0)
  * Xuất gói đề thi ra file .docx THẬT (không phải HTML đổi đuôi .doc).
  *  - Công thức LaTeX  -> công thức gốc của Word (OMML), sửa được bằng Equation Editor
  *  - Số trang "Trang x/y" và "(Đề kiểm tra có N trang)" là trường tự động của Word
- *  - Mỗi mã đề là một section riêng; đáp án là section riêng (đánh số trang riêng)
+ *  - v2.0: xuất HAI file riêng: De_thi_*.docx (mọi mã đề) và Dap_an_*.docx (đáp án theo mẫu của trường)
+ *  - Mỗi mã đề là một section riêng: bắt đầu ở đầu trang mới và đánh số trang lại từ 1
+ *  - Mã đề giữ nguyên chuỗi (vd "0201"), không bị mất số 0 đầu
+ *  - Đánh số câu: numbering 'template' (mặc định, khớp mẫu đáp án) hoặc 'continuous'
  *  - Hình ảnh nhúng thẳng vào file (data: URI, hoặc tải qua fetch nếu server cho phép CORS)
  *
  * Phụ thuộc: thư viện "docx" (UMD, biến toàn cục `docx`) – xem loadDocx() bên dưới.
  * Dùng:
- *   await ExamDocx.download(examPackages, { schoolYear, partOf, markTag });
+ *   await ExamDocx.download(examPackages, { department, school, semester, schoolYear, subject, partOf, markTag });
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(root, function () { return require('docx'); });
@@ -463,6 +466,17 @@
     return { top: none, bottom: none, left: none, right: none };
   }
 
+  /** Số câu bắt đầu của từng phần. 'template': I 1..n, II nối tiếp, III & IV đánh lại từ 1 (đúng mẫu đáp án). 'continuous': 1..N liên tục. */
+  function startsFor(parts, scheme) {
+    var n = { I: parts.I.length, II: parts.II.length, III: parts.III.length, IV: parts.IV.length };
+    var st = scheme === 'continuous'
+      ? { I: 1, II: 1 + n.I, III: 1 + n.I + n.II, IV: 1 + n.I + n.II + n.III }
+      : { I: 1, II: 1 + n.I, III: 1, IV: 1 };
+    var r = {};
+    ['I', 'II', 'III', 'IV'].forEach(function (p) { if (n[p]) { r[p] = { start: st[p], end: st[p] + n[p] - 1 }; } });
+    return r;
+  }
+
   function buildExamData(exam, o) {
     // gom câu hỏi theo phần (giữ đúng logic generateExamHTML)
     var all = [];
@@ -483,6 +497,8 @@
 
   function buildDocument(examPackages, opt) {
     ensureDocx();
+    var __opt = {};
+    Object.keys(opt || {}).forEach(function (k) { var v = opt[k]; if (v !== undefined && v !== null && (v !== '' || k === 'answerNote')) __opt[k] = v; });
     var o = Object.assign({
       schoolYear: (function () { var y = new Date().getFullYear(); return (y - 1) + ' - ' + y; })(),
       department: 'SỞ GIÁO DỤC VÀ ĐÀO TẠO KHÁNH HÒA',
@@ -490,9 +506,12 @@
       semester: 'HỌC KỲ II',
       subject: 'Vật lí',
       fontSize: 14,            // pt
-      includeAnswerKey: true,
+      showRoom: true,          // false = ẩn dòng "Phòng thi" (kiểm tra tập trung, đề dùng chung các phòng)
+      mode: 'exam',            // 'exam' = file đề | 'answer' = file đáp án
+      numbering: 'template',   // 'template' = I:1..n, II:tiếp theo, III & IV đánh lại từ 1 (khớp mẫu đáp án) | 'continuous' = liên tục 1..N
+      answerNote: '✍️ Mọi cách làm đúng đều cho điểm tối đa, sai đơn vị trừ 0,25 điểm toàn bài.',
       partOf: null, markTag: null, images: {}
-    }, opt || {});
+    }, __opt);
     MATH_SZ = Math.round(o.fontSize * 2);
     var ctx = { size: Math.round(o.fontSize * 2), images: o.images || {}, maxImgW: 560, maxImgH: 420, missingImages: 0 };
     var PAGE_W = 11906, PAGE_H = 16838, MARGIN_X = 720, CONTENT_W = PAGE_W - 2 * MARGIN_X;   // 10466 dxa
@@ -506,6 +525,16 @@
     var mark = function (q) { return o.markTag ? inlineToChildren(String(o.markTag(q) || ''), ctx) : []; };
     var sections = [];
     var cellMargins = { top: 40, bottom: 40, left: 80, right: 80 };
+    var footerFor = function (leftText, wholeDoc) {
+      return new D.Footer({ children: [para([
+        run(leftText, { size: tiny }), new D.TextRun({ children: [new D.Tab(), 'Trang ', D.PageNumber.CURRENT, '/', wholeDoc ? D.PageNumber.TOTAL_PAGES : D.PageNumber.TOTAL_PAGES_IN_SECTION], font: FONT, size: tiny })],
+        { tabStops: [{ type: D.TabStopType.RIGHT, position: CONTENT_W }], border: { top: { style: D.BorderStyle.SINGLE, size: 6, color: '000000', space: 4 } } })] });
+    };
+    var pageProps = function () {
+      return { page: { size: { width: PAGE_W, height: PAGE_H }, margin: { top: 720, bottom: 1000, left: MARGIN_X, right: MARGIN_X, footer: 420, header: 360 },
+        pageNumbers: { start: 1, formatType: D.NumberFormat.DECIMAL } } };
+    };
+
 
     examPackages.forEach(function (exam) {
       var parts = buildExamData(exam, o);
@@ -550,14 +579,13 @@
             children: [dots('Họ và tên học sinh: ', leftW - 200), dots('Số báo danh: ', leftW - 200)] }),
           new D.TableCell({ width: { size: rightW, type: D.WidthType.DXA }, borders: noBorders(), margins: cellMargins,
             children: [dots('Lớp: ', rightW - 200),
-              para([run('Mã đề: ', { size: small }), run(String(code), { size: small, bold: true })], { spacing: { before: 40, after: 40 } }),
-              dots('Phòng thi: ', rightW - 200)] })
+              para([run('Mã đề: ', { size: small }), run(String(code), { size: small, bold: true })], { spacing: { before: 40, after: 40 } })]
+              .concat(o.showRoom === false ? [] : [dots('Phòng thi: ', rightW - 200)]) })
         ] })]
       }));
 
       /* ---- các phần I–IV ---- */
-      var number = 1, ranges = {};
-      ['I', 'II', 'III', 'IV'].forEach(function (p) { var c = parts[p].length; if (c) { ranges[p] = { start: number, end: number + c - 1 }; number += c; } });
+      var ranges = startsFor(parts, o.numbering);
 
       ['I', 'II', 'III', 'IV'].forEach(function (pid) {
         var qs = parts[pid], rg = ranges[pid]; if (!rg) return;
@@ -626,70 +654,176 @@
         return para([], { spacing: { before: gap, after: 80 }, border: { bottom: { style: D.BorderStyle.DASHED, size: 4, color: '999999', space: 1 } } });
       }
 
-      var footerFor = function (leftText) {
-        return new D.Footer({ children: [para([
-          run(leftText, { size: tiny }), new D.TextRun({ children: [new D.Tab(), 'Trang ', D.PageNumber.CURRENT, '/', D.PageNumber.TOTAL_PAGES_IN_SECTION], font: FONT, size: tiny })],
-          { tabStops: [{ type: D.TabStopType.RIGHT, position: CONTENT_W }], border: { top: { style: D.BorderStyle.SINGLE, size: 6, color: '000000', space: 4 } } })] });
-      };
-      var pageProps = function () {
-        return { page: { size: { width: PAGE_W, height: PAGE_H }, margin: { top: 720, bottom: 1000, left: MARGIN_X, right: MARGIN_X, footer: 420, header: 360 },
-          pageNumbers: { start: 1, formatType: D.NumberFormat.DECIMAL } } };
-      };
-      sections.push({ properties: pageProps(), footers: { default: footerFor('Mã đề ' + code) }, children: body });
+      sections.push({ properties: Object.assign({ type: D.SectionType.NEXT_PAGE }, pageProps()), footers: { default: footerFor('Mã đề ' + code) }, children: body });
 
-      /* ---- đáp án ---- */
-      if (o.includeAnswerKey) {
-        var rows = [], g = 1;
-        var th = function (t, w) {
-          return new D.TableCell({ width: { size: w, type: D.WidthType.DXA }, margins: cellMargins, shading: { type: D.ShadingType.CLEAR, fill: 'E7E6E6', color: 'auto' },
-            children: [para([run(t, { bold: true, size: small })], { alignment: D.AlignmentType.CENTER })] });
-        };
-        var AW = [1500, 6600, 2366];
-        rows.push(new D.TableRow({ tableHeader: true, cantSplit: true, children: [th('Câu', AW[0]), th('Đáp án', AW[1]), th('Điểm', AW[2])] }));
-        ['I', 'II', 'III', 'IV'].forEach(function (pid) {
-          parts[pid].forEach(function (q) {
-            var ans = [], maxScore = (q.score !== undefined && q.score !== null) ? q.score : 0.25;
-            if (q.type === 'multipleChoice' && q.choices) {
-              var ci = q.choices.findIndex(function (c) { return c.isCorrect === true || c.answer === 'true'; });
-              ans = [run(ci !== -1 ? LETTERS[ci] : '?', { size: small })]; maxScore = 0.25;
-            } else if (q.type === 'trueFalse' && q.subQuestions) {
-              ans = [run(q.subQuestions.map(function (s, i) { return String.fromCharCode(97 + i) + ') ' + ((s.answer === true || s.answer === 'true') ? 'Đ' : 'S'); }).join('; '), { size: small })]; maxScore = 1.0;
-            } else if (q.type === 'essay') {
-              ans = inlineToChildren(q.answer ? (Array.isArray(q.answer) ? q.answer[0] : q.answer) : 'Xem hướng dẫn chấm', ctx, { size: small });
-            } else if (q.type === 'essay_multi' || q.type === 'essay-multi') {
-              var pk = Object.keys(q.parts || {}).sort();
-              if (pk.length) pk.forEach(function (k, i) {
-                var a = q.parts[k] && q.parts[k].answer;
-                if (i) ans.push(new D.TextRun({ break: 1 }));
-                ans = ans.concat(inlineToChildren(k + ') ' + (Array.isArray(a) ? a.join(' hoặc ') : (a || '')), ctx, { size: small }));
-              }); else ans = [run('Xem hướng dẫn chấm chi tiết', { size: small })];
-            }
-            var cell = function (children, w, al) { return new D.TableCell({ width: { size: w, type: D.WidthType.DXA }, margins: cellMargins, children: [para(children, { alignment: al || D.AlignmentType.LEFT })] }); };
-            rows.push(new D.TableRow({ cantSplit: true, children: [
-              cell([run(String(g), { size: small })].concat(mark(q)), AW[0], D.AlignmentType.CENTER),
-              cell(ans, AW[1]),
-              cell([run(fmtScore(maxScore), { size: small })], AW[2], D.AlignmentType.CENTER)] }));
-            g++;
-          });
-        });
-        var bullet = function (t) { return para([run(t, { size: small })], { numbering: { reference: 'guide-bullets', level: 0 }, spacing: { after: 40 }, shading: { type: D.ShadingType.CLEAR, fill: 'F2F2F2', color: 'auto' } }); };
-        sections.push({ properties: pageProps(), footers: { default: footerFor('Mã đề ' + code + ' – Đáp án') }, children: [
-          para([run('ĐÁP ÁN CHI TIẾT - MÃ ĐỀ ' + code, { bold: true, size: ctx.size + 2 })], { alignment: D.AlignmentType.CENTER, spacing: { before: 120, after: 200 } }),
-          new D.Table({ width: { size: CONTENT_W, type: D.WidthType.DXA }, columnWidths: AW, rows: rows }),
-          para([run('HƯỚNG DẪN CHẤM:', { bold: true, size: small })], { spacing: { before: 300, after: 60 }, keepNext: true, shading: { type: D.ShadingType.CLEAR, fill: 'F2F2F2', color: 'auto' } }),
-          bullet('Phần I: Mỗi câu trắc nghiệm đúng được 0,25 điểm.'),
-          bullet('Phần II: Mỗi câu đúng/sai có 4 ý, tính điểm theo quy tắc: 1/4 ý đúng: 0,1đ; 2/4: 0,25đ; 3/4: 0,5đ; 4/4: 1,0đ.'),
-          bullet('Phần III: Mỗi câu trả lời ngắn đúng được 0,5 điểm.'),
-          bullet('Phần IV: Mỗi câu tự luận 1,0 điểm, chấm theo hướng dẫn chi tiết.')
-        ] });
-      }
     });
 
+
+    /* ================================================================== */
+    /*  FILE ĐÁP ÁN – đúng mẫu đáp án của trường (lưới theo mã đề)         */
+    /* ================================================================== */
+    function buildAnswerSections() {
+      var PER_Q = { I: 0.25, II: 1, III: 0.5, IV: 1 };
+      var PER_ROW = 20;                                   // số cột câu tối đa mỗi bảng Phần I / III
+      var num = function (v, d) { var n = parseFloat(v); return isNaN(n) ? d : n; };
+      var scoreOf = function (q, pid) { return num(q && q.score, PER_Q[pid]); };
+      var plain = function (t) { return stripTags(t).replace(/\s+/g, ' ').trim(); };
+      var firstAns = function (a) { return Array.isArray(a) ? a[0] : a; };
+      var isTrueAns = function (v) {
+        if (v === true || v === 1) return true;
+        return ['true', 'đúng', 'dung', 'đ', '1'].indexOf(String(v == null ? '' : v).toLowerCase().trim()) !== -1;
+      };
+      var codeNum = function (c) { var n = parseInt(c, 10); return isNaN(n) ? 0 : n; };
+      var exams = examPackages.map(function (ex) { return { code: String(ex.code), exam: ex, parts: buildExamData(ex, o) }; })
+        .sort(function (a, b) { return (codeNum(a.code) - codeNum(b.code)) || (a.code < b.code ? -1 : a.code > b.code ? 1 : 0); });
+      var first = exams[0];
+      var maxLen = function (pid) { return Math.max.apply(null, exams.map(function (e) { return e.parts[pid].length; })); };
+      var counts = { I: maxLen('I'), II: maxLen('II'), III: maxLen('III'), IV: maxLen('IV') };
+      var __rg = startsFor({ I: new Array(counts.I), II: new Array(counts.II), III: new Array(counts.III), IV: new Array(counts.IV) }, o.numbering);
+      var st = { I: (__rg.I || {}).start || 1, II: (__rg.II || {}).start || 1, III: (__rg.III || {}).start || 1, IV: (__rg.IV || {}).start || 1 };
+      var groupBy = function (list, sig) {
+        var map = {}, order = [];
+        list.forEach(function (e) { var s = sig(e); if (!map[s]) { map[s] = []; order.push(s); } map[s].push(e); });
+        return order.map(function (s) { return map[s]; });
+      };
+      var labelOf = function (grp) { return grp.map(function (e) { return e.code; }).join('-'); };
+
+      var C = D.AlignmentType.CENTER, Lf = D.AlignmentType.LEFT;
+      var tcell = function (children, w, p) {
+        p = p || {};
+        var cfg = { width: { size: w, type: D.WidthType.DXA }, margins: cellMargins, verticalAlign: D.VerticalAlign.CENTER,
+          children: [para(children, { alignment: p.align || C, spacing: { before: 0, after: 0 } })] };
+        if (p.rowSpan) cfg.rowSpan = p.rowSpan;
+        if (p.fill) cfg.shading = { type: D.ShadingType.CLEAR, fill: p.fill, color: 'auto' };
+        return new D.TableCell(cfg);
+      };
+      var tx = function (t, b) { return run(String(t), { size: small, bold: !!b }); };
+      var HEAD = 'F2F2F2';
+      var mkTable = function (widths, rows) { return new D.Table({ width: { size: widths.reduce(function (a, b) { return a + b; }, 0), type: D.WidthType.DXA }, columnWidths: widths, alignment: C, rows: rows }); };
+      var heading = function (t) { return para([run(t, { bold: true })], { spacing: { before: 280, after: 100 }, keepNext: true }); };
+      var spacer = function () { return para([], { spacing: { before: 0, after: 0 } }); };
+      var ptsOf = function (pid) { var s = 0; first.parts[pid].forEach(function (q) { s += scoreOf(q, pid); }); return s; };
+      var same = function (pid) { var v = first.parts[pid].map(function (q) { return scoreOf(q, pid); }); return v.length && v.every(function (x) { return x === v[0]; }) ? v[0] : null; };
+      var ptsTxt = function (pid) { return fmtScore(Math.round(ptsOf(pid) * 100) / 100) + ' điểm'; };
+
+      var kids = [];
+      /* ---- tiêu đề ---- */
+      var kind = String(first.exam.examName || 'ĐỀ KIỂM TRA CUỐI KỲ').replace(/^\s*ĐỀ\s+/i, '');
+      var sem = /\bII\b|2\s*$/.test(o.semester) ? '2' : (/\bI\b|1\s*$/.test(o.semester) ? '1' : '');
+      var title = o.answerTitle || ('ĐÁP ÁN BÀI ' + kind.toUpperCase() + (sem ? ' ' + sem : '') + '-' + String(o.schoolYear).replace(/\s*-\s*/, '/') + '-' + String(o.subject).toUpperCase() + ' ' + (first.exam.grade || ''));
+      kids.push(para([run(title.trim(), { bold: true, size: ctx.size + 2 })], { alignment: C, spacing: { before: 60, after: 120 } }));
+
+      /* ---- Phần I : hàng = mã đề, cột = câu ---- */
+      if (counts.I) {
+        var s1 = same('I');
+        kids.push(heading('Phần I: Trắc nghiệm nhiều lựa chọn (' + ptsTxt('I') + (s1 !== null ? ' - ' + fmtScore(s1) + '/c' : '') + ')'));
+        for (var c0 = 0; c0 < counts.I; c0 += PER_ROW) {
+          var n = Math.min(PER_ROW, counts.I - c0), w0 = 1300, wc = Math.floor((CONTENT_W - w0) / n), ws = [w0];
+          for (var k = 0; k < n; k++) ws.push(wc);
+          var rows = [new D.TableRow({ cantSplit: true, tableHeader: true, children: [tcell([tx('Mã đề', true)], w0, { fill: HEAD })].concat(
+            ws.slice(1).map(function (w, i) { return tcell([tx(c0 + i + st.I, true)], w, { fill: HEAD }); })) })];
+          exams.forEach(function (e) {
+            rows.push(new D.TableRow({ cantSplit: true, children: [tcell([tx(e.code, true)], w0, { fill: HEAD })].concat(
+              ws.slice(1).map(function (w, i) {
+                var q = e.parts.I[c0 + i], ci = q && q.choices ? q.choices.findIndex(function (c) { return c.isCorrect === true || c.answer === 'true'; }) : -1;
+                return tcell([tx(q ? (ci !== -1 ? LETTERS[ci] : '?') : '')], w);
+              })) }));
+          });
+          kids.push(mkTable(ws, rows)); kids.push(spacer());
+        }
+      }
+
+      /* ---- Phần II : cột = nhóm mã đề có cùng đáp án, hàng = câu + ý ---- */
+      if (counts.II) {
+        kids.push(heading('Phần II: Trắc nghiệm đúng sai (' + ptsTxt('II') + ' - 1 điểm/c; 1ý/c: 0,1đ, 2ý/c: 0,25đ, 3ý/c: 0,5đ, 4ý/c: 1đ)'));
+        var tfSig = function (e) { return e.parts.II.map(function (q) { return (q.subQuestions || []).map(function (s) { return isTrueAns(s.answer) ? 'Đ' : 'S'; }).join(''); }).join('|'); };
+        var groups = groupBy(exams, tfSig);
+        var wq = 1500, wy = 800, wg = Math.floor((CONTENT_W - wq - wy) / groups.length), ws2 = [wq, wy];
+        groups.forEach(function () { ws2.push(wg); });
+        var rows2 = [new D.TableRow({ cantSplit: true, tableHeader: true, children: [tcell([tx('Mã đề', true)], wq, { fill: HEAD }), tcell([], wy, { fill: HEAD })].concat(
+          groups.map(function (g) { return tcell([tx(labelOf(g), true)], wg, { fill: HEAD }); })) })];
+        for (var qi = 0; qi < counts.II; qi++) {
+          var subN = Math.max.apply(null, exams.map(function (e) { return ((e.parts.II[qi] && e.parts.II[qi].subQuestions) || []).length; })) || 1;
+          for (var si = 0; si < subN; si++) {
+            var cells = [];
+            if (si === 0) cells.push(tcell([tx('Câu ' + (st.II + qi), true)], wq, { fill: HEAD, rowSpan: subN }));
+            cells.push(tcell([tx(String.fromCharCode(97 + si) + ')', true)], wy, { fill: HEAD }));
+            groups.forEach(function (g) {
+              var q = g[0].parts.II[qi], s = q && q.subQuestions && q.subQuestions[si];
+              cells.push(tcell([tx(s ? (isTrueAns(s.answer) ? 'Đ' : 'S') : '')], wg));
+            });
+            rows2.push(new D.TableRow({ cantSplit: true, children: cells }));
+          }
+        }
+        kids.push(mkTable(ws2, rows2)); kids.push(spacer());
+      }
+
+      /* ---- Phần III : hàng = nhóm mã đề có cùng đáp án, cột = câu ---- */
+      if (counts.III) {
+        var s3 = same('III');
+        kids.push(heading('Phần III. Trắc nghiệm trả lời ngắn (' + ptsTxt('III') + (s3 !== null ? ' ; ' + fmtScore(s3) + 'đ/c' : '') + ')'));
+        var shSig = function (e) { return e.parts.III.map(function (q) { return plain(firstAns(q.answer)); }).join('|'); };
+        var g3 = groupBy(exams, shSig);
+        for (var d0 = 0; d0 < counts.III; d0 += PER_ROW) {
+          var m = Math.min(PER_ROW, counts.III - d0), wl = 1700, wk = Math.floor((CONTENT_W - wl) / m), ws3 = [wl];
+          for (var kk = 0; kk < m; kk++) ws3.push(wk);
+          var rows3 = [new D.TableRow({ cantSplit: true, tableHeader: true, children: [tcell([tx('Mã đề', true)], wl, { fill: HEAD })].concat(
+            ws3.slice(1).map(function (w, i) { return tcell([tx('Câu ' + (st.III + d0 + i), true)], w, { fill: HEAD }); })) })];
+          g3.forEach(function (g) {
+            rows3.push(new D.TableRow({ cantSplit: true, children: [tcell([tx(labelOf(g), true)], wl, { fill: HEAD })].concat(
+              ws3.slice(1).map(function (w, i) {
+                var q = g[0].parts.III[d0 + i], a = q ? firstAns(q.answer) : '';
+                return tcell(q ? (plain(a) === '' ? [tx('Xem hướng dẫn chấm')] : inlineToChildren(String(a), ctx, { size: small })) : [tx('')], w);
+              })) }));
+          });
+          kids.push(mkTable(ws3, rows3)); kids.push(spacer());
+        }
+      }
+
+      /* ---- Phần IV : tự luận – đáp án / hướng dẫn chấm theo câu, ý ---- */
+      if (counts.IV) {
+        var s4 = same('IV');
+        kids.push(heading('Phần IV. Tự luận (' + ptsTxt('IV') + (s4 !== null ? ' ; ' + fmtScore(s4) + 'đ/c' : '') + ')'));
+        var essSig = function (e) {
+          return e.parts.IV.map(function (q) { return (q.ID || '') + '#' + plain(firstAns(q.answer)) + '#' + Object.keys(q.parts || {}).sort().map(function (k) { return plain(firstAns(q.parts[k] && q.parts[k].answer)); }).join('~'); }).join('|');
+        };
+        var g4 = groupBy(exams, essSig);
+        var W4 = [1100, 800, CONTENT_W - 1100 - 800 - 1500, 1500];
+        g4.forEach(function (g) {
+          if (g4.length > 1) kids.push(para([run('Mã đề ' + labelOf(g), { bold: true, size: small })], { spacing: { before: 120, after: 60 }, keepNext: true }));
+          var rows4 = [new D.TableRow({ cantSplit: true, tableHeader: true, children: [tcell([tx('Câu', true)], W4[0], { fill: HEAD }), tcell([tx('Ý', true)], W4[1], { fill: HEAD }), tcell([tx('Đáp án / Hướng dẫn chấm', true)], W4[2], { fill: HEAD }), tcell([tx('Điểm', true)], W4[3], { fill: HEAD })] })];
+          g[0].parts.IV.forEach(function (q, qi) {
+            var total = scoreOf(q, 'IV'), pk = Object.keys(q.parts || {}).sort();
+            var body = function (a, sol) { var t = plain(firstAns(a)) !== '' ? firstAns(a) : sol; return plain(t) === '' ? [tx('Xem hướng dẫn chấm chi tiết')] : inlineToChildren(String(t), ctx, { size: small }); };
+            if (pk.length) {
+              pk.forEach(function (k, i) {
+                var pt = q.parts[k] || {};
+                var cells = [];
+                if (i === 0) cells.push(tcell([tx('Câu ' + (st.IV + qi), true)], W4[0], { fill: HEAD, rowSpan: pk.length }));
+                cells.push(tcell([tx(k + ')', true)], W4[1], { fill: HEAD }));
+                cells.push(tcell(body(pt.answer, pt.solution), W4[2], { align: Lf }));
+                cells.push(tcell([tx(fmtScore(Math.round(total / pk.length * 100) / 100))], W4[3]));
+                rows4.push(new D.TableRow({ cantSplit: true, children: cells }));
+              });
+            } else {
+              rows4.push(new D.TableRow({ cantSplit: true, children: [
+                tcell([tx('Câu ' + (st.IV + qi), true)], W4[0], { fill: HEAD }), tcell([tx('')], W4[1], { fill: HEAD }),
+                tcell(body(q.answer, q.solution), W4[2], { align: Lf }), tcell([tx(fmtScore(total))], W4[3])] }));
+            }
+          });
+          kids.push(mkTable(W4, rows4)); kids.push(spacer());
+        });
+      }
+
+      if (o.answerNote) kids.push(para([run(o.answerNote, { italics: true, size: small })], { spacing: { before: 200, after: 0 } }));
+      return [{ properties: pageProps(), footers: { default: footerFor('Đáp án – ' + o.subject + ' ' + (first.exam.grade || ''), true) }, children: kids }];
+    }
+
+
     var doc = new D.Document({
-      creator: 'Exam Export', title: 'Gói đề thi',
+      creator: 'Exam Export', title: o.mode === 'answer' ? 'Đáp án' : 'Đề thi',
       styles: { default: { document: { run: { font: FONT, size: ctx.size }, paragraph: { spacing: { line: 276, lineRule: D.LineRuleType.AUTO } } } } },
-      numbering: { config: [{ reference: 'guide-bullets', levels: [{ level: 0, format: D.LevelFormat.BULLET, text: '•', alignment: D.AlignmentType.LEFT, style: { paragraph: { indent: { left: 540, hanging: 270 } } } }] }] },
-      sections: sections
+      sections: (o.mode === 'answer') ? buildAnswerSections() : sections
     });
     doc.__missingImages = ctx.missingImages;
     return doc;
@@ -725,19 +859,40 @@
   function toBlob(doc) { return D.Packer.toBlob(doc); }
   function toBuffer(doc) { return D.Packer.toBuffer(doc); }
 
-  /** Dựng và tải xuống. Trả về { missingImages } */
+  /** Dựng đồng thời 2 tài liệu: đề (mọi mã đề, mỗi mã đề một section sang trang mới, đánh số trang lại từ 1) và đáp án (theo mẫu). */
+  function buildBoth(examPackages, opt) {
+    opt = opt || {};
+    return prefetchImages(examPackages, opt.imageFetcher).then(function (images) {
+      var base = Object.assign({}, opt, { images: images });
+      return {
+        exam: buildDocument(examPackages, Object.assign({}, base, { mode: 'exam' })),
+        answer: buildDocument(examPackages, Object.assign({}, base, { mode: 'answer' }))
+      };
+    });
+  }
+
+  function stampNow() { return new Date().toISOString().slice(0, 19).replace(/:/g, '-'); }
+  function saveBlob(blob, name) {
+    var a = document.createElement('a'), url = URL.createObjectURL(blob);
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  /** Dựng và tải xuống HAI file: De_thi_*.docx và Dap_an_*.docx. Trả về { missingImages, files } */
   function download(examPackages, opt) {
-    return Promise.resolve(loadDocx()).then(function () { return build(examPackages, opt); }).then(function (doc) {
-      return D.Packer.toBlob(doc).then(function (blob) {
-        var a = document.createElement('a'), url = URL.createObjectURL(blob);
-        a.href = url; a.download = 'Goi_de_thi_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.docx';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-        return { missingImages: doc.__missingImages || 0 };
+    opt = opt || {};
+    return Promise.resolve(loadDocx()).then(function () { return buildBoth(examPackages, opt); }).then(function (docs) {
+      return Promise.all([D.Packer.toBlob(docs.exam), D.Packer.toBlob(docs.answer)]).then(function (blobs) {
+        var st = stampNow();
+        var names = [(opt.examFileName || 'De_thi') + '_' + st + '.docx', (opt.answerFileName || 'Dap_an') + '_' + st + '.docx'];
+        saveBlob(blobs[0], names[0]);
+        setTimeout(function () { saveBlob(blobs[1], names[1]); }, 800);   // giãn nhịp để trình duyệt không chặn tải 2 file liên tiếp
+        return { missingImages: (docs.exam.__missingImages || 0), files: names };
       });
     });
   }
 
-  return { build: build, buildDocument: buildDocument, download: download, toBlob: toBlob, toBuffer: toBuffer, texToMath: texToMath, parseTeX: parseTeX,
-    prefetchImages: prefetchImages, loadDocx: loadDocx, version: '1.0' };
+  return { build: build, buildBoth: buildBoth, buildDocument: buildDocument, download: download, toBlob: toBlob, toBuffer: toBuffer, texToMath: texToMath, parseTeX: parseTeX,
+    prefetchImages: prefetchImages, loadDocx: loadDocx, version: '2.0' };
 });
