@@ -6,7 +6,7 @@
  *  - v2.0: xuất HAI file riêng: De_thi_*.docx (mọi mã đề) và Dap_an_*.docx (đáp án theo mẫu của trường)
  *  - Mỗi mã đề là một section riêng: bắt đầu ở đầu trang mới và đánh số trang lại từ 1
  *  - Mã đề giữ nguyên chuỗi (vd "0201"), không bị mất số 0 đầu
- *  - Đánh số câu: numbering 'template' (mặc định, khớp mẫu đáp án) hoặc 'continuous'
+ *  - Đánh số câu: numbering 'auto' (mặc định: TX liên tục, GK/CK mỗi phần đánh lại từ 1), hoặc ép 'restart' | 'template' | 'continuous'
  *  - Hình ảnh nhúng thẳng vào file (data: URI, hoặc tải qua fetch nếu server cho phép CORS)
  *
  * Phụ thuộc: thư viện "docx" (UMD, biến toàn cục `docx`) – xem loadDocx() bên dưới.
@@ -466,15 +466,38 @@
     return { top: none, bottom: none, left: none, right: none };
   }
 
-  /** Số câu bắt đầu của từng phần. 'template': I 1..n, II nối tiếp, III & IV đánh lại từ 1 (đúng mẫu đáp án). 'continuous': 1..N liên tục. */
+  /** Số câu bắt đầu của từng phần.
+   *  'restart'   : mỗi phần đánh lại từ Câu 1 (đúng mẫu ĐỀ GK/CK).
+   *  'template'  : I 1..n, II nối tiếp, III & IV đánh lại từ 1 (đúng mẫu ĐÁP ÁN GK: Phần II ghi Câu 13, 14).
+   *  'continuous': 1..N liên tục (đúng mẫu TX). */
   function startsFor(parts, scheme) {
     var n = { I: parts.I.length, II: parts.II.length, III: parts.III.length, IV: parts.IV.length };
     var st = scheme === 'continuous'
       ? { I: 1, II: 1 + n.I, III: 1 + n.I + n.II, IV: 1 + n.I + n.II + n.III }
-      : { I: 1, II: 1 + n.I, III: 1, IV: 1 };
+      : (scheme === 'restart'
+        ? { I: 1, II: 1, III: 1, IV: 1 }
+        : { I: 1, II: 1 + n.I, III: 1, IV: 1 });
     var r = {};
     ['I', 'II', 'III', 'IV'].forEach(function (p) { if (n[p]) { r[p] = { start: st[p], end: st[p] + n[p] - 1 }; } });
     return r;
+  }
+
+  /** Nhận diện loại bài từ tên đề người dùng nhập: 'TX' | 'GK' | 'CK' | 'OTHER'. */
+  function examKindOf(name) {
+    var s = String(name == null ? '' : name).toUpperCase();
+    if (/(^|[^A-Z0-9])TX\s*\d*([^A-Z0-9]|$)/.test(s) || /THƯỜNG\s*XUYÊN/.test(s)) return 'TX';
+    if (/GIỮA\s*(KỲ|KÌ)/.test(s) || /(^|[^A-Z0-9])GK\s*\d*([^A-Z0-9]|$)/.test(s)) return 'GK';
+    if (/CUỐI\s*(KỲ|KÌ)/.test(s) || /(^|[^A-Z0-9])CK\s*\d*([^A-Z0-9]|$)/.test(s)) return 'CK';
+    return 'OTHER';
+  }
+
+  /** Chọn cách đánh số. 'auto' (mặc định): TX liên tục; GK/CK/khác: mỗi phần đánh lại từ 1;
+   *  riêng ĐÁP ÁN GK giữ 'template' (Phần II: Câu 13, 14) đúng mẫu đáp án GK của trường. */
+  function resolveNumbering(scheme, kind, mode) {
+    if (scheme && scheme !== 'auto') return scheme;
+    if (kind === 'TX') return 'continuous';
+    if (kind === 'GK' && mode === 'answer') return 'template';
+    return 'restart';
   }
 
   function buildExamData(exam, o) {
@@ -508,10 +531,11 @@
       fontSize: 14,            // pt
       showRoom: true,          // false = ẩn dòng "Phòng thi" (kiểm tra tập trung, đề dùng chung các phòng)
       mode: 'exam',            // 'exam' = file đề | 'answer' = file đáp án
-      numbering: 'template',   // 'template' = I:1..n, II:tiếp theo, III & IV đánh lại từ 1 (khớp mẫu đáp án) | 'continuous' = liên tục 1..N
+      numbering: 'auto',       // 'auto' = theo loại bài (TX liên tục; GK/CK mỗi phần đánh lại từ 1; đáp án GK: Phần II nối tiếp) | 'restart' | 'template' | 'continuous'
       answerNote: '✍️ Mọi cách làm đúng đều cho điểm tối đa, sai đơn vị trừ 0,25 điểm toàn bài.',
       partOf: null, markTag: null, images: {}
     }, __opt);
+    var __numScheme = resolveNumbering(o.numbering, examKindOf(examPackages && examPackages[0] && examPackages[0].examName), o.mode);
     MATH_SZ = Math.round(o.fontSize * 2);
     var ctx = { size: Math.round(o.fontSize * 2), images: o.images || {}, maxImgW: 560, maxImgH: 420, missingImages: 0 };
     var PAGE_W = 11906, PAGE_H = 16838, MARGIN_X = 720, CONTENT_W = PAGE_W - 2 * MARGIN_X;   // 10466 dxa
@@ -585,7 +609,7 @@
       }));
 
       /* ---- các phần I–IV ---- */
-      var ranges = startsFor(parts, o.numbering);
+      var ranges = startsFor(parts, __numScheme);
 
       ['I', 'II', 'III', 'IV'].forEach(function (pid) {
         var qs = parts[pid], rg = ranges[pid]; if (!rg) return;
@@ -679,7 +703,7 @@
       var first = exams[0];
       var maxLen = function (pid) { return Math.max.apply(null, exams.map(function (e) { return e.parts[pid].length; })); };
       var counts = { I: maxLen('I'), II: maxLen('II'), III: maxLen('III'), IV: maxLen('IV') };
-      var __rg = startsFor({ I: new Array(counts.I), II: new Array(counts.II), III: new Array(counts.III), IV: new Array(counts.IV) }, o.numbering);
+      var __rg = startsFor({ I: new Array(counts.I), II: new Array(counts.II), III: new Array(counts.III), IV: new Array(counts.IV) }, __numScheme);
       var st = { I: (__rg.I || {}).start || 1, II: (__rg.II || {}).start || 1, III: (__rg.III || {}).start || 1, IV: (__rg.IV || {}).start || 1 };
       var groupBy = function (list, sig) {
         var map = {}, order = [];
