@@ -156,20 +156,26 @@
 
       // NOT_PURCHASED / MISSING_INFO: cho biết cần mua gì
       var missing = (res && res.missingGrades && res.missingGrades.length) ? res.missingGrades : grades;
-      var lines = [], link = '';
+      var choices = [], seen = {};
       missing.forEach(function (g) {
-        var offers = (res && res.offers && res.offers[g]) || [];
-        offers.forEach(function (o) {
-          var price = Number(o.price) > 0 ? ' - ' + Number(o.price).toLocaleString('vi-VN') + 'đ' : '';
-          lines.push('• ' + o.name + price);
-          if (!link && o.url) link = o.url;
+        ((res && res.offers && res.offers[g]) || []).forEach(function (o) {
+          if (!seen[o.id]) { seen[o.id] = 1; choices.push(o); }
         });
+      });
+      var lines = choices.map(function (o, i) {
+        var price = Number(o.price) > 0 ? ' - ' + Number(o.price).toLocaleString('vi-VN') + 'đ' : '';
+        return (i + 1) + '. ' + o.name + price;
       });
       var need = lines.length ? lines.join('\n') : 'Khóa học/Tài liệu tương ứng với lớp ' + missing.join(', ');
       var msg = 'Số ' + phone.slice(0, 4) + '*** chưa có quyền tải đề lớp ' + missing.join(', ') +
-                '.\nMua một trong các sản phẩm sau để tải:\n' + need;
-      if (link && window.confirm(msg + '\n\nMở trang mua ngay?')) window.open(link, '_blank');
-      else notify('🔒 ' + msg.replace(/\n/g, ' '), 'warning');
+                '.\nCác sản phẩm có thể mua:\n' + need;
+      var opened = false;
+      if (choices.length) {
+        var pick = parseInt(window.prompt(msg + '\n\nNhập số thứ tự gói muốn mua (Hủy để thôi):') || '', 10);
+        var chosen = choices[pick - 1];
+        if (chosen && chosen.url) { window.open(chosen.url, '_blank'); opened = true; }
+      }
+      if (!opened) notify('🔒 ' + msg.replace(/\n/g, ' '), 'warning');
 
       if (attempt === 0) {
         var other = (window.prompt('Nhập số điện thoại khác (Hủy để thôi):') || '').trim();
