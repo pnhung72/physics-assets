@@ -1,5 +1,5 @@
 /*!
- * download_guard.js  (v1.0)  -  Bảo vệ nút "Tải gói đề" của TestOnline
+ * download_guard.js  (v1.1)  -  Bảo vệ nút "Tải gói đề" của TestOnline
  * ---------------------------------------------------------------------------
  * Đặt tại: physics-assets/TestOnline/download_guard.js
  * Nạp ở CUỐI trang TestOnline (sau mọi <script> khác), 1 dòng duy nhất:
@@ -72,11 +72,33 @@
     return fetch(url).then(function (r) { return r.json(); });
   }
 
+  // Admin: chỉ tin token thật trong sessionStorage và LUÔN hỏi lại server (validateToken, role 'full').
+  // Không tin cờ chỉ lưu ở trình duyệt (localStorage/biến) vì ai cũng tự đặt được.
+  async function adminValidated() {
+    try {
+      var tok = sessionStorage.getItem('adminAuthToken');
+      if (!tok) return false;
+      var api = (typeof ADMIN_AUTH_API !== 'undefined') ? ADMIN_AUTH_API : '';
+      if (!api) return false;
+      var body = new URLSearchParams();
+      body.append('action', 'validateToken');
+      body.append('token', tok);
+      var r = await fetch(api, { method: 'POST', body: body });
+      var j = await r.json();
+      return !!(j && j.success && j.data && j.data.valid && (j.data.role || 'full') === 'full');
+    } catch (e) { return false; }
+  }
+
   // true = được phép tải. Lỗi mạng/lỗi server = từ chối (không mở quyền).
   async function requireAccess() {
     var grades = gradesList();
     if (!grades.length) { notify('❌ Không xác định được khối lớp của đề', 'error'); return false; }
     if (hasValidToken(grades)) return true;
+    // Admin đã đăng nhập (token do server cấp, được server xác thực lại) -> miễn kiểm tra mua khóa.
+    if (await adminValidated()) {
+      auth = { token: 'admin', exp: Date.now() + 30 * 60 * 1000, grades: grades.join(',') };
+      return true;
+    }
     if (!authApi()) { notify('❌ Chưa cấu hình máy chủ kiểm tra quyền tải.', 'error'); return false; }
 
     var phone = '';
