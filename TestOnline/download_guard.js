@@ -1,5 +1,5 @@
 /*!
- * download_guard.js  (v1.1)  -  Bảo vệ nút "Tải gói đề" của TestOnline
+ * download_guard.js  (v1.2)  -  Bảo vệ nút "Tải gói đề" của TestOnline
  * ---------------------------------------------------------------------------
  * Đặt tại: physics-assets/TestOnline/download_guard.js
  * Nạp ở CUỐI trang TestOnline (sau mọi <script> khác), 1 dòng duy nhất:
@@ -10,6 +10,10 @@
  *  2) Bọc window.downloadPackage: hỏi server "số điện thoại này đã mua khóa của
  *     lớp trong đề chưa?" trước khi cho mở hộp thoại xuất.
  *  3) Bọc window.processExport: lớp phòng thủ thứ hai (chặn gọi thẳng từ F12).
+ *
+ * v1.2: nhận token admin từ cả sessionStorage (adminAuthToken) lẫn localStorage
+ * (ae_session của đăng nhập trang chủ, adminAuth của nút "Chế độ Admin").
+ * Token luôn được server xác thực lại qua validateToken.
  *
  * LƯU Ý BẢO MẬT: file này nằm trên repo public nên chỉ là lớp ngăn người dùng
  * thông thường. Quyền thật nằm ở server (action authorizeDownload trong script
@@ -72,11 +76,28 @@
     return fetch(url).then(function (r) { return r.json(); });
   }
 
-  // Admin: chỉ tin token thật trong sessionStorage và LUÔN hỏi lại server (validateToken, role 'full').
-  // Không tin cờ chỉ lưu ở trình duyệt (localStorage/biến) vì ai cũng tự đặt được.
+  // Lấy token admin ở mọi nơi các hệ đăng nhập có thể lưu. Chỉ là token do server cấp;
+  // quyền thật vẫn do server quyết định qua validateToken bên dưới.
+  function getAdminToken() {
+    try {
+      var t = sessionStorage.getItem('adminAuthToken');
+      if (t) return t;
+    } catch (e) {}
+    try {   // đăng nhập ở ô "admin" trên trang chủ (theme)
+      var ae = JSON.parse(localStorage.getItem('ae_session') || 'null');
+      if (ae && ae.token && (Date.now() - (ae.ts || 0)) < 86400000) return ae.token;
+    } catch (e) {}
+    try {   // đăng nhập bằng nút đỏ "Chế độ Admin" của trang TestOnline
+      var sv = JSON.parse(localStorage.getItem('adminAuth') || 'null');
+      if (sv && sv.tok && (Date.now() - (sv.t || 0)) < 86400000) return sv.tok;
+    } catch (e) {}
+    return '';
+  }
+
+  // Admin: LUÔN hỏi lại server (validateToken, role 'full'). Không tin cờ chỉ lưu ở trình duyệt.
   async function adminValidated() {
     try {
-      var tok = sessionStorage.getItem('adminAuthToken');
+      var tok = getAdminToken();
       if (!tok) return false;
       var api = (typeof ADMIN_AUTH_API !== 'undefined') ? ADMIN_AUTH_API : '';
       if (!api) return false;
@@ -178,5 +199,5 @@
     return origExport.apply(this, arguments);
   };
 
-  console.log('[download_guard] đã bật kiểm tra quyền tải gói đề');
+  console.log('[download_guard] v1.2 đã bật kiểm tra quyền tải gói đề');
 })();
