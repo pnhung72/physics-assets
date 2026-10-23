@@ -1,5 +1,5 @@
 /*!
- * download_guard.js  (v1.2)  -  Bảo vệ nút "Tải gói đề" của TestOnline
+ * download_guard.js  (v1.3)  -  Bảo vệ nút "Tải gói đề" của TestOnline
  * ---------------------------------------------------------------------------
  * Đặt tại: physics-assets/TestOnline/download_guard.js
  * Nạp ở CUỐI trang TestOnline (sau mọi <script> khác), 1 dòng duy nhất:
@@ -11,6 +11,7 @@
  *     lớp trong đề chưa?" trước khi cho mở hộp thoại xuất.
  *  3) Bọc window.processExport: lớp phòng thủ thứ hai (chặn gọi thẳng từ F12).
  *
+ * v1.3: hiện hạn dùng gói đề Word sau khi xác thực.
  * v1.2: nhận token admin từ cả sessionStorage (adminAuthToken) lẫn localStorage
  * (ae_session của đăng nhập trang chủ, adminAuth của nút "Chế độ Admin").
  * Token luôn được server xác thực lại qua validateToken.
@@ -143,6 +144,9 @@
       if (res && res.allowed && res.token) {
         try { localStorage.setItem('userPhone', phone); } catch (e) {}
         auth = { token: res.token, exp: res.expiresAt, grades: grades.join(',') };
+        if (res.plan && res.plan !== 'course' && res.plan !== 'beta' && res.until) {
+          notify('✅ Gói đề Word còn hiệu lực: ' + res.until, 'success');
+        }
         return true;
       }
 
@@ -199,5 +203,5 @@
     return origExport.apply(this, arguments);
   };
 
-  console.log('[download_guard] v1.2 đã bật kiểm tra quyền tải gói đề');
+  console.log('[download_guard] v1.3 đã bật kiểm tra quyền tải gói đề');
 })();
