@@ -616,15 +616,28 @@ function isAnswerFile(f) {
    if (!(/\.(docx|xlsx)$/i.test(f.name) || f.mime === MIME_GDOC)) return false;
    return /^(DaT?\d|DaT?_|Da\d|đáp án|dap_?an)/i.test(f.name.normalize ? f.name.normalize('NFC') : f.name);
 }
-
-// 1) thư mục công cụ: lấy file mới nhất (không phải QR_/TNM_) → QR cùng thư mục
-async function convertToolFolder() {
-   var l = (await driveGet({ action: 'list', folderId: TOOL_FOLDER })).files.filter(function (f) { return !/^(QR_|TNM_)/i.test(f.name) && (/\.(docx|xlsx)$/i.test(f.name) || f.mime === MIME_GDOC); });
-   if (!l.length) throw new Error('Thư mục công cụ chưa có file đáp án (.docx / .xlsx)');
-   l.sort(function (a, b) { return b.updated - a.updated; });
-   var res = await makeQrFor(l[0], TOOL_FOLDER);
-   if (!res.skipped) notify('✅ Đã tạo QR cho "' + l[0].name + '" (' + res.codes + ' mã đề) — xem trong thư mục công cụ.', 'success');
-   return res;
+// 1) thư mục công cụ: tìm MỌI file đáp án chưa có QR_<tên> → tạo QR cùng thư mục
+async function convertToolFolder(log) {
+   var files = (await driveGet({ action: 'list', folderId: TOOL_FOLDER })).files;
+   var have = {}; files.forEach(function (f) { have[f.name] = 1; });
+   var todo = files.filter(function (f) {
+      if (/^(QR_|TNM_)/i.test(f.name)) return false;
+      if (!(/\.(docx|xlsx)$/i.test(f.name) || f.mime === MIME_GDOC)) return false;
+      var base = f.name.replace(/\.[^.]+$/, '');
+      return !have['QR_' + base + '.docx'] && !have['QR_' + base + '_1.png'];
+   }).sort(function (a, b) { return b.updated - a.updated; });
+   if (!todo.length) { notify('✅ Thư mục công cụ: mọi file đáp án đã có QR.', 'success'); return { files: 0, codes: 0 }; }
+   if (!window.confirm('Thư mục công cụ có ' + todo.length + ' file đáp án chưa có QR:\n\n' + todo.slice(0, 12).map(function (f) { return '• ' + f.name; }).join('\n') + '\n\nTạo QR cho tất cả? (mỗi file sẽ hỏi xác nhận kết quả đọc)')) return { skipped: true };
+   var nFiles = 0, nCodes = 0;
+   for (var k = 0; k < todo.length; k++) {
+      try {
+         var r = await makeQrFor(todo[k], TOOL_FOLDER);
+         if (r.skipped) { log && log('⏭ Bỏ qua: ' + todo[k].name); continue; }
+         nFiles++; nCodes += r.codes; log && log('✔ ' + todo[k].name + ' (' + r.codes + ' mã đề)');
+      } catch (e) { log && log('✖ ' + todo[k].name + ' — ' + e.message); }
+   }
+   notify('✅ Đã tạo QR cho ' + nFiles + '/' + todo.length + ' file trong thư mục công cụ.', 'success');
+   return { files: nFiles, codes: nCodes };
 }
 // 2) quét đề nhà trường: đáp án chưa có QR_<tên>.docx
 async function scanSchool(log) {
@@ -681,7 +694,7 @@ function buildPanel() {
    function run(fn) { return function () { fn().catch(function (e) { log('✖ ' + e.message); notify('⚠️ ' + e.message, 'warning'); }); }; }
    document.getElementById('tnmd-save').onclick = function () { try { localStorage.setItem(LS_URL, document.getElementById('tnmd-url').value.trim()); localStorage.setItem(LS_TOK, document.getElementById('tnmd-tok').value.trim()); log('Đã lưu cấu hình.'); } catch (e) { log('Không lưu được: ' + e.message); } };
    document.getElementById('tnmd-ping').onclick = run(async function () { document.getElementById('tnmd-save').click(); await driveGet({ action: 'ping' }); log('✔ Kết nối Drive thành công'); });
-   document.getElementById('tnmd-conv').onclick = run(async function () { log('Đang đọc thư mục công cụ…'); var r = await convertToolFolder(); log(r.skipped ? 'Đã bỏ qua.' : '✔ Xong: ' + r.codes + ' mã đề'); });
+   document.getElementById('tnmd-conv').onclick = run(async function () { log('Đang đọc thư mục công cụ…'); var r = await convertToolFolder(log); log(r.skipped ? 'Đã bỏ qua.' : '✔ Xong: ' + r.files + ' file, ' + r.codes + ' mã đề'); });
    document.getElementById('tnmd-scan').onclick = run(async function () { log('Đang quét…'); await scanSchool(log); log('Xong.'); });
 }
 if (typeof window.TNM_EXPORT_XLSX === 'undefined') window.TNM_EXPORT_XLSX = true;
