@@ -1,5 +1,5 @@
 /*!
- * tnmaker_qr_export.js  (v1.0)
+ * tnmaker_qr_export.js  (v1.2)
  * Xuất mã QR đáp án chuẩn TNMaker (Smart Test, type 5) vào file Word riêng,
  * và (tuỳ chọn) file Excel đáp án mẫu SmartTest (sheet BTPRO).
  * Đặt cùng thư mục với exam_docx_export.js:  physics-assets/TestOnline/tnmaker_qr_export.js
@@ -38,7 +38,11 @@ function tnmCollectParts(exam) {
    });
    buckets.III.forEach(function (q) {
       var a = Array.isArray(q.answer) ? q.answer[0] : q.answer;
-      a = String(a == null ? '' : a).replace(/<[^>]*>/g, '').replace(/\\[()]|\$/g, '')
+      a = String(a == null ? '' : a).replace(/<[^>]*>/g, '').replace(/\\[()\[\]]|\$/g, '')
+         .replace(/\{,\}/g, ',')                                  // LaTeX 2{,}5 → 2,5
+         .replace(/\\(?:,|;|:|!|quad|qquad|left|right|displaystyle)/g, '')
+         .replace(/\\(?:text|mathrm)\{[^}]*\}/g, '')              // bỏ đơn vị dạng \text{m/s}
+         .replace(/[{}]/g, '')
          .replace(/\s+/g, '').replace(/[−–]/g, '-').replace(/,/g, '.');   // dạng chuẩn: dấu chấm
       r.sa.push(a);
    });
@@ -51,7 +55,7 @@ function tnmCollectAnswers(exam) {          // dùng cho Excel (Smart Test): tr�
 function tnmColName(n) { var s = ''; n++; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
 function tnmEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 async function tnmBuildXlsx(examPackages) {
-   var cols = examPackages.map(function (e) { return { code: String(e.code), ans: tnmCollectAnswers(e) }; });
+   var cols = examPackages.map(function (e) { return { code: String(e.code), ans: e._ans || tnmCollectAnswers(e) }; });
    var nQ = Math.max.apply(null, cols.map(function (c) { return c.ans.length; }).concat([0]));
    var sst = [], sstMap = {};
    function si(s) { s = String(s); if (!(s in sstMap)) { sstMap[s] = sst.length; sst.push(s); } return sstMap[s]; }
@@ -79,6 +83,11 @@ async function tnmBuildXlsx(examPackages) {
    zip.file('xl/sharedStrings.xml', X + '<sst ' + NS + ' count="' + sst.length + '" uniqueCount="' + sst.length + '">' + sst.map(function (s) { return '<si><t xml:space="preserve">' + tnmEsc(s) + '</t></si>'; }).join('') + '</sst>');
    return { blob: await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), cols: cols, nQ: nQ };
 }
+async function tnmXlsxFromMap(map) {
+   if (typeof JSZip === 'undefined') throw new Error('Chưa tải được thư viện JSZip');
+   var pk = Object.keys(map).map(function (k) { var r = map[k]; return { code: k, _ans: (r.mc || []).concat(r.tf || [], (r.sa || []).map(function (x) { return String(x).replace(/\./g, ','); })) }; });
+   return (await tnmBuildXlsx(pk)).blob;
+}
 async function exportTNMakerExcel(examPackages) {
    if (typeof JSZip === 'undefined') throw new Error('Chưa tải được thư viện JSZip');
    var res = await tnmBuildXlsx(examPackages);
@@ -99,11 +108,7 @@ async function exportTNMakerExcel(examPackages) {
 var TNM_QR_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
 var TNM_QR_MAX_BYTES = 1700;   // vượt mức này thì tách thành nhiều QR cho dễ quét
 function tnmByteLen(s) { return new TextEncoder().encode(s).length; }
-function tnmQrPayloads(examPackages) {
-   var items = examPackages.map(function (e) {
-      var r = tnmCollectParts(e);
-      return [String(e.code), r.mc.join('') + '#' + r.tf.join('_') + '#' + r.sa.join('_')];
-   });
+function tnmGroupItems(items) {
    var groups = [], cur = {}, curN = 0;
    function str(o) { var x = JSON.parse(JSON.stringify(o)); x.success = true; x.type = 5; return JSON.stringify(x); }
    items.forEach(function (it) {
@@ -113,6 +118,14 @@ function tnmQrPayloads(examPackages) {
    });
    if (curN > 0) groups.push(cur);
    return groups.map(function (g) { return { codes: Object.keys(g), text: str(g) }; });
+}
+function tnmItemOf(code, r) { return [String(code), r.mc.join('') + '#' + r.tf.join('_') + '#' + r.sa.join('_')]; }
+function tnmQrPayloads(examPackages) {
+   return tnmGroupItems(examPackages.map(function (e) { return tnmItemOf(e.code, tnmCollectParts(e)); }));
+}
+// map = { "0201": { mc:['A',..], tf:['ĐSĐS',..], sa:['3.95',..] }, ... }  (đọc từ file đáp án trên Drive)
+function tnmQrPayloadsFromMap(map) {
+   return tnmGroupItems(Object.keys(map).map(function (k) { var r = map[k]; return tnmItemOf(k, { mc: r.mc || [], tf: r.tf || [], sa: r.sa || [] }); }));
 }
 function tnmLoadQrLib() {
    if (typeof qrcode !== 'undefined') return Promise.resolve();
@@ -151,32 +164,39 @@ async function tnmBuildQrDocx(D, groups, pngs, meta) {
       if (meta && meta.title) kids.push(new P({ alignment: AL.CENTER, children: [new T({ text: meta.title, size: 26, font: 'Times New Roman' })] }));
       kids.push(new P({ alignment: AL.CENTER, spacing: { before: 120, after: 120 }, children: [new T({ text: 'Mã đề: ' + g.codes.join(', ') + (groups.length > 1 ? '   (QR ' + (i + 1) + '/' + groups.length + ')' : ''), size: 26, font: 'Times New Roman' })] }));
       kids.push(new P({ alignment: AL.CENTER, children: [new D.ImageRun({ type: 'png', data: pngs[i], transformation: { width: 380, height: 380 } })] }));
+      if (meta && meta.barem && meta.barem.length && i === 0) {
+         kids.push(new P({ spacing: { before: 200 }, children: [new T({ text: 'Barem điểm (trích từ file đáp án – cài trong app TNMaker nếu cần):', bold: true, size: 22, font: 'Times New Roman' })] }));
+         meta.barem.forEach(function (ln) { kids.push(new P({ children: [new T({ text: '• ' + ln, size: 22, font: 'Times New Roman' })] })); });
+      }
       kids.push(new P({ alignment: AL.CENTER, spacing: { before: 160 }, children: [new T({ text: 'Dành cho giáo viên – KHÔNG phát cho học sinh. Trong app TNMaker chọn "Nhập đáp án bằng QR" rồi quét mã này.', italics: true, size: 22, font: 'Times New Roman' })] }));
    });
    return await D.Packer.toBlob(new D.Document({ sections: [{ children: kids }] }));
 }
-async function exportTNMakerQR(examPackages) {
+// Dựng QR + file Word (không tải xuống). Trả về { kind:'docx', blob, groups } hoặc { kind:'png', pngs, groups }
+async function tnmRender(groups, meta) {
    await tnmLoadQrLib();
-   var groups = tnmQrPayloads(examPackages), pngs = [];
+   var pngs = [];
    for (var i = 0; i < groups.length; i++) pngs.push(await tnmQrPngBytes(tnmQrMatrix(groups[i].text)));
-   var cfg = window.currentExportConfig || {}, stamp = new Date().toISOString().slice(0, 10);
    var D = window.docx || (window.ExamDocx && window.ExamDocx.docx);
-   if (D && D.ImageRun && D.Packer) {
-      var blob = await tnmBuildQrDocx(D, groups, pngs, { title: cfg.examName || '' });
-      tnmSave(blob, 'QR_dap_an_TNMaker_' + stamp + '.docx');
-   } else {
-      pngs.forEach(function (b, i) { tnmSave(new Blob([b], { type: 'image/png' }), 'QR_dap_an_TNMaker_' + stamp + '_' + (i + 1) + '.png'); });
-   }
+   if (D && D.ImageRun && D.Packer) return { kind: 'docx', blob: await tnmBuildQrDocx(D, groups, pngs, meta), groups: groups, pngs: pngs };
+   return { kind: 'png', pngs: pngs, groups: groups };
+}
+async function exportTNMakerQR(examPackages, config) {
+   var groups = tnmQrPayloads(examPackages);
+   var cfg = config || window.currentExportConfig || {}, stamp = new Date().toISOString().slice(0, 10);
+   var r = await tnmRender(groups, { title: cfg.examName || '' });
+   if (r.kind === 'docx') tnmSave(r.blob, 'QR_dap_an_TNMaker_' + stamp + '.docx');
+   else r.pngs.forEach(function (b, i) { tnmSave(new Blob([b], { type: 'image/png' }), 'QR_dap_an_TNMaker_' + stamp + '_' + (i + 1) + '.png'); });
    notify('✅ Đã xuất ' + groups.length + ' mã QR đáp án TNMaker (' + examPackages.length + ' mã đề).', 'success');
    return groups;
 }
 
 
-async function run(examPackages) {
+async function run(examPackages, config) {
    var out = {};
-   out.qr = await exportTNMakerQR(examPackages);
+   out.qr = await exportTNMakerQR(examPackages, config);
    if (window.TNM_EXPORT_XLSX) { try { out.xlsx = await exportTNMakerExcel(examPackages); } catch (e) { console.error('TNMaker xlsx:', e); } }
    return out;
 }
-window.TNMakerQR = { run: run, exportQR: exportTNMakerQR, exportExcel: exportTNMakerExcel, payloads: tnmQrPayloads, version: '1.0' };
+window.TNMakerQR = { run: run, exportQR: exportTNMakerQR, exportExcel: exportTNMakerExcel, payloads: tnmQrPayloads, payloadsFromMap: tnmQrPayloadsFromMap, render: tnmRender, buildXlsxFromMap: tnmXlsxFromMap, version: '1.2' };
 })();
