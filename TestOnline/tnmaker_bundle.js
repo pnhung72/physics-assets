@@ -299,7 +299,7 @@ function headerRow(grid) {
 }
 function isHorizontal(grid, h) {   // Phần I kiểu TX: hàng đầu là số câu 1..N, cột đầu là mã đề
    var nums = 0, tot = 0;
-   for (var c = 1; c < grid[h].length; c++) { var t = grid[h][c].t; if (!t) continue; tot++; if (/^\d{1,3}$/.test(t)) nums++; }
+   for (var c = 1; c < grid[h].length; c++) { var t = grid[h][c].t; if (!t) continue; tot++; if (/^(?:câu\s*)?\d{1,3}$/i.test(nfc(t))) nums++; }
    return tot > 0 && nums === tot;
 }
 function leftNumber(row, from) {
@@ -313,7 +313,7 @@ function parseMcSa(grid, kind, map, warn) {
       for (var r = h + 1; r < grid.length; r++) {
          var codes = codesIn(grid[r][0].t); if (!codes.length) continue;
          for (var c = 1; c < grid[r].length; c++) {
-            var n = parseInt(grid[h][c].t, 10); if (!n) continue;
+            var mm = /(\d{1,3})/.exec(grid[h][c].t), n = mm ? parseInt(mm[1], 10) : 0; if (!n) continue;
             var v = isMC ? nfc(norm(grid[r][c].t)).toUpperCase() : normSA(grid[r][c].t);
             if (isMC && !/^[A-D]$/.test(v)) v = '';
             codes.forEach(function (cd) { ensure(map, cd)[kind][n - 1] = v; });
