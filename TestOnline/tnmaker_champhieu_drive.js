@@ -1,4 +1,4 @@
-/*! tnmaker_champhieu_drive.js (v0.5) — v0.4: ghi điểm vào sổ Quản lí điểm (lớp mình dạy: TX trung bình cộng + ghi chú ô; GK/CK giữ nguyên, không ghi đè) hoặc file riêng (chấm chéo); điểm quy đổi về thang 10; hoàn tác lần ghi. v0.3: nạp SAU tnmaker_bundle.js. v0.3: cơ cấu điểm chỉnh được trên giao diện (lưu theo lớp/loại bài). v0.2: dùng lõi Tnmaker_cham_core.js + khóa JSON (dapan_<loại>_vl<lớp>.json), bỏ Tnmaker_grade.js/Tnmaker_champhieu.js/dapan_TX1.js.
+/*! tnmaker_champhieu_drive.js (v0.6) — v0.4: ghi điểm vào sổ Quản lí điểm (lớp mình dạy: TX trung bình cộng + ghi chú ô; GK/CK giữ nguyên, không ghi đè) hoặc file riêng (chấm chéo); điểm quy đổi về thang 10; hoàn tác lần ghi. v0.3: nạp SAU tnmaker_bundle.js. v0.3: cơ cấu điểm chỉnh được trên giao diện (lưu theo lớp/loại bài). v0.2: dùng lõi Tnmaker_cham_core.js + khóa JSON (dapan_<loại>_vl<lớp>.json), bỏ Tnmaker_grade.js/Tnmaker_champhieu.js/dapan_TX1.js.
  * Thêm nút "📝 Chấm phiếu" vào bảng ☁️ TNMaker Drive: đọc phiếu M02 -> chấm TX1 -> vẽ mực đỏ -> lưu ảnh vào thư mục "Chấm bài" trên Drive.
  * Tự nạp thêm (cùng thư mục với file này): tnreader.js, Tnmaker_cham_core.js, layout_TLTN.js; khóa đáp án dapan_TX1_vl10.json tải theo lớp/loại bài. */
 (function () {
@@ -259,6 +259,51 @@ async function hoanTac() {
    var g = await soGoi({ action: 'nhapDiemHoanTac', runId: lastRun, nguon: 'champhieu' });
    out.textContent = 'Đã hoàn tác ' + g.khoiPhuc + ' ô.' + ((g.boQua || []).length ? '\nBỏ qua:\n' + g.boQua.join('\n') : ''); lastRun = null; $('cp-undo').style.display = 'none'; await napLop();
 }
+// ---- v0.6: vùng điểm tự luận viết tay (kéo khung 1 lần, lưu theo tọa độ phiếu, tự cắt ở mọi bài) ----
+var LS_V = 'tnm_cham_vung';
+function vungTL() { try { var v = JSON.parse(localStorage.getItem(LS_V) || 'null'); return v && v.length === 4 ? v : null; } catch (e) { return null; } }
+function vungTrangThai() { var e = $('cp-vung-s'); if (e) e.textContent = vungTL() ? '✔ đã chọn vùng điểm tự luận' : 'chưa chọn vùng (bấm nút bên trái, sau khi chọn ảnh)'; }
+function cat(r) {
+   var v = vungTL(); if (!v || !r.rd || !r.rd.ok || !r.rd.corners) return null;
+   var H = TNReader.solveH(TN_LAYOUT.anchors, r.rd.corners), xs = [], ys = [];
+   [[v[0], v[1]], [v[2], v[1]], [v[0], v[3]], [v[2], v[3]]].forEach(function (q) { var a = TNReader.applyH(H, q[0], q[1]); xs.push(a[0]); ys.push(a[1]); });
+   var x0 = Math.max(0, Math.min.apply(null, xs)), x1 = Math.min(r.cv.width, Math.max.apply(null, xs)), y0 = Math.max(0, Math.min.apply(null, ys)), y1 = Math.min(r.cv.height, Math.max.apply(null, ys));
+   var w = x1 - x0, h = y1 - y0; if (!(w > 5 && h > 5)) return null;
+   var k = Math.min(3, 360 / w), c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+   c.getContext('2d').drawImage(r.cv, x0, y0, w, h, 0, 0, c.width, c.height);
+   c.style.cssText = 'border:2px solid #d00;border-radius:4px;max-width:100%;margin:4px 0;display:block;cursor:zoom-in';
+   c.title = 'Bấm để xem lớn'; c.onclick = function () { phongTo(c); };
+   return c;
+}
+function phongTo(c) {
+   var ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+   var im = new Image(); im.src = c.toDataURL('image/png'); im.style.cssText = 'max-width:92vw;max-height:88vh;background:#fff;border-radius:6px';
+   ov.appendChild(im); ov.onclick = function () { ov.remove(); }; document.body.appendChild(ov);
+}
+function chonVung() {
+   var r = rows.filter(function (x) { return x.rd && x.rd.ok; })[0], out = $('cp-log');
+   if (!r) { out.textContent = 'Hãy chọn ít nhất một ảnh phiếu đọc được, rồi bấm lại để kéo khung.'; return; }
+   var s = Math.min(0.95 * window.innerWidth / r.cv.width, 0.8 * window.innerHeight / r.cv.height), W = Math.round(r.cv.width * s), Hh = Math.round(r.cv.height * s);
+   var ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);color:#fff;text-align:center;padding-top:8px;font-size:14px';
+   ov.innerHTML = '<div>Kéo khung quanh chỗ bạn ghi <b>điểm tự luận</b> bằng mực đỏ (chọn rộng hơn chữ một chút), rồi bấm Lưu vùng.</div>';
+   var cv = document.createElement('canvas'); cv.width = W; cv.height = Hh; cv.style.cssText = 'margin-top:6px;touch-action:none;cursor:crosshair;max-width:100%';
+   var g = cv.getContext('2d'), rect = null, st = null;
+   function paint() { g.drawImage(r.cv, 0, 0, W, Hh); if (rect) { g.strokeStyle = '#ff2d2d'; g.lineWidth = 2; g.strokeRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]); } }
+   function pos(e) { var b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * W / b.width, (e.clientY - b.top) * Hh / b.height]; }
+   cv.onpointerdown = function (e) { st = pos(e); rect = [st[0], st[1], st[0], st[1]]; cv.setPointerCapture(e.pointerId); };
+   cv.onpointermove = function (e) { if (!st) return; var q = pos(e); rect = [Math.min(st[0], q[0]), Math.min(st[1], q[1]), Math.max(st[0], q[0]), Math.max(st[1], q[1])]; paint(); };
+   cv.onpointerup = function () { st = null; };
+   var bar = document.createElement('div'); bar.style.cssText = 'margin-top:8px';
+   var ok = document.createElement('button'), no = document.createElement('button'); ok.type = no.type = 'button'; ok.textContent = '💾 Lưu vùng'; no.textContent = 'Hủy'; no.style.marginLeft = '10px';
+   ok.onclick = function () {
+      if (!rect || rect[2] - rect[0] < 8 || rect[3] - rect[1] < 8) { alert('Hãy kéo một khung đủ lớn quanh chỗ ghi điểm.'); return; }
+      var Hi = TNReader.solveH(r.rd.corners, TN_LAYOUT.anchors), xs = [], ys = [];   // ảnh -> tọa độ phiếu
+      [[rect[0], rect[1]], [rect[2], rect[1]], [rect[0], rect[3]], [rect[2], rect[3]]].forEach(function (q) { var a = TNReader.applyH(Hi, q[0] / s, q[1] / s); xs.push(a[0]); ys.push(a[1]); });
+      try { localStorage.setItem(LS_V, JSON.stringify([Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys)])); } catch (e) {}
+      ov.remove(); vungTrangThai(); draw(); };
+   no.onclick = function () { ov.remove(); };
+   bar.appendChild(ok); bar.appendChild(no); ov.appendChild(cv); ov.appendChild(bar); document.body.appendChild(ov); paint();
+}
 function tuDienSBD() {
    var m = $('cp-sbd') ? $('cp-sbd').value : 'off';
    if (m === 'off' || !lopData || lopData.mode !== 'so') return;
@@ -276,7 +321,9 @@ function draw() { var box = $('cp-ds'); box.innerHTML = ''; tuDienSBD();
       d.innerHTML = '<small>' + esc(r.f.name.slice(-28)) + (r.rd.ok ? '' : ' — <span style="color:#b00020">' + esc(r.rd.msg) + '</span>') + '</small> <button type="button" data-del="1" style="float:right">✕ bỏ</button><br>' +
          'Tên HS <input data-k="hs" size="26" list="cp-dl" value="' + esc(r.hs) + '"> Mã đề <input data-k="made" size="5" value="' + esc(r.made) + '"> Câu 10 (0–' + diemDocUI().tl + ') <input data-k="tay" size="4" value="' + esc(r.tay) + '"> ' +
          '<label><input type="checkbox" data-k="sai"' + (r.sai ? ' checked' : '') + '> sai đơn vị</label> <label><input type="checkbox" data-k="ghi"' + (r.ghi ? ' checked' : '') + '> lưu</label>' +
+         '<div data-crop="1"></div>' +
          '<div id="cp-r' + i + '">' + (r.done ? '<b style="color:#064">✔ đã lưu</b>' : kqHtml(r)) + '</div>';
+      var cc = d.querySelector('[data-crop]'), ct = r.done ? null : cat(r); if (ct) cc.appendChild(ct);
       d.querySelector('[data-del]').onclick = function () { rows.splice(i, 1); draw(); };
       d.querySelectorAll('[data-k]').forEach(function (el) {
          el.oninput = el.onchange = function () { var k = el.dataset.k; r[k] = (k === 'sai' || k === 'ghi') ? el.checked : el.value; tinh(r); if (!r.done) $('cp-r' + i).innerHTML = kqHtml(r); tomTat(); };
@@ -312,6 +359,7 @@ function build() {
       '<button type="button" id="cp-dr">Khôi phục theo file khóa</button><br><small id="cp-dmax"></small></details>' +
       '<details><summary>Kết nối sổ điểm (địa chỉ /exec của script Quản lí điểm)</summary><input id="cp-su" style="width:100%" placeholder="Để trống: dùng địa chỉ đăng nhập admin của trang"><small>Cần đăng nhập admin trên trang này (token tự lấy).</small></details>' +
       '<details><summary>Thư mục Chấm bài (dán 1 lần)</summary><textarea id="cp-tf" rows="4" style="width:100%" placeholder="Dán nguyên danh sách: Lớp 10: link TX: link 1: link 2: link ..."></textarea><button type="button" id="cp-sf">Lưu thư mục</button> <button type="button" id="cp-kt">Kiểm tra thư mục</button></details>' +
+      '<button type="button" id="cp-vung">🎯 Chọn vùng điểm tự luận</button> <button type="button" id="cp-vung-x">Bỏ vùng</button> <small id="cp-vung-s"></small><br>' +
       '<input type="file" id="cp-fi" accept="image/*" multiple> <small>Chỉ chọn ảnh phiếu trả lời. Câu 10 viết tay: nhập điểm 0–3. Mỗi học sinh một bài trong mỗi đợt.</small><div id="cp-sum" style="font-weight:bold;margin:6px 0"></div><div id="cp-ds"></div>' +
       '<button type="button" id="cp-go"><b>☁️ Chấm, ghi điểm và lưu ảnh lên Drive</b></button> <button type="button" id="cp-undo" style="display:none">↩ Hoàn tác lần ghi vừa rồi</button><pre id="cp-log" style="background:#f6f6f6;padding:6px;white-space:pre-wrap"></pre>';
    document.body.appendChild(dlg);
@@ -333,8 +381,9 @@ function build() {
    var busy = false;
    $('cp-go').onclick = function () { if (busy) return; busy = true; $('cp-go').disabled = true;
       luu().catch(function (e) { $('cp-log').textContent += '\n✖ ' + e.message; }).then(function () { busy = false; $('cp-go').disabled = false; }); };
+   $('cp-vung').onclick = chonVung; $('cp-vung-x').onclick = function () { try { localStorage.removeItem(LS_V); } catch (e) {} vungTrangThai(); draw(); }; vungTrangThai();
    $('cp-undo').onclick = function () { hoanTac().catch(function (e) { $('cp-log').textContent = e.message; }); };
 }
 var tries = 0, iv = setInterval(function () { build(); if ($('cp-btn') || ++tries > 40) clearInterval(iv); }, 500);
-window.TNMakerChamPhieu = { parseFolders: parseFolders, version: '0.5' };
+window.TNMakerChamPhieu = { parseFolders: parseFolders, version: '0.6' };
 })();
