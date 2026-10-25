@@ -526,11 +526,11 @@ function b64ToBytes(b64) { var s = atob(b64), u = new Uint8Array(s.length); for 
 
 // ===== Sau khi xuất đề: ghi lên Drive =====
 async function afterExport(examPackages, config) {
-   if (!configured()) { notify('ℹ️ Chưa cấu hình Drive nên chưa ghi lên Drive (bấm ☁️ TNMaker Drive để cài).', 'info'); return; }
+   if (!configured()) { if (isAdmin()) notify('ℹ️ Chưa cấu hình Drive nên chưa ghi lên Drive (bấm ☁️ TNMaker Drive để cài).', 'info'); return; }
    var c = config || {};
    var grade = String(c.grade || (examPackages[0] && examPackages[0].grade) || ''), type = detectType(c);
    var folder = FOLDERS[grade] && type && FOLDERS[grade][type];
-   if (!folder) { notify('ℹ️ Chưa có thư mục Drive cho lớp ' + (grade || '?') + ' / ' + (type || 'loại bài chưa nhận ra') + ' — chỉ lưu trên máy.', 'warning'); return; }
+   if (!folder) { if (isAdmin()) notify('ℹ️ Chưa có thư mục Drive cho lớp ' + (grade || '?') + ' / ' + (type || 'loại bài chưa nhận ra') + ' — chỉ lưu trên máy.', 'warning'); return; }
    await new Promise(function (r) { setTimeout(r, 1200); });
    var tag = stamp(), now = Date.now(), cc = { schoolYear: c.schoolYear, grade: grade };
    var items = caught.filter(function (x) { return now - x.t < 180000 && !x.done; });
@@ -674,7 +674,10 @@ function hook(examPackages) {
 }
 
 // ===== Bảng điều khiển nhỏ =====
+// Chỉ admin mới thấy bảng ☁️ TNMaker Drive: máy đã bật cờ tnm_admin (bật 1 lần bằng lệnh trong Console)
+function isAdmin() { try { return localStorage.getItem('tnm_admin') === '1'; } catch (e) { return false; } }
 function buildPanel() {
+   if (!isAdmin()) return;
    if (document.getElementById('tnmd-btn')) return;
    var b = document.createElement('button'); b.id = 'tnmd-btn'; b.type = 'button'; b.textContent = '☁️ TNMaker Drive';
    b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99990;background:#c62828;color:#fff;border:none;border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)';
