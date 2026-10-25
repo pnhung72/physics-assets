@@ -367,6 +367,23 @@ function parseTf(grid, map, warn) {
    });
 }
 
+// Bảng "Phần III. Tự luận": cột 0 = mã đề (101-102-103), các cột sau có tiêu đề "Câu 10" → "11 m/s"
+function parseEssay(grid, essay) {
+   var h = -1, c, r;
+   for (r = 0; r < Math.min(grid.length, 3) && h < 0; r++) for (c = 0; c < grid[r].length; c++) if (/câu\s*\d+/i.test(nfc(grid[r][c].t))) { h = r; break; }
+   if (h < 0) return;
+   for (r = h + 1; r < grid.length; r++) {
+      var codes = codesIn(grid[r][0].t); if (!codes.length) continue;
+      for (c = 1; c < grid[r].length; c++) {
+         if (grid[h][c].dup) continue;
+         var mq = /câu\s*(\d+)/i.exec(nfc(grid[h][c].t)); if (!mq) continue;
+         var txt = norm(grid[r][c].t), nm = /(-?\d+(?:[.,]\d+)?)/.exec(txt); if (!nm) continue;
+         var val = parseFloat(nm[1].replace(',', '.')), unit = norm(txt.slice(nm.index + nm[1].length)).replace(/^[\s:=]+/, ''), key = 'cau' + mq[1];
+         codes.forEach(function (cd) { (essay[cd] = essay[cd] || {})[key] = { dapAn: [val], donVi: unit }; });
+      }
+   }
+}
+
 // ---------- chính ----------
 async function parse(buf, env) {
    env = env || {};
@@ -377,7 +394,7 @@ async function parse(buf, env) {
    if (!f) throw new Error('Không phải file .docx hợp lệ');
    var doc = new DP().parseFromString(await f.async('string'), 'application/xml');
    var body = doc.getElementsByTagName('w:body')[0];
-   var map = {}, warn = [], barem = [], cur = null, order = [];
+   var map = {}, warn = [], barem = [], cur = null, order = [], texts = [], essay = {};
    (function walk(node) {
       for (var i = 0; i < node.childNodes.length; i++) {
          var n = node.childNodes[i];
@@ -385,11 +402,13 @@ async function parse(buf, env) {
          if (n.nodeName === 'w:sdt' || n.nodeName === 'w:sdtContent') { walk(n); continue; }
          if (n.nodeName === 'w:p') {
             var t = norm(textOf(n)); if (!t) continue;
+            texts.push(t);
             var pk = partKind(t);
             if (pk) cur = pk;
             if (cur && cur !== 'essay' && /điểm/i.test(t) && barem.length < 14) barem.push((pk ? '' : '') + t.slice(0, 170));
          } else if (n.nodeName === 'w:tbl') {
-            if (!cur || cur === 'essay') continue;
+            if (!cur) continue;
+            if (cur === 'essay') { var ge = tableToGrid(n); if (ge.length) parseEssay(ge, essay); continue; }
             var g = tableToGrid(n); if (!g.length) continue;
             if (cur === 'tf') parseTf(g, map, warn); else parseMcSa(g, cur, map, warn);
          }
@@ -410,7 +429,7 @@ async function parse(buf, env) {
       var lens = ks.map(function (k) { return codes[k][p].length; });
       if (lens.length && Math.min.apply(null, lens) !== Math.max.apply(null, lens)) warn.push('Số câu phần "' + p + '" khác nhau giữa các mã đề: ' + lens.join('/'));
    });
-   return { codes: codes, barem: barem, warnings: warn };
+   return { codes: codes, barem: barem, warnings: warn, essay: essay, texts: texts };
 }
 
 var api = { parse: parse, _codesIn: codesIn, _normSA: normSA };
@@ -450,10 +469,22 @@ var FOLDERS = {
    '12': {}
 };
 var TOOL_FOLDER = '1Umbn376GBd4E_c-qvNvcO8roraaNqFcm';
+// ===== Thư mục "Chấm bài" (ghi cứng): Lớp → Loại bài → thư mục chứa ảnh phiếu đã chấm + file đáp án/khóa chấm =====
+var CHAM_BAI = {
+   '10': { TX1: '1QprY9DoLk5cHoknyMq95ypR_SmZGmVEl', TX2: '1s6eZVKVSxZ4P-UFk9B4nK4HX9CkiZ1UP', TX4: '1Wv_9awGGDnuztjNfhfYXiRJjYfMoi0cD', TX5: '12wfhE89NctG6rox5HJqRpg3_V2bkq7Pp',
+          GK1: '11MRSHYA92NsIiVaJFoMtuckxWSQg3U7I', GK2: '1SW5s4hc6Lc2D5vgN2HnlgoqE2x_Bhmuw', CK1: '1yBZ3Pud-CsGOtoZdNKOMYIJNOVJKMKyG', CK2: '1uSckU6Zr15yGbIgqTAcMLnDQ9a1BzR0W' },
+   '11': { TX1: '1qNo4nof5E_g1Qeba4u4jgb_ICvnXVBfF', TX2: '1nXYg1tMcB6kYabSwMJDZhdgyUsw6PB3I', TX4: '1cHcHnXhQg9eVhSt9nb_Y3HUA2js4jpv3', TX5: '1plBxq6VLlJJlK-tz3XWPJxmKgjYPpOh2',
+          GK1: '1k5Xm5F5K2gJMmq2PPzkQEIbcVCTIDkb7', GK2: '1gzwkyJ7SzH0UVuZm46Kmwzq8Ru-eME60', CK1: '1Dj3BtszzW5e2LH6FoyIcUv2hc9BQk-bI', CK2: '1nZ9O0KNFqQoQ5Y6yyA7Y3sp-8Ci57I3T' },
+   '12': {}
+};
+var ROOM_FOLDER = '14kQKYZm8QP9dxTbXMhl8y9X9EUc8B2MT';       // "Phòng": danh sách phòng thi chấm chéo, tên file = số phòng
+var TEMPLATE_FOLDER = '1XZaTxIFKnMywG3FbfQMHTPDanE7GRZaw';   // "Mẫu giấy chấm bài": tên file = mã mẫu
+function chamFolder(lop, loai) { return (CHAM_BAI[String(lop)] || {})[loai] || null; }
 var SAMPLE = { TX: '1TEQLUZo9LGGf58sZeGeJKWOG3N8WZKkJ', GK: '14qvSc9lzJnuVuhVilNYIYqp7ksL-obb-', CK: '1lhfBZ0N2cLa27H4yxiPVkWaB0L7L3sp_' };   // Đề mẫu = đề nhà trường
 function scanFolders() {
    var r = [{ id: SAMPLE.GK, label: 'Đề mẫu/GK' }, { id: SAMPLE.CK, label: 'Đề mẫu/CK' }];
-   ['10', '11', '12'].forEach(function (g) { ['GK1', 'CK1', 'GK2', 'CK2'].forEach(function (t) { if (FOLDERS[g][t]) r.push({ id: FOLDERS[g][t], label: 'Lớp ' + g + '/' + t }); }); });
+   ['10', '11', '12'].forEach(function (g) { ['TX1', 'TX2', 'TX4', 'TX5', 'GK1', 'CK1', 'GK2', 'CK2'].forEach(function (t) { if (FOLDERS[g][t]) r.push({ id: FOLDERS[g][t], label: 'Lớp ' + g + '/' + t }); }); });
+   ['10', '11', '12'].forEach(function (g) { Object.keys(CHAM_BAI[g] || {}).forEach(function (t) { r.push({ id: CHAM_BAI[g][t], label: 'Chấm bài/Lớp ' + g + '/' + t }); }); });
    return r;
 }
 
@@ -544,6 +575,13 @@ async function afterExport(examPackages, config) {
       try { await driveUpload(folder, nm, it.blob, it.blob.type || (/xlsx$/.test(nm) ? MIME_XLSX : MIME_DOCX)); it.done = true; ok++; }
       catch (e) { fail.push(nm + ': ' + e.message); }
    }
+   try {                              // khóa chấm phiếu dựng thẳng từ gói đề vừa xuất (không cần đọc Word)
+      var Qm = window.TNMakerQR, gs = (Qm && Qm.payloads) ? Qm.payloads(examPackages) : [], pk = { codes: {}, texts: [] };
+      gs.forEach(function (g) { var o = JSON.parse(g.text); Object.keys(o).forEach(function (code) {
+         if (code === 'success' || code === 'type') return;
+         var sg = String(o[code]).split('#'); pk.codes[code] = { mc: (sg[0] || '').split(''), tf: sg[1] ? sg[1].split('_') : [], sa: sg[2] ? sg[2].split('_') : [] }; }); });
+      if (Object.keys(pk.codes).length) { await driveUpload(folder, 'KEY_' + baseName('Da', cc, type, tag) + '.json', keyBlob(keyFromParsed(pk, { lop: grade, loai: type, nam: yearTag(cc) })), 'application/json'); ok++; }
+   } catch (e) { fail.push('KEY: ' + e.message); }
    if (fail.length) notify('⚠️ Ghi Drive lỗi ' + fail.length + ' file: ' + fail[0], 'warning');
    if (ok) notify('☁️ Đã ghi ' + ok + ' file lên Drive (lớp ' + grade + ' / ' + type + ').', 'success');
    else if (!fail.length) notify('ℹ️ Không bắt được file nào để ghi lên Drive (trình duyệt chặn tải?).', 'warning');
@@ -609,22 +647,85 @@ async function makeQrFor(file, folderId, opts) {
    if (r.kind === 'docx') await driveUpload(folderId, 'QR_' + base + '.docx', r.blob, MIME_DOCX);
    else for (var i = 0; i < r.pngs.length; i++) await driveUpload(folderId, 'QR_' + base + '_' + (i + 1) + '.png', new Blob([r.pngs[i]], { type: 'image/png' }), 'image/png');
    try { await driveUpload(folderId, 'TNM_' + base + '.xlsx', await window.TNMakerQR.buildXlsxFromMap(p.codes), MIME_XLSX); } catch (e) { console.warn('xlsx:', e); }
-   return { groups: groups.length, codes: Object.keys(p.codes).length };
+   var keyOk = false;                 // khóa chấm phiếu (JSON) cạnh file đáp án
+   try {
+      var meta = metaFrom(p, folderId, file.name);
+      if (meta.lop && meta.loai) { await driveUpload(folderId, 'KEY_' + base + '.json', keyBlob(keyFromParsed(p, meta)), 'application/json'); keyOk = true; }
+      else notify('⚠️ Không nhận ra lớp/loại bài của "' + file.name + '" nên chưa tạo khóa chấm JSON (ghi rõ "TX1", "VẬT LÍ 10" ở dòng đầu file đáp án).', 'warning');
+   } catch (e) { console.warn('key:', e); }
+   return { groups: groups.length, codes: Object.keys(p.codes).length, key: keyOk };
 }
 function isAnswerFile(f) {
-   if (/^(QR_|TNM_)/i.test(f.name)) return false;
+   if (/^(QR_|TNM_|KEY_)/i.test(f.name)) return false;
    if (!(/\.(docx|xlsx)$/i.test(f.name) || f.mime === MIME_GDOC)) return false;
    return /^(DaT?\d|DaT?_|Da\d|đáp án|dap_?an)/i.test(f.name.normalize ? f.name.normalize('NFC') : f.name);
 }
+// ===== Khóa chấm phiếu (JSON): tạo cùng lúc với QR, đặt cạnh file đáp án, tên KEY_<tên đáp án>.json =====
+function pad4(c) { return ('0000' + String(c).replace(/\D/g, '')).slice(-4); }
+function numOf(s) { return parseFloat(String(s).replace(',', '.')); }
+function diemFrom(texts) {          // thang điểm đọc từ tiêu đề từng phần trong file đáp án
+   var all = (texts || []).join('\n').normalize('NFC'), d = {}, m, k;
+   m = /Phần\s*(?:I|1)\b[^\n]*?([\d.,]+)\s*điểm\s*\/\s*câu/i.exec(all); if (m) d.p1 = numOf(m[1]);
+   var ds = [0], found = 0;
+   for (k = 1; k <= 4; k++) { m = new RegExp('(?:^|[^\\d])' + k + '\\s*ý\\s*:?\\s*([\\d.,]+)\\s*điểm', 'i').exec(all); if (m) { ds.push(numOf(m[1])); found++; } else ds.push(null); }
+   if (found === 4) d.p2 = ds;
+   d.p3 = 0;
+   m = /Phần\s*(?:III|3)\.?\s*Tự luận[^\n(]*\(\s*([\d.,]+)\s*điểm/i.exec(all); if (m) d.tl = numOf(m[1]);
+   m = /sai\s*đơn\s*vị[^\d]*([\d.,]+)\s*điểm/i.exec(all); if (m) d.truDonVi = numOf(m[1]);
+   return d;
+}
+function metaFrom(p, folderId, name) {
+   var t = (((p.texts || []).slice(0, 3).join(' ')) + ' ' + name).normalize('NFC'), m, lop = null, loai = null, nam = null;
+   Object.keys(FOLDERS).forEach(function (g) { Object.keys(FOLDERS[g]).forEach(function (k) { if (FOLDERS[g][k] === folderId) { lop = g; loai = k; } }); });
+   if (!loai && (m = /\b(TX|GK|CK)\s*(\d)/i.exec(t))) loai = m[1].toUpperCase() + m[2];
+   if (!lop && (m = /VẬT\s*L[IÍ]\s*(1[0-2])/i.exec(t))) lop = m[1];
+   if (!lop && (m = /(?:^|[^0-9A-Za-z])L(1[0-2])(?:[^0-9]|$)/.exec(name))) lop = m[1];
+   if ((m = /(\d{4})\s*[–\-]\s*(\d{4})/.exec(t))) nam = m[1] + '-' + m[2]; else nam = yearTag({});
+   return { lop: lop, loai: loai, nam: nam };
+}
+function keyFromParsed(p, meta) {
+   var made = {};
+   Object.keys(p.codes).forEach(function (c) {
+      var r = p.codes[c], o = { p1: (r.mc || []).slice(), p2: {}, p3: (r.sa || []).slice() };
+      (r.tf || []).forEach(function (s, i) { o.p2[String(i + 1)] = String(s).split(''); });
+      var es = p.essay && p.essay[c]; if (es) Object.keys(es).forEach(function (k) { o[k] = es[k]; });
+      made[pad4(c)] = o;
+   });
+   return { loai: meta.loai, mon: 'vl' + meta.lop, nam: meta.nam, diem: diemFrom(p.texts), made: made };
+}
+function keyBlob(k) { return new Blob([JSON.stringify(k, null, 1)], { type: 'application/json' }); }
+// Đọc khóa chấm của (lớp, loại bài) năm học hiện tại từ thư mục ngân hàng đề: lấy bản KEY_*.json mới nhất đúng lớp/loại/năm
+async function loadKey(lop, loai) {
+   var ids = [], files = [], q;           // tìm ở thư mục Chấm bài trước, rồi thư mục ngân hàng đề
+   [chamFolder(lop, loai), FOLDERS[lop] && FOLDERS[lop][loai]].forEach(function (id) { if (id && ids.indexOf(id) < 0) ids.push(id); });
+   if (!ids.length) throw new Error('Chưa có thư mục cho lớp ' + lop + ' / ' + loai);
+   for (q = 0; q < ids.length; q++) { try { files = files.concat((await driveGet({ action: 'list', folderId: ids[q] })).files); } catch (e) { console.warn('loadKey:', e.message); } }
+   files = files.filter(function (f) { return /^(KEY_|dapan_).*\.json$/i.test(f.name); }).sort(function (a, b) { return b.updated - a.updated; });
+   var yr = yearTag({});
+   for (var i = 0; i < files.length; i++) {
+      var j = await driveGet({ action: 'get', fileId: files[i].id }), k;
+      try { k = JSON.parse(new TextDecoder().decode(b64ToBytes(j.b64))); } catch (e) { continue; }
+      if (k && k.mon === 'vl' + lop && k.loai === loai && (!k.nam || k.nam === yr)) { k._file = files[i].name; return k; }
+   }
+   throw new Error('Chưa có khóa chấm (KEY_*.json) của lớp ' + lop + ' / ' + loai + ' năm ' + yr + '. Bấm "Quét đề nhà trường" để tạo từ file đáp án Word.');
+}
+// Đổi sang dạng TN_KEY mà Tnmaker_grade.js đang dùng (mã đề 3 số, chuỗi đáp án liền)
+function toTNKey(k) {
+   var d = k.diem || {}, K = { mcq: {}, ds: {}, cau10: {} }, out = { barem: { mcqMoiCau: d.p1, ds: d.p2, tlToiDa: d.tl, truSaiDonVi: d.truDonVi } };
+   Object.keys(k.made).forEach(function (c) { var m = k.made[c], c3 = String(parseInt(c, 10));
+      K.mcq[c3] = (m.p1 || []).join(''); K.ds[c3] = ((m.p2 && m.p2['1']) || []).join(''); if (m.cau10) K.cau10[c3] = m.cau10; });
+   out['vl' + String(k.mon).replace(/^vl/, '')] = K; return out;
+}
+
 // 1) thư mục công cụ: tìm MỌI file đáp án chưa có QR_<tên> → tạo QR cùng thư mục
 async function convertToolFolder(log) {
    var files = (await driveGet({ action: 'list', folderId: TOOL_FOLDER })).files;
    var have = {}; files.forEach(function (f) { have[f.name] = 1; });
    var todo = files.filter(function (f) {
-      if (/^(QR_|TNM_)/i.test(f.name)) return false;
+      if (/^(QR_|TNM_|KEY_)/i.test(f.name)) return false;
       if (!(/\.(docx|xlsx)$/i.test(f.name) || f.mime === MIME_GDOC)) return false;
       var base = f.name.replace(/\.[^.]+$/, '');
-      return !have['QR_' + base + '.docx'] && !have['QR_' + base + '_1.png'];
+      return (!have['QR_' + base + '.docx'] && !have['QR_' + base + '_1.png']) || !have['KEY_' + base + '.json'];
    }).sort(function (a, b) { return b.updated - a.updated; });
    if (!todo.length) { notify('✅ Thư mục công cụ: mọi file đáp án đã có QR.', 'success'); return { files: 0, codes: 0 }; }
    if (!window.confirm('Thư mục công cụ có ' + todo.length + ' file đáp án chưa có QR:\n\n' + todo.slice(0, 12).map(function (f) { return '• ' + f.name; }).join('\n') + '\n\nTạo QR cho tất cả? (mỗi file sẽ hỏi xác nhận kết quả đọc)')) return { skipped: true };
@@ -648,7 +749,7 @@ async function scanSchool(log) {
       var have = {}; files.forEach(function (f) { have[f.name] = 1; });
       files.filter(isAnswerFile).forEach(function (f) {
          var base = f.name.replace(/\.[^.]+$/, '');
-         if (!have['QR_' + base + '.docx'] && !have['QR_' + base + '_1.png']) todo.push({ file: f, folder: fs[i].id, label: fs[i].label });
+         if ((!have['QR_' + base + '.docx'] && !have['QR_' + base + '_1.png']) || !have['KEY_' + base + '.json']) todo.push({ file: f, folder: fs[i].id, label: fs[i].label });
       });
    }
    if (!todo.length) { notify('✅ Không có đáp án nào thiếu QR.', 'success'); return []; }
@@ -703,5 +804,5 @@ function buildPanel() {
 if (typeof window.TNM_EXPORT_XLSX === 'undefined') window.TNM_EXPORT_XLSX = true;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildPanel); else buildPanel();
 
-window.TNMakerDrive = { hook: hook, afterExport: afterExport, convertToolFolder: convertToolFolder, scanSchool: scanSchool, detectType: detectType, yearTag: yearTag, classify: classify, baseName: baseName, isAnswerFile: isAnswerFile, FOLDERS: FOLDERS, version: '1.0' };
+window.TNMakerDrive = { CHAM_BAI: CHAM_BAI, ROOM_FOLDER: ROOM_FOLDER, TEMPLATE_FOLDER: TEMPLATE_FOLDER, chamFolder: chamFolder, loadKey: loadKey, toTNKey: toTNKey, keyFromParsed: keyFromParsed, _metaFrom: metaFrom, _diemFrom: diemFrom, hook: hook, afterExport: afterExport, convertToolFolder: convertToolFolder, scanSchool: scanSchool, detectType: detectType, yearTag: yearTag, classify: classify, baseName: baseName, isAnswerFile: isAnswerFile, FOLDERS: FOLDERS, version: '1.1' };
 })();
