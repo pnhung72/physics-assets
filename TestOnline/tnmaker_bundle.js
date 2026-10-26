@@ -660,6 +660,31 @@ function isAnswerFile(f) {
    if (!(/\.(docx|xlsx)$/i.test(f.name) || f.mime === MIME_GDOC)) return false;
    return /^(DaT?\d|DaT?_|Da\d|đáp án|dap_?an)/i.test(f.name.normalize ? f.name.normalize('NFC') : f.name);
 }
+// ===== Thư mục Chấm bài TỰ TẠO theo Khối / Lớp / Loại bài (không cần dán link) =====
+//   Chấm bài / Lớp <khối> / <TX|GK|CK> / <loại bài> / <tên lớp>     — phần đã ghi cứng thì dùng, phần chưa có thì tạo
+var CHAM_BAI_ROOT = '1tawPPNjGChcSeahoNJWuYaLgtrwToA3p';
+var MK_CACHE = {};
+async function drivePost(body) {
+   var c = cfg(); if (!configured()) throw new Error('Chưa cấu hình Drive (mở bảng ☁️ TNMaker Drive)');
+   var r = await fetch(c.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ token: c.token }, body)) });
+   var j = await r.json(); if (!j.success) throw new Error(j.error || 'Lỗi Drive'); return j;
+}
+function tenThuMuc(s) { return String(s == null ? '' : s).trim().replace(/[\\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').slice(0, 40); }
+async function mkdir(parentId, name) {              // lấy hoặc tạo thư mục con (idempotent), nhớ kết quả
+   name = tenThuMuc(name); if (!name) throw new Error('Tên thư mục trống');
+   var k = parentId + '|' + name; if (MK_CACHE[k]) return MK_CACHE[k];
+   var j = await drivePost({ action: 'mkdir', parentId: parentId, name: name }); MK_CACHE[k] = j.id; return j.id;
+}
+async function thuMucCham(khoi, lop, loai) {
+   khoi = String(khoi || '').trim(); loai = String(loai || '').trim().toUpperCase();
+   if (!/^1[0-2]$/.test(khoi)) throw new Error('Khối không hợp lệ: "' + khoi + '"');
+   if (!/^(TX|GK|CK)\d$/.test(loai)) throw new Error('Loại bài không hợp lệ: "' + loai + '"');
+   var base = chamFolder(khoi, loai);
+   if (!base) { var a = await mkdir(CHAM_BAI_ROOT, 'Lớp ' + khoi), b = await mkdir(a, loai.replace(/\d+$/, '')); base = await mkdir(b, loai); }
+   lop = tenThuMuc(lop);
+   return lop ? await mkdir(base, lop) : base;
+}
+
 // ===== Khóa chấm phiếu (JSON): tạo cùng lúc với QR, đặt cạnh file đáp án, tên KEY_<tên đáp án>.json =====
 function pad4(c) { return ('0000' + String(c).replace(/\D/g, '')).slice(-4); }
 function numOf(s) { return parseFloat(String(s).replace(',', '.')); }
@@ -804,5 +829,5 @@ function buildPanel() {
 if (typeof window.TNM_EXPORT_XLSX === 'undefined') window.TNM_EXPORT_XLSX = true;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildPanel); else buildPanel();
 
-window.TNMakerDrive = { CHAM_BAI: CHAM_BAI, ROOM_FOLDER: ROOM_FOLDER, TEMPLATE_FOLDER: TEMPLATE_FOLDER, chamFolder: chamFolder, loadKey: loadKey, toTNKey: toTNKey, keyFromParsed: keyFromParsed, _metaFrom: metaFrom, _diemFrom: diemFrom, hook: hook, afterExport: afterExport, convertToolFolder: convertToolFolder, scanSchool: scanSchool, detectType: detectType, yearTag: yearTag, classify: classify, baseName: baseName, isAnswerFile: isAnswerFile, FOLDERS: FOLDERS, version: '1.1' };
+window.TNMakerDrive = { thuMucCham: thuMucCham, mkdir: mkdir, CHAM_BAI: CHAM_BAI, ROOM_FOLDER: ROOM_FOLDER, TEMPLATE_FOLDER: TEMPLATE_FOLDER, chamFolder: chamFolder, loadKey: loadKey, toTNKey: toTNKey, keyFromParsed: keyFromParsed, _metaFrom: metaFrom, _diemFrom: diemFrom, hook: hook, afterExport: afterExport, convertToolFolder: convertToolFolder, scanSchool: scanSchool, detectType: detectType, yearTag: yearTag, classify: classify, baseName: baseName, isAnswerFile: isAnswerFile, FOLDERS: FOLDERS, version: '1.2' };
 })();
