@@ -786,12 +786,12 @@ window.TNMakerDrive = { hook: hook, afterExport: afterExport, convertToolFolder:
 
 ;
 /*!
- * tnmaker_form.js (v1.1)
+ * tnmaker_form.js (v1.2)
  * Form nhập đáp án → QR TNMaker (Smart Test, type 5) + Excel + file Word QR, lưu thẳng vào thư mục đề.
  * Chỉ Phần I (TN nhiều lựa chọn), Phần II (Đúng/Sai), Phần III (trả lời ngắn). Phần IV tự luận chấm tay: không có trong form/QR.
  *  - Chọn thư mục: tự tìm form đã lưu (dap_an_form_tnmaker.json) hoặc file Word/Excel đáp án rồi nạp vào form.
  *  - Nhập nhanh: gõ A-D tự nhảy ô; Phần II gõ d/s (hoặc Đ/S) 4 ký tự; dán cả cột; Ctrl+V dán bảng từ Word/Excel.
- *  - Dán ảnh đáp án (Ctrl+V) để xem bên cạnh khi nhập — không tự đọc chữ từ ảnh (tránh nhầm Đ/S, 0,25 / 0,2).
+ *  - Ảnh đáp án (Da.jpg trong thư mục, dán Ctrl+V hoặc Thêm ảnh): xem bên cạnh, hoặc bấm 🤖 để Gemini đọc và điền bảng (v1.2) — luôn đối chiếu bằng mắt.
  */
 (function () {
 'use strict';
@@ -804,7 +804,7 @@ var PARTS = [
    { k: 'tf', t: 'Phần II — Đúng/Sai (4 ý a,b,c,d)', hint: 'gõ d/s ×4 (VD dsds → ĐSĐS)' },
    { k: 'sa', t: 'Phần III — Trả lời ngắn', hint: 'số, dấu phẩy hoặc chấm đều được' }
 ];
-var S = { cols: [], n: { mc: 18, tf: 4, sa: 6 }, title: '', base: '', barem: [], dir: null, saveDir: null, dirName: '', cands: [], trimHash: false, imgs: [], imgSel: -1, rot: 0, zoom: 100, loaded: '' };
+var S = { cols: [], n: { mc: 18, tf: 4, sa: 6 }, title: '', base: '', barem: [], dir: null, saveDir: null, dirName: '', cands: [], trimHash: false, imgs: [], imgFiles: [], imgSel: -1, rot: 0, zoom: 100, loaded: '' };
 var root = null, saveTimer = null;
 
 function nfc(s) { s = String(s == null ? '' : s); try { return s.normalize('NFC'); } catch (e) { return s; } }
@@ -924,6 +924,7 @@ var CSS = '#tnmf{position:fixed;inset:0;z-index:99995;background:#f3f4f6;color:#
 '#tnmf table.g input.code{font-weight:700;background:#e8eaf6;min-width:90px}#tnmf table.g input.code.x{background:#ffcdd2}' +
 '#tnmf .rm{font-size:11px;padding:0 5px!important;margin-left:2px;border-color:transparent!important;background:transparent!important}' +
 '#tnmf .ip{width:300px;max-width:42vw;border-left:1px solid #ccc;background:#fafafa;display:flex;flex-direction:column}' +
+'#tnmf .gw.ai table.g input:not(.e):not(.x){background:#e3f2fd}' +
 '#tnmf .ip .bar{padding:6px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid #ddd;background:#fff}' +
 '#tnmf .ip .th{display:flex;gap:4px;overflow-x:auto;padding:4px;border-bottom:1px solid #ddd}' +
 '#tnmf .ip .th img{height:44px;border:2px solid transparent;cursor:pointer}#tnmf .ip .th img.sel{border-color:#e65100}' +
@@ -956,7 +957,7 @@ var HELP_HTML = '<h2>📖 Hướng dẫn nhanh — tạo QR đáp án cho TNMake
 '<li><b>Phần II:</b> gõ 4 chữ <b>d</b>/<b>s</b>, VD <code>dsds</code> → ĐSĐS, đủ 4 ký tự tự nhảy ô.</li>' +
 '<li><b>Phần III:</b> gõ số (dấu phẩy hay dấu chấm đều được, số âm dùng dấu −), nhấn <kbd>Enter</kbd> để xuống ô dưới.</li>' +
 '<li>Số câu mỗi phần chỉnh ở 3 ô <b>Phần I / II / III</b> trên thanh công cụ (mặc định 18 – 4 – 6). Dán dài hơn thì bảng tự mở rộng.</li></ol>' +
-'<b>Có ảnh đáp án?</b> Bấm <b>Thêm ảnh</b> hoặc <kbd>Ctrl</kbd>+<kbd>V</kbd> để dán ảnh vào khung bên phải; dùng − ＋ ⟳ để phóng to, xoay. Ảnh chỉ để bạn nhìn khi gõ — công cụ <u>không tự đọc chữ</u> trong ảnh vì dễ nhầm Đ/S và số thập phân.' +
+'<b>Có ảnh đáp án?</b> Bấm <b>Thêm ảnh</b> hoặc <kbd>Ctrl</kbd>+<kbd>V</kbd> để dán ảnh vào khung bên phải; dùng − ＋ ⟳ để phóng to, xoay. Bấm <b>🤖 Đọc ảnh đáp án</b> để Gemini đọc ảnh đang xem và điền vào bảng (lần đầu dán khóa Gemini API, lưu trên trình duyệt này). Ô nền xanh là do AI điền — <u>luôn đối chiếu bằng mắt</u> với ảnh (dễ nhầm Đ/S, B/D, 0,25) trước khi tạo QR. Thư mục có ảnh <code>Da.jpg</code> thì ảnh tự hiện ở khung này.' +
 '<h3>Bước 2 — Kiểm tra</h3><ul>' +
 '<li>Ô <b style="background:#fff59d">vàng</b> = còn trống · ô <b style="background:#ffcdd2">đỏ</b> = sai định dạng (Phần I phải là A–D, Phần II đủ 4 ký tự Đ/S, Phần III phải là số).</li>' +
 '<li>Dòng trạng thái phía trên bảng cho biết số mã đề và số ô trống.</li>' +
@@ -992,6 +993,8 @@ function build() {
    '<button type="button" id="f-dir" class="pri">📁 Chọn thư mục chứa đề</button>' +
    '<select id="f-cand" style="max-width:260px;display:none"></select>' +
    '<button type="button" id="f-file">📄 Đọc file Word/Excel đáp án…</button>' +
+   '<button type="button" id="f-ai" title="Gemini đọc đáp án trong ảnh đang xem (khung bên phải) rồi điền vào bảng">🤖 Đọc ảnh đáp án</button>' +
+   '<button type="button" id="f-key" title="Nhập / đổi khóa Gemini API">🔑</button>' +
    '<button type="button" id="f-add">➕ Thêm mã đề</button>' +
    '<label>Phần I <input type="number" id="n-mc" min="0" max="60"></label>' +
    '<label>Phần II <input type="number" id="n-tf" min="0" max="20"></label>' +
@@ -1004,7 +1007,7 @@ function build() {
    '<div class="mn"><div class="gw" id="f-gw"></div>' +
    '<div class="ip"><div class="bar"><button type="button" id="i-add" title="Chọn ảnh đáp án (hoặc Ctrl+V để dán ảnh)">🖼 Thêm ảnh</button>' +
    '<button type="button" id="i-m">−</button><button type="button" id="i-p">＋</button><button type="button" id="i-r">⟳</button><button type="button" id="i-d">✕</button></div>' +
-   '<div class="th" id="i-th"></div><div class="vw" id="i-vw"><div class="em">Ctrl+V để dán ảnh đáp án vào đây (hoặc kéo thả). Ảnh chỉ để bạn nhìn khi nhập — công cụ không tự đọc chữ trong ảnh.</div></div></div></div>' +
+   '<div class="th" id="i-th"></div><div class="vw" id="i-vw"><div class="em">Ctrl+V để dán ảnh đáp án vào đây (hoặc kéo thả). Bấm 🤖 Đọc ảnh đáp án để Gemini điền vào bảng, rồi đối chiếu bằng mắt trước khi tạo QR.</div></div></div></div>' +
    '<div class="qr" id="f-qr"></div>' +
    '<div class="rb" id="f-rb"></div>' +
    '<div class="ft"><button type="button" id="f-go" class="pri">✅ Tạo QR &amp; lưu vào thư mục</button>' +
@@ -1211,13 +1214,13 @@ function onPaste(e) {
 
 // ---- ảnh tham chiếu ----
 function addImages(files) {
-   files.forEach(function (f) { var u = URL.createObjectURL(f); S.imgs.push(u); S.imgSel = S.imgs.length - 1; });
+   files.forEach(function (f) { var u = URL.createObjectURL(f); S.imgs.push(u); S.imgFiles.push(f); S.imgSel = S.imgs.length - 1; });
    S.rot = 0; S.zoom = 100; drawImgs();
 }
 function drawImgs() {
    var th = $('#i-th'), vw = $('#i-vw'); th.innerHTML = '';
    S.imgs.forEach(function (u, k) { var im = el('img', { src: u, class: k === S.imgSel ? 'sel' : '' }); im.onclick = function () { S.imgSel = k; S.rot = 0; S.zoom = 100; drawImgs(); }; th.appendChild(im); });
-   if (S.imgSel < 0 || !S.imgs[S.imgSel]) { vw.innerHTML = '<div class="em">Ctrl+V để dán ảnh đáp án vào đây (hoặc kéo thả). Ảnh chỉ để bạn nhìn khi nhập — công cụ không tự đọc chữ trong ảnh.</div>'; return; }
+   if (S.imgSel < 0 || !S.imgs[S.imgSel]) { vw.innerHTML = '<div class="em">Ctrl+V để dán ảnh đáp án vào đây (hoặc kéo thả). Bấm 🤖 Đọc ảnh đáp án để Gemini điền vào bảng, rồi đối chiếu bằng mắt trước khi tạo QR.</div>'; return; }
    vw.innerHTML = ''; var im2 = el('img', { src: S.imgs[S.imgSel] });
    im2.style.width = S.zoom + '%'; im2.style.transform = 'rotate(' + S.rot + 'deg)'; if (S.rot % 180) im2.style.margin = '20% 0';
    vw.appendChild(im2);
@@ -1256,17 +1259,26 @@ function readback() {
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 // ===================== thư mục / file =====================
+function answerNameOk(n) {
+   return /(^|[^a-z])(da|dap[_\-\s]?an)|đáp\s*án|dap_an/i.test(n.replace(/^(De|Đề)/, '')) || /^Da/i.test(n);
+}
 function isAnswerName(n) {
    n = nfc(n);
    if (/^(QR_|TNM_|~\$)/i.test(n)) return false;
    if (!/\.(docx|xlsx)$/i.test(n)) return false;
-   return /(^|[^a-z])(da|dap[_\-\s]?an)|đáp\s*án|dap_an/i.test(n.replace(/^(De|Đề)/, '')) || /^Da/i.test(n);
+   return answerNameOk(n);
+}
+function isAnswerImg(n) {      // Da.JPG, Da_1.jpg, dap_an.png … (ảnh chụp đáp án)
+   n = nfc(n);
+   if (/^(QR_|TNM_|~\$)/i.test(n)) return false;
+   if (!/\.(jpe?g|png|webp)$/i.test(n)) return false;
+   return answerNameOk(n);
 }
 async function readDir(h, rel, depth, out) {
    for await (var pair of h.entries()) {
       var name = pair[0], e = pair[1];
       if (e.kind === 'file') {
-         var kind = /form.*\.json$/i.test(name) && /tnmaker|form|dap/i.test(name) ? 'json' : isAnswerName(name) ? 'doc' : null;
+         var kind = /form.*\.json$/i.test(name) && /tnmaker|form|dap/i.test(name) ? 'json' : isAnswerName(name) ? 'doc' : isAnswerImg(name) ? 'img' : null;
          if (!kind) continue;
          var f = await e.getFile();
          out.push({ name: name, rel: rel + name, kind: kind, handle: e, dir: h, time: f.lastModified });
@@ -1278,26 +1290,46 @@ async function pickDir() {
       var h; try { h = await window.showDirectoryPicker({ id: 'tnmqr', mode: 'readwrite' }); } catch (e) { if (e && e.name === 'AbortError') return; throw e; }
       S.dir = h; S.saveDir = h; S.dirName = h.name; S.cands = [];
       await readDir(h, '', 0, S.cands);
-      afterScan();
+      await afterScan();
    } else $('#f-di').click();
 }
-function afterScan() {
+async function afterScan() {
    var sel = $('#f-cand'); sel.innerHTML = '';
-   S.cands.sort(function (a, b) { return (a.kind === 'json' ? -1 : 0) - (b.kind === 'json' ? -1 : 0) || b.time - a.time; });
-   S.cands.forEach(function (c, k) { var o = el('option', { value: k, text: (c.kind === 'json' ? '💾 ' : '📄 ') + c.rel + '  (' + new Date(c.time).toLocaleDateString('vi-VN') + ')' }); sel.appendChild(o); });
+   var rank = { json: 0, doc: 1, img: 2 };
+   S.cands.sort(function (a, b) { return (rank[a.kind] - rank[b.kind]) || b.time - a.time; });
+   S.cands.forEach(function (c, k) { var o = el('option', { value: k, text: (c.kind === 'json' ? '💾 ' : c.kind === 'img' ? '🖼 ' : '📄 ') + c.rel + '  (' + new Date(c.time).toLocaleDateString('vi-VN') + ')' }); sel.appendChild(o); });
    sel.style.display = S.cands.length ? '' : 'none';
-   if (!S.cands.length) { setLoaded(''); $('#f-st').textContent = '📁 "' + S.dirName + '": không thấy form đã lưu hay file đáp án (tên bắt đầu Da…/đáp án…). Hãy nhập tay, dán bảng, hoặc bấm "Đọc file Word/Excel đáp án…". Khi tạo QR, file sẽ được lưu vào thư mục này.'; return; }
-   loadCand(0);
+   // ảnh đáp án trong thư mục → đưa vào khung xem ảnh bên phải
+   S.imgs = []; S.imgFiles = []; S.imgSel = -1;
+   var ims = S.cands.filter(function (c) { return c.kind === 'img'; });
+   for (var q = 0; q < ims.length; q++) {
+      try { var imf = await ims[q].handle.getFile(); addImages([imf]); ims[q].imgIdx = S.imgs.length - 1; } catch (e) { ims[q].imgIdx = -1; }
+   }
+   if (ims.length) { S.imgSel = Math.max(0, ims[0].imgIdx); S.rot = 0; S.zoom = 100; drawImgs(); }
+   if (!S.cands.length) { setLoaded(''); drawImgs(); $('#f-st').textContent = '📁 \"' + S.dirName + '\": không thấy form đã lưu, file Word/Excel hay ảnh đáp án (tên bắt đầu Da…/đáp án…). Hãy nhập tay, dán bảng, thêm ảnh rồi bấm \"🤖 Đọc ảnh đáp án\", hoặc bấm \"Đọc file Word/Excel đáp án…\". Khi tạo QR, file sẽ được lưu vào thư mục này.'; return; }
+   var first = S.cands[0];
+   if (first.kind === 'img') { await readImageGemini({ auto: true, idx: first.imgIdx }); }
+   else {
+      await loadCand(0);
+      if (ims.length) $('#f-st').textContent += '   |   🖼 thư mục có ' + ims.length + ' ảnh đáp án — bấm \"🤖 Đọc ảnh đáp án\" để đối chiếu';
+   }
 }
 async function loadCand(k) {
    var c = S.cands[k]; if (!c) return;
    try {
+      if (c.kind === 'img') {
+         if (c.imgIdx >= 0) { S.imgSel = c.imgIdx; S.rot = 0; S.zoom = 100; drawImgs(); }
+         $('#f-cand').value = k;
+         await readImageGemini({ idx: c.imgIdx });
+         return;
+      }
       var f = await c.handle.getFile();
       await loadFile(f, c.rel); S.saveDir = c.dir || S.dir;
       $('#f-cand').value = k;
    } catch (e) { notify('⚠️ Không đọc được ' + c.name + ': ' + e.message, 'warning'); $('#f-st').textContent = '⚠️ ' + c.name + ': ' + e.message; }
 }
 async function loadFile(f, label) {
+   var gwx = $('#f-gw'); if (gwx) gwx.classList.remove('ai');
    var name = f.name, buf = await f.arrayBuffer(), p;
    if (/\.json$/i.test(name)) { fromJson(JSON.parse(new TextDecoder('utf-8').decode(buf))); S.base = S.base || ''; }
    else {
@@ -1314,11 +1346,137 @@ async function loadFromInputFolder(files) {
    var cands = [];
    files.forEach(function (f) {
       var rel = f.webkitRelativePath || f.name, nm = f.name;
-      var kind = /form.*\.json$/i.test(nm) ? 'json' : isAnswerName(nm) ? 'doc' : null;
+      var kind = /form.*\.json$/i.test(nm) ? 'json' : isAnswerName(nm) ? 'doc' : isAnswerImg(nm) ? 'img' : null;
       if (kind && rel.split('/').length <= 3) cands.push({ name: nm, rel: rel, kind: kind, time: f.lastModified, file: f, handle: { getFile: function () { return Promise.resolve(f); } } });
    });
    S.dirName = files.length && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : ''; S.cands = cands; S.dir = null; S.saveDir = null;
-   afterScan();
+   await afterScan();
+}
+
+// ===================== đọc ảnh đáp án bằng Gemini =====================
+var LS_KEY = 'tnmf_gemini_key', LS_MODEL = 'tnmf_gemini_model';
+var MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+var AI_PROMPT = 'Đây là ảnh chụp ĐÁP ÁN một đề kiểm tra Vật lí THPT Việt Nam. Ảnh gồm các bảng: ' +
+   'Phần 1 trắc nghiệm nhiều lựa chọn (A/B/C/D), Phần 2 trắc nghiệm đúng/sai (mỗi câu có 4 ý a,b,c,d, viết dạng Đ/S, ví dụ ĐSSĐ hoặc DSSD), Phần 3 trả lời ngắn (số). ' +
+   'BỎ QUA Phần 4 tự luận/biểu điểm, và mọi chữ mờ lộ xuyên từ mặt sau tờ giấy hoặc từ trang bên dưới. ' +
+   'Bảng có thể bố trí hàng = mã đề, cột = câu hoặc ngược lại (hàng = câu, cột = mã đề): đọc đúng theo tiêu đề hàng và cột, không đoán theo vị trí. Mã đề thường gồm 4 chữ số (ví dụ 0201). ' +
+   'Chỉ trả về MỘT đối tượng JSON, không thêm chữ nào khác, đúng cấu trúc: ' +
+   '{"title":"...","codes":[{"code":"0201","mc":["C","B"],"tf":["SĐSĐ","ĐSSS"],"sa":["3","56,6"]}]}. ' +
+   'Quy tắc: mc là mảng đáp án A/B/C/D theo thứ tự câu 1,2,3…; tf là mảng theo thứ tự câu 1,2…, mỗi phần tử đúng 4 kí tự chỉ gồm Đ hoặc S; ' +
+   'sa là mảng theo thứ tự câu 1,2…, giữ nguyên số như in (dấu phẩy thập phân), không thêm đơn vị; ' +
+   'title là tiêu đề in đầu tờ, dạng "Đáp án đề kiểm tra giữa kỳ HK1 2026-2027 – Vật lí 10" (đúng kì, năm học, môn, khối trong ảnh). ' +
+   'Tuyệt đối không bịa: ô nào không đọc rõ thì để chuỗi rỗng "" (riêng tf dùng ? cho ý không rõ). Phải liệt kê đủ mọi mã đề có trong ảnh.';
+var aiBusy = false;
+
+function getKey(force) {
+   var k = ''; try { k = localStorage.getItem(LS_KEY) || ''; } catch (e) {}
+   if (!k || force) {
+      var v = window.prompt('Dán khóa Gemini API (tạo miễn phí ở aistudio.google.com/apikey).\nKhóa chỉ được lưu trên trình duyệt của máy này, không gửi đi đâu ngoài Google.', k);
+      if (v === null) return k;
+      k = String(v).trim();
+      try { if (k) localStorage.setItem(LS_KEY, k); else localStorage.removeItem(LS_KEY); } catch (e) {}
+   }
+   return k;
+}
+async function prepImage(file, rot) {
+   try {
+      var bmp = await createImageBitmap(file), w = bmp.width, h = bmp.height, sc = Math.min(1, 2400 / Math.max(w, h));
+      var rw = Math.round(w * sc), rh = Math.round(h * sc), sw = (rot === 90 || rot === 270);
+      var cv = document.createElement('canvas'); cv.width = sw ? rh : rw; cv.height = sw ? rw : rh;
+      var ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.translate(cv.width / 2, cv.height / 2); ctx.rotate((rot || 0) * Math.PI / 180); ctx.drawImage(bmp, -rw / 2, -rh / 2, rw, rh);
+      return { mime: 'image/jpeg', b64: cv.toDataURL('image/jpeg', 0.92).split(',')[1] };
+   } catch (e) {
+      var b64 = await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result).split(',')[1]); }; fr.onerror = function () { rej(new Error('Không đọc được file ảnh')); }; fr.readAsDataURL(file); });
+      return { mime: file.type || 'image/jpeg', b64: b64 };
+   }
+}
+async function callGemini(key, parts) {
+   var models = [], lastErr = null;
+   try { var m0 = localStorage.getItem(LS_MODEL); if (m0) models.push(m0); } catch (e) {}
+   MODELS.forEach(function (m) { if (models.indexOf(m) < 0) models.push(m); });
+   for (var i = 0; i < models.length; i++) {
+      var m = models[i], r, j;
+      try {
+         r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + encodeURIComponent(key), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } })
+         });
+      } catch (e) { throw new Error('Không kết nối được Gemini (' + e.message + ') — kiểm tra mạng'); }
+      j = await r.json().catch(function () { return {}; });
+      if (r.ok) {
+         var cand = j.candidates && j.candidates[0], text = '';
+         if (cand && cand.content && cand.content.parts) text = cand.content.parts.filter(function (p) { return !p.thought; }).map(function (p) { return p.text || ''; }).join('');
+         if (!text) { lastErr = new Error('Gemini không trả kết quả' + (cand && cand.finishReason ? ' (' + cand.finishReason + ')' : '')); continue; }
+         try { localStorage.setItem(LS_MODEL, m); } catch (e) {}
+         return text;
+      }
+      var msg = (j.error && j.error.message) || ('HTTP ' + r.status);
+      if (r.status === 403 || (r.status === 400 && /api key/i.test(msg))) throw new Error('Khóa Gemini bị từ chối: ' + msg + ' — bấm 🔑 để nhập lại');
+      lastErr = new Error(msg + ' [' + m + ']');
+      if (r.status === 404 || r.status === 429 || r.status === 503 || (r.status === 400 && /model/i.test(msg))) continue;
+      throw lastErr;
+   }
+   throw lastErr || new Error('Gemini không phản hồi');
+}
+function parseAi(text) {
+   var t = String(text || '').replace(/```json|```/g, '').trim(), o;
+   try { o = JSON.parse(t); } catch (e) {
+      var a = t.indexOf('{'), z = t.lastIndexOf('}');
+      if (a < 0 || z <= a) throw new Error('Gemini trả về dữ liệu không đúng định dạng');
+      o = JSON.parse(t.slice(a, z + 1));
+   }
+   var list = Array.isArray(o) ? o : (o.codes || o.data || []), codes = {};
+   function arr(x, f) { return (Array.isArray(x) ? x : []).map(function (v) { return f(v == null ? '' : String(v)); }); }
+   list.forEach(function (c) {
+      var k = String(c.code == null ? '' : c.code).replace(/\D/g, ''); if (!k) return;
+      codes[k] = { mc: arr(c.mc, normMC), tf: arr(c.tf, normTF), sa: arr(c.sa, normSA) };
+   });
+   if (!Object.keys(codes).length) throw new Error('Gemini không đọc được mã đề nào — chụp rõ hơn hoặc nhập tay');
+   return { title: String(o.title || '').trim(), codes: codes };
+}
+function applyAi(ai, name) {
+   var had = S.cols.some(function (c) { return c.code && PARTS.some(function (p) { return c[p.k].some(function (v) { return v; }); }); });
+   if (had) {
+      var cur = toMap(), diff = 0, tot = 0;
+      Object.keys(ai.codes).forEach(function (k) {
+         var r = ai.codes[k], o = cur[k];
+         PARTS.forEach(function (p) { r[p.k].forEach(function (v, i) { tot++; if (!o || (o[p.k][i] || '') !== v) diff++; }); });
+      });
+      Object.keys(cur).forEach(function (k) { if (!ai.codes[k]) diff++; });
+      if (!diff) { $('#f-st').textContent = '✅ Ảnh \"' + name + '\" khớp hoàn toàn với dữ liệu đang có (' + tot + ' ô) — không cần thay.'; return; }
+      if (!window.confirm('Ảnh khác dữ liệu đang có ở ' + diff + ' / ' + tot + ' ô (hoặc khác mã đề).\n\nNếu khác nhiều có thể bạn đang nạp nhầm file của khối khác.\n\nThay dữ liệu đang có bằng kết quả đọc từ ảnh?')) {
+         $('#f-st').textContent = '↩ Giữ nguyên dữ liệu cũ (ảnh khác ở ' + diff + ' / ' + tot + ' ô).'; return;
+      }
+   }
+   fromMap(ai.codes); S.barem = []; S.base = '';
+   S.title = ai.title ? ai.title + ' (đọc từ ảnh ' + name + ')' : (S.title || '(đọc từ ảnh ' + name + ')');
+   render(); refreshToolbar(); setLoaded('🤖 đọc từ ảnh ' + name); status(); saveDraft();
+   $('#f-gw').classList.add('ai');
+   var rb = $('#f-rb'); rb.classList.add('on'); readback();
+   var lens = {}; PARTS.forEach(function (p) { S.cols.forEach(function (c) { lens[p.k + c.code] = c[p.k].length; }); });
+   var warn = []; PARTS.forEach(function (p) { var s = {}; S.cols.forEach(function (c) { s[c[p.k].length] = 1; }); if (Object.keys(s).length > 1) warn.push('số câu ' + p.t.split(' — ')[0] + ' không đều giữa các mã đề'); });
+   $('#f-st').textContent += '   |   🤖 Gemini đã đọc xong — ô nền xanh là do AI điền, hãy đối chiếu với ảnh bên phải trước khi tạo QR' + (warn.length ? '   ⚠️ ' + warn.join('; ') : '');
+   notify('🤖 Đã đọc ' + Object.keys(ai.codes).length + ' mã đề từ ảnh — hãy đối chiếu bằng mắt rồi mới tạo QR.', 'success');
+}
+async function readImageGemini(opt) {
+   opt = opt || {};
+   if (aiBusy) return;
+   var idx = (opt.idx != null && opt.idx >= 0) ? opt.idx : S.imgSel;
+   if (idx < 0 || !S.imgFiles[idx]) throw new Error('Chưa có ảnh: bấm \"Thêm ảnh\", Ctrl+V dán ảnh, hoặc chọn thư mục có ảnh Da.jpg');
+   var key = getKey(false);
+   if (!key) { $('#f-st').textContent = '🔑 Cần khóa Gemini API để đọc ảnh — bấm nút 🔑 để nhập, rồi bấm \"🤖 Đọc ảnh đáp án\".'; if (!opt.auto) throw new Error('Chưa nhập khóa Gemini API'); return; }
+   aiBusy = true; var btn = $('#f-ai'); btn.disabled = true; $('#f-st').textContent = '⏳ Gemini đang đọc ảnh đáp án… (khoảng 10–40 giây)';
+   try {
+      var file = S.imgFiles[idx], img = await prepImage(file, idx === S.imgSel ? S.rot : 0);
+      var text = await callGemini(key, [{ text: AI_PROMPT }, { inline_data: { mime_type: img.mime, data: img.b64 } }]);
+      applyAi(parseAi(text), file.name || 'ảnh dán');
+   } catch (e) { $('#f-st').textContent = '⚠️ ' + e.message; throw e; }
+   finally { aiBusy = false; btn.disabled = false; }
+}
+function jsonName() {      // mỗi khối một file: dap_an_form_tnmaker_K10.json (không ghi đè nhau)
+   var m = nfc(S.title || '').match(/(?:v.t\s*l.|kh.i|l.p)\s*(1[0-2])/i);
+   return m ? 'dap_an_form_tnmaker_K' + m[1] + '.json' : JSON_NAME;
 }
 
 // ===================== lưu & tạo QR =====================
@@ -1354,7 +1512,7 @@ async function go() {
    var groups = window.TNMakerQR.payloadsFromMap(map, { trimHash: S.trimHash });
    var r = await window.TNMakerQR.render(groups, { title: S.title || base, barem: S.barem });
    var xl = await window.TNMakerQR.buildXlsxFromMap(map);
-   files.push({ name: JSON_NAME, blob: new Blob([JSON.stringify(toJson(), null, 1)], { type: 'application/json' }) });
+   files.push({ name: jsonName(), blob: new Blob([JSON.stringify(toJson(), null, 1)], { type: 'application/json' }) });
    if (r.kind === 'docx') files.push({ name: 'QR_' + base + '.docx', blob: r.blob });
    r.pngs.forEach(function (b, i) { files.push({ name: 'QR_' + base + (r.pngs.length > 1 ? '_' + (i + 1) : '') + '.png', blob: new Blob([b], { type: 'image/png' }) }); });
    files.push({ name: 'TNM_' + base + '.xlsx', blob: xl });
@@ -1389,10 +1547,12 @@ function wire() {
    $('#f-dir').onclick = guard(pickDir);
    $('#f-cand').onchange = guard(function () { return loadCand(+$('#f-cand').value); });
    $('#f-file').onclick = function () { $('#f-fi').click(); };
+   $('#f-ai').onclick = guard(function () { return readImageGemini(); });
+   $('#f-key').onclick = function () { var k = getKey(true); notify(k ? '🔑 Đã lưu khóa Gemini trên trình duyệt này.' : '🔑 Chưa có khóa Gemini.', k ? 'success' : 'warning'); };
    $('#f-fi').onchange = guard(async function (e) { var f = e.target.files[0]; e.target.value = ''; if (f) { await loadFile(f, f.name); } });
    $('#f-di').onchange = guard(function (e) { var fs = Array.prototype.slice.call(e.target.files); e.target.value = ''; return loadFromInputFolder(fs); });
    $('#f-add').onclick = function () { S.cols.push(newCol('')); render(); status(); var inp = $$('#f-gw input.code'); inp[inp.length - 1].focus(); };
-   $('#f-clr').onclick = function () { if (window.confirm('Xoá toàn bộ dữ liệu đang nhập?')) { S.cols = [newCol('')]; S.base = ''; S.barem = []; setLoaded(''); render(); status(); saveDraft(); } };
+   $('#f-clr').onclick = function () { if (window.confirm('Xoá toàn bộ dữ liệu đang nhập?')) { $('#f-gw').classList.remove('ai'); S.cols = [newCol('')]; S.base = ''; S.barem = []; setLoaded(''); render(); status(); saveDraft(); } };
    ['mc', 'tf', 'sa'].forEach(function (k) {
       $('#n-' + k).onchange = function () { var v = Math.max(0, Math.min(60, parseInt(this.value, 10) || 0)); S.n[k] = v; render(); status(); saveDraft(); };
    });
@@ -1411,7 +1571,7 @@ function wire() {
    $('#i-p').onclick = function () { S.zoom = Math.min(400, S.zoom + 25); drawImgs(); };
    $('#i-m').onclick = function () { S.zoom = Math.max(25, S.zoom - 25); drawImgs(); };
    $('#i-r').onclick = function () { S.rot = (S.rot + 90) % 360; drawImgs(); };
-   $('#i-d').onclick = function () { if (S.imgSel >= 0) { S.imgs.splice(S.imgSel, 1); S.imgSel = S.imgs.length - 1; drawImgs(); } };
+   $('#i-d').onclick = function () { if (S.imgSel >= 0) { S.imgs.splice(S.imgSel, 1); S.imgFiles.splice(S.imgSel, 1); S.imgSel = S.imgs.length - 1; drawImgs(); } };
    root.addEventListener('dragover', function (e) { e.preventDefault(); });
    root.addEventListener('drop', function (e) { var fs = Array.prototype.slice.call(e.dataTransfer.files || []).filter(function (f) { return /^image\//.test(f.type); }); if (fs.length) { e.preventDefault(); addImages(fs); } });
    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root.classList.contains('on') && !/INPUT|SELECT/.test((e.target || {}).tagName || '')) close(); });
@@ -1426,5 +1586,5 @@ function buildButton() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildButton); else buildButton();
 
-window.TNMForm = { open: open, close: close, state: S, toMap: toMap, fromMap: fromMap, fromJson: fromJson, toJson: toJson, normTF: normTF, normSA: normSA, normMC: normMC, _pasteTable: pasteTable, _splitItems: splitItems, showHelp: showHelp, version: '1.1' };
+window.TNMForm = { open: open, close: close, state: S, toMap: toMap, fromMap: fromMap, fromJson: fromJson, toJson: toJson, normTF: normTF, normSA: normSA, normMC: normMC, _pasteTable: pasteTable, _splitItems: splitItems, showHelp: showHelp, readImage: readImageGemini, version: '1.2' };
 })();
