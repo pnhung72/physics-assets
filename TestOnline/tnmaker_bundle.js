@@ -1,4 +1,4 @@
-/* tnmaker_bundle6.js = tnmaker_qr_export (v1.3) + tnmaker_answer_parser (v1.1) + tnmaker_drive (v1.4) + tnmaker_form (v1.0)
+/* tnmaker_bundle6.js = tnmaker_qr_export (v1.3) + tnmaker_answer_parser (v1.1) + tnmaker_drive (v1.4) + tnmaker_form (v1.1)
    Chỉ tạo QR cho Phần I, II, III (TNMaker tự chấm). Phần IV tự luận chấm tay → không đưa vào QR. */
 /*!
  * tnmaker_qr_export.js  (v1.2)
@@ -746,7 +746,7 @@ window.TNMakerDrive = { hook: hook, afterExport: afterExport, convertToolFolder:
 
 ;
 /*!
- * tnmaker_form.js (v1.0)
+ * tnmaker_form.js (v1.1)
  * Form nhập đáp án → QR TNMaker (Smart Test, type 5) + Excel + file Word QR, lưu thẳng vào thư mục đề.
  * Chỉ Phần I (TN nhiều lựa chọn), Phần II (Đúng/Sai), Phần III (trả lời ngắn). Phần IV tự luận chấm tay: không có trong form/QR.
  *  - Chọn thư mục: tự tìm form đã lưu (dap_an_form_tnmaker.json) hoặc file Word/Excel đáp án rồi nạp vào form.
@@ -867,6 +867,10 @@ var CSS = '#tnmf{position:fixed;inset:0;z-index:99995;background:#f3f4f6;color:#
 '#tnmf .tb input[type=text]{padding:4px 6px;min-width:160px}' +
 '#tnmf .st{padding:5px 12px;background:#fffde7;border-bottom:1px solid #eee;font-size:12.5px;min-height:26px}' +
 '#tnmf table.g th{color:#263238!important;font-size:13px!important;text-shadow:none!important}#tnmf table.g th.sec{color:#4e342e!important}#tnmf table.g input{color:#111!important;font-family:inherit!important}#tnmf table.g input.x{color:#b71c1c!important}#tnmf .st,#tnmf .tb,#tnmf .ft,#tnmf .rb{color:#1f2937!important}' +
+'#tnmf .hp{display:none;position:absolute;top:44px;left:0;right:0;bottom:0;z-index:20;background:#fff;overflow:auto;padding:14px 18px 30px}#tnmf .hp.on{display:block}' +
+'#tnmf .hp,#tnmf .hp *{color:#1f2937!important}#tnmf .hp h3{margin:14px 0 6px!important;font-size:16px!important;color:#bf360c!important}#tnmf .hp h2{margin:0 0 8px!important;font-size:19px!important}' +
+'#tnmf .hp ol,#tnmf .hp ul{margin:4px 0 4px 22px!important;padding:0!important}#tnmf .hp li{margin:3px 0!important}#tnmf .hp kbd{background:#eee;border:1px solid #bbb;border-radius:4px;padding:0 5px;font-size:12px}' +
+'#tnmf .hp .bx{background:#fff8e1;border:1px solid #ffcc80;border-radius:8px;padding:8px 12px;margin:8px 0}#tnmf .hp button{color:#fff!important}' +
 '#tnmf .mn{flex:1;display:flex;min-height:0}#tnmf .gw{flex:1;overflow:auto;padding:8px}' +
 '#tnmf table.g{border-collapse:collapse;background:#fff}' +
 '#tnmf table.g th,#tnmf table.g td{border:1px solid #cfd4da;padding:0;text-align:center}' +
@@ -894,13 +898,56 @@ var CSS = '#tnmf{position:fixed;inset:0;z-index:99995;background:#f3f4f6;color:#
 '#tnmf .qr .fl{font-size:12.5px;align-self:center}' +
 '@media(max-width:700px){#tnmf .mn{flex-direction:column}#tnmf .ip{width:auto;max-width:none;max-height:36vh;border-left:0;border-top:1px solid #ccc}}';
 
+
+var HELP_HTML = '<h2>📖 Hướng dẫn nhanh — tạo QR đáp án cho TNMaker</h2>' +
+'<div class="bx"><b>Mục đích:</b> đưa đáp án của đề (Phần I, II, III) vào form, kiểm tra, rồi tạo <b>một mã QR chứa tất cả mã đề</b> để quét vào app TNMaker. Phần IV (tự luận) chấm tay nên không có trong QR.</div>' +
+'<h3>Bước 1 — Đưa đáp án vào form (chọn 1 trong 3 cách)</h3>' +
+'<b>Cách A. Từ file của giáo viên (nhanh nhất)</b><ol>' +
+'<li>Bấm <b>📁 Chọn thư mục chứa đề</b> → chọn thư mục có file đáp án (dùng Chrome hoặc Edge; bấm "Cho phép" khi trình duyệt hỏi).</li>' +
+'<li>Form tự tìm file đáp án (tên bắt đầu <i>Da…</i> hoặc có chữ <i>đáp án</i>, định dạng Word hoặc Excel) và điền vào bảng. Nếu đã từng lưu form ở thư mục này, form tự nạp lại bản đã lưu.</li>' +
+'<li>Thư mục có nhiều file → chọn file khác ở danh sách thả xuống cạnh nút. Muốn chọn thẳng một file → bấm <b>📄 Đọc file Word/Excel đáp án…</b></li></ol>' +
+'<b>Cách B. Dán từ Word / Excel</b><ol>' +
+'<li>Mở file đáp án, bôi đen bảng đáp án của <u>một phần</u> rồi <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>' +
+'<li>Bấm vào ô <b>Câu 1</b> của phần đó trong form rồi <kbd>Ctrl</kbd>+<kbd>V</kbd>. Form tự bỏ cột "Câu", nhận mã đề ở hàng tiêu đề, đổi dấu phẩy thập phân. Làm lần lượt Phần I → II → III.</li>' +
+'<li>Dán nguyên một cột: bấm vào ô <b>gạch đứt màu cam</b> (dòng "dán cột") rồi dán chuỗi, VD <code>CACDACCADCBD</code> (Phần I) hoặc <code>ĐSĐS SSĐĐ</code> (Phần II).</li></ol>' +
+'<b>Cách C. Gõ tay</b><ol>' +
+'<li>Gõ mã đề vào ô trên cùng của mỗi cột (VD 0201). Cần thêm cột → <b>➕ Thêm mã đề</b>; xoá cột → dấu ✕ cạnh mã đề.</li>' +
+'<li><b>Phần I:</b> gõ A, B, C hoặc D (hoặc phím 1–4) → tự nhảy xuống ô dưới.</li>' +
+'<li><b>Phần II:</b> gõ 4 chữ <b>d</b>/<b>s</b>, VD <code>dsds</code> → ĐSĐS, đủ 4 ký tự tự nhảy ô.</li>' +
+'<li><b>Phần III:</b> gõ số (dấu phẩy hay dấu chấm đều được, số âm dùng dấu −), nhấn <kbd>Enter</kbd> để xuống ô dưới.</li>' +
+'<li>Số câu mỗi phần chỉnh ở 3 ô <b>Phần I / II / III</b> trên thanh công cụ (mặc định 18 – 4 – 6). Dán dài hơn thì bảng tự mở rộng.</li></ol>' +
+'<b>Có ảnh đáp án?</b> Bấm <b>Thêm ảnh</b> hoặc <kbd>Ctrl</kbd>+<kbd>V</kbd> để dán ảnh vào khung bên phải; dùng − ＋ ⟳ để phóng to, xoay. Ảnh chỉ để bạn nhìn khi gõ — công cụ <u>không tự đọc chữ</u> trong ảnh vì dễ nhầm Đ/S và số thập phân.' +
+'<h3>Bước 2 — Kiểm tra</h3><ul>' +
+'<li>Ô <b style="background:#fff59d">vàng</b> = còn trống · ô <b style="background:#ffcdd2">đỏ</b> = sai định dạng (Phần I phải là A–D, Phần II đủ 4 ký tự Đ/S, Phần III phải là số).</li>' +
+'<li>Dòng trạng thái phía trên bảng cho biết số mã đề và số ô trống.</li>' +
+'<li>Bấm <b>🔍 Đọc lại để đối chiếu</b>: mỗi mã đề hiện thành một dòng, đối chiếu với bản gốc của giáo viên. Đáp án nhập sai thì QR cũng sai theo, bước này rất đáng làm.</li></ul>' +
+'<h3>Bước 3 — Tạo QR và lưu</h3><ul>' +
+'<li>Bấm <b>✅ Tạo QR &amp; lưu vào thư mục</b>. Công cụ ghi vào thư mục đã chọn 4 file: <code>dap_an_form_tnmaker.json</code> (lần sau tự nạp lại), <code>QR_….docx</code> (Word chứa QR), <code>QR_….png</code> (ảnh QR), <code>TNM_….xlsx</code> (Excel Smart Test).</li>' +
+'<li>Chưa chọn thư mục hoặc trình duyệt không cho ghi (Firefox/Safari) → các file được tải về máy.</li>' +
+'<li>Ít mã đề thì chỉ 1 QR; nhiều mã đề thì tự tách thành vài QR (ghi rõ "QR 1/2…" và các mã đề trong đó).</li>' +
+'<li>Chọn <b>📤 Xuất Excel + mở qr-code.tnmaker.net</b> nếu muốn dùng trang web của TNMaker: chọn định dạng <i>Smart Test</i> rồi kéo file Excel vào.</li>' +
+'<li>Đề chỉ có Phần I và II mà app TNMaker báo lỗi → tích ô <b>bỏ # thừa</b> rồi tạo lại.</li></ul>' +
+'<h3>Bước 4 — Dùng trong app TNMaker</h3><ul><li>Trong app chọn nhập đáp án bằng QR rồi quét mã (in từ file Word hoặc mở ảnh PNG trên màn hình). QR là của giáo viên, không phát cho học sinh.</li></ul>' +
+'<h3>Phím tắt &amp; lưu ý</h3><ul>' +
+'<li><kbd>Enter</kbd> / <kbd>↓</kbd> xuống ô dưới · <kbd>↑</kbd> lên · <kbd>←</kbd> <kbd>→</kbd> sang mã đề bên cạnh · <kbd>Esc</kbd> đóng form.</li>' +
+'<li>Dữ liệu đang nhập tự lưu nháp trên máy này, đóng form mở lại vẫn còn. Muốn làm đề khác → <b>🗑 Xoá hết</b>.</li>' +
+'<li>Công cụ không có phần gõ công thức vì QR chỉ chứa chữ cái, Đ/S và số.</li></ul>' +
+'<p><button type="button" id="f-hok" class="pri" style="padding:8px 18px;background:#e65100!important">Đã hiểu, bắt đầu nhập</button></p>';
+function helpSeen() { try { return localStorage.getItem('tnmf_help_seen') === '1'; } catch (e) { return false; } }
+function showHelp(on) {
+   var hp = $('#f-hp'); if (!hp) return;
+   hp.classList.toggle('on', on !== undefined ? on : !hp.classList.contains('on'));
+   if (!hp.classList.contains('on')) { try { localStorage.setItem('tnmf_help_seen', '1'); } catch (e) {} }
+}
+
 function build() {
    if (root) return;
    var st = el('style'); st.textContent = CSS; document.head.appendChild(st);
    root = el('div', { id: 'tnmf' });
    root.innerHTML =
    '<div class="hd"><b>📷 QR đáp án TNMaker</b><span id="f-ld"></span><span class="sp"></span>' +
-   '<button type="button" id="f-x">✕ Đóng</button></div>' +
+   '<button type="button" id="f-help">❓ Hướng dẫn</button><button type="button" id="f-x">✕ Đóng</button></div>' +
+   '<div class="hp" id="f-hp">' + HELP_HTML + '</div>' +
    '<div class="tb">' +
    '<button type="button" id="f-dir" class="pri">📁 Chọn thư mục chứa đề</button>' +
    '<select id="f-cand" style="max-width:260px;display:none"></select>' +
@@ -931,7 +978,7 @@ function build() {
    root.appendChild(fi); root.appendChild(ii); root.appendChild(di);
    wire(); render(); refreshToolbar();
 }
-function open() { build(); root.classList.add('on'); if (!S.cols.length) { restoreDraft(); } status(); }
+function open() { build(); root.classList.add('on'); if (!S.cols.length) { restoreDraft(); } status(); if (!helpSeen()) showHelp(true); }
 function close() { if (root) root.classList.remove('on'); }
 
 function restoreDraft() {
@@ -1297,6 +1344,8 @@ async function sendExcel() {
 function guard(fn) { return function () { var a = arguments; Promise.resolve().then(function () { return fn.apply(null, a); }).catch(function (e) { notify('⚠️ ' + e.message, 'warning'); var st = $('#f-st'); if (st) st.textContent = '⚠️ ' + e.message; }); }; }
 function wire() {
    $('#f-x').onclick = close;
+   $('#f-help').onclick = function () { showHelp(); };
+   $('#f-hok').onclick = function () { showHelp(false); };
    $('#f-dir').onclick = guard(pickDir);
    $('#f-cand').onchange = guard(function () { return loadCand(+$('#f-cand').value); });
    $('#f-file').onclick = function () { $('#f-fi').click(); };
@@ -1337,5 +1386,5 @@ function buildButton() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildButton); else buildButton();
 
-window.TNMForm = { open: open, close: close, state: S, toMap: toMap, fromMap: fromMap, fromJson: fromJson, toJson: toJson, normTF: normTF, normSA: normSA, normMC: normMC, _pasteTable: pasteTable, _splitItems: splitItems, version: '1.0' };
+window.TNMForm = { open: open, close: close, state: S, toMap: toMap, fromMap: fromMap, fromJson: fromJson, toJson: toJson, normTF: normTF, normSA: normSA, normMC: normMC, _pasteTable: pasteTable, _splitItems: splitItems, showHelp: showHelp, version: '1.1' };
 })();
