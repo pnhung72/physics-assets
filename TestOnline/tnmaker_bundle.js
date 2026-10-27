@@ -1,4 +1,4 @@
-/* tnmaker_bundle6.js = tnmaker_qr_export (v1.3) + tnmaker_answer_parser (v1.1) + tnmaker_drive (v1.4) + tnmaker_form (v1.1)
+/* tnmaker_bundle9.js = tnmaker_qr_export (v1.3) + tnmaker_answer_parser (v1.2) + tnmaker_drive (v1.5) + tnmaker_form (v1.1)
    Chỉ tạo QR cho Phần I, II, III (TNMaker tự chấm). Phần IV tự luận chấm tay → không đưa vào QR. */
 /*!
  * tnmaker_qr_export.js  (v1.2)
@@ -209,7 +209,9 @@ window.TNMakerQR = { run: run, exportQR: exportTNMakerQR, exportExcel: exportTNM
 
 ;
 /*!
- * tnmaker_answer_parser.js (v1.1)
+ * tnmaker_answer_parser.js (v1.2)
+ * v1.2: đọc được chữ D không dấu (=Đúng) trong ô "SDSD"; tiêu đề "đúng, sai"; hàng "Phần 1/2/3" nằm TRONG bảng;
+ *       hàng mã đề nằm dưới ô "Mã đề" gộp; số câu không còn bị nhầm với đáp án số của cột bên cạnh.
  * Đọc file ĐÁP ÁN Word (.docx) đúng mẫu → { codes: { "0201": { mc:[], tf:[], sa:[] } }, barem:[], warnings:[] }
  * Nhận 2 bố cục:
  *   A) Bảng TX của mã:  Phần I: hàng = mã đề, cột = số câu; Phần II: "Mã đề | 101 | 102-104-105 | ..." với cột Câu/ý bên trái
@@ -274,7 +276,7 @@ function partKind(text) {
    var t = nfc(text).toLowerCase();
    if (!/^\s*phần\s+(iv|iii|ii|i|[1-4])\b/.test(t)) return null;
    if (/tự luận/.test(t)) return 'essay';
-   if (/đúng\s*[\/\-–]?\s*sai|đúng\s*sai/.test(t)) return 'tf';
+   if (/đúng[\s,;:\/\-–&]*(?:hoặc\s*)?sai/.test(t)) return 'tf';
    if (/trả lời ngắn/.test(t)) return 'sa';
    if (/nhiều phương án|trắc nghiệm/.test(t)) return 'mc';
    return null;
@@ -297,9 +299,23 @@ function normSA(v) {
 function ensure(map, code) { if (!map[code]) map[code] = { mc: [], tf: [], sa: [] }; return map[code]; }
 
 // ---------- xử lý từng bảng ----------
+function isCodeOnly(t) {   // "0201" | "Mã đề 0201" | "0201-0203" | "101, 102"
+   t = nfc(t).replace(/mã\s*đề/gi, ' ').trim();
+   return !!t && /^\d{3,4}(?:\s*[-–+,&\/]\s*\d{3,4}|\s+\d{3,4})*$/.test(t);
+}
+function rowHasCodes(row) { for (var j = 0; j < row.length; j++) if (isCodeOnly(row[j].t)) return true; return false; }
 function headerRow(grid) {
    for (var r = 0; r < Math.min(grid.length, 4); r++)
-      for (var c = 0; c < grid[r].length; c++) if (/mã\s*đề/i.test(nfc(grid[r][c].t))) return r;
+      for (var c = 0; c < grid[r].length; c++) if (/mã\s*đề/i.test(nfc(grid[r][c].t))) {
+         // "Câu hỏi | Mã đề (gộp nhiều cột)" rồi HÀNG KẾ TIẾP mới là 0201 0202 …
+         var nx = grid[r + 1];
+         if (!rowHasCodes(grid[r]) && nx && nx.length > 1 && !isCodeOnly(nx[0].t)) {
+            var k = 0, tot = 0;
+            for (var j = 1; j < nx.length; j++) { var tj = nfc(nx[j].t); if (!tj) continue; tot++; if (isCodeOnly(tj)) k++; }
+            if (tot && k === tot) return r + 1;
+         }
+         return r;
+      }
    // bố cục không ghi chữ "Mã đề": hàng đầu chỉ có "Câu" + các số mã đề (0201, 0202…)
    for (var r2 = 0; r2 < Math.min(grid.length, 4); r2++) {
       var n = 0, bad = 0;
@@ -312,24 +328,25 @@ function headerRow(grid) {
    return -1;
 }
 function hasMaDe(grid, h) { for (var c = 0; c < grid[h].length; c++) if (/mã\s*đề/i.test(nfc(grid[h][c].t))) return true; return false; }
-function isCodeCell(t) { t = nfc(t); return /mã\s*đề/i.test(t) || /^\d{3,4}$/.test(t); }
-function toDS4(v) {   // "ĐĐSS", "Đ S Đ S", "Đ-S-Đ-S", "Đúng Sai Đúng Sai" → "ĐSĐS" (hoặc null)
-   var t = nfc(norm(v)).toLowerCase().replace(/đúng/g, 'đ').replace(/sai/g, 's').replace(/[\s.,;\/\-–_|]/g, '');
+function isCodeCell(t) { t = nfc(t); return /mã\s*đề/i.test(t) || isCodeOnly(t); }
+function toDS4(v) {   // "ĐĐSS", "SDSD" (D không dấu = Đúng), "Đ S Đ S", "Đ-S-Đ-S", "Đúng Sai Đúng Sai", "TFTF" → "ĐSĐS" (hoặc null)
+   var t = nfc(norm(v)).toLowerCase().replace(/đúng|dung|true/g, 'đ').replace(/sai|false/g, 's').replace(/[\s.,;\/\-–_|]/g, '');
+   t = t.replace(/[dt]/g, 'đ').replace(/f/g, 's');
    if (!/^[đs]+$/.test(t)) return null;
    return t.toUpperCase();
 }
 function isHorizontal(grid, h) {   // Phần I kiểu TX: hàng đầu là số câu 1..N, cột đầu là mã đề
    if (!hasMaDe(grid, h)) return false;
    var nums = 0, tot = 0;
-   for (var c = 1; c < grid[h].length; c++) { var t = grid[h][c].t; if (!t) continue; tot++; if (/^(?:câu\s*)?\d{1,3}$/i.test(nfc(t))) nums++; }
+   for (var c = 1; c < grid[h].length; c++) { var t = grid[h][c].t; if (!t) continue; tot++; if (/^(?:câu\s*)?\d{1,2}$/i.test(nfc(t))) nums++; }
    return tot > 0 && nums === tot;
 }
-function labelNumber(grid, h, row, c) {   // số câu của hàng, lấy từ cột "Câu" gần nhất bên trái (theo tiêu đề); không có thì lấy số gần nhất
-   for (var k = c - 1; k >= 0; k--)
-      if (grid[h][k] && /^(câu|stt|số câu)$/i.test(nfc(grid[h][k].t))) {
-         var m = /(\d{1,3})/.exec(nfc(row[k] ? row[k].t : '')); return m ? parseInt(m[1], 10) : null;
-      }
-   return leftNumber(row, c - 1);
+function labelNumber(grid, h, row, c) {   // số câu của hàng: cột nhãn gần nhất bên trái; BỎ QUA các cột đáp án của mã đề khác (đáp án số "4", "30" không phải số câu)
+   for (var k = c - 1; k >= 0; k--) {
+      if (grid[h][k] && isCodeOnly(grid[h][k].t)) continue;
+      var m = /^(?:câu\s*)?(\d{1,3})\s*[:.)]?$/i.exec(nfc(row[k] ? row[k].t : '')); if (m) return parseInt(m[1], 10);
+   }
+   return null;
 }
 function leftNumber(row, from) {
    for (var k = from; k >= 0; k--) { var m = /^(?:câu\s*)?(\d{1,3})$/i.exec(nfc(row[k].t)); if (m) return parseInt(m[1], 10); }
@@ -362,6 +379,20 @@ function parseMcSa(grid, kind, map, warn) {
          cds.forEach(function (cd) { ensure(map, cd)[kind][n2 - 1] = val; });
       }
    }
+}
+function splitBySections(grid, carry) {   // tờ đáp án 1 bảng duy nhất: các hàng gộp "Phần 1: …", "Phần 2: …" chia bảng thành từng phần
+   var marks = [];
+   for (var r = 0; r < grid.length; r++) {
+      var seen = {}, cnt = 0, only = '';
+      for (var c = 0; c < grid[r].length; c++) { var t = norm(grid[r][c].t); if (t && !seen[t]) { seen[t] = 1; cnt++; only = t; } }
+      if (cnt === 1) { var k = partKind(only); if (k) marks.push({ r: r, kind: k }); }
+   }
+   if (!marks.length) return null;
+   var head = grid.slice(0, marks[0].r); if (!head.length) head = carry || [];
+   return marks.map(function (m, i) {
+      var end = i + 1 < marks.length ? marks[i + 1].r : grid.length;
+      return { kind: m.kind, head: head, grid: head.concat(grid.slice(m.r + 1, end)) };
+   });
 }
 function parseTf(grid, map, warn) {
    var h = headerRow(grid); if (h < 0) { warn.push('Bảng Đúng/Sai không có hàng "Mã đề"'); return; }
@@ -415,7 +446,7 @@ async function parse(buf, env) {
    if (!f) throw new Error('Không phải file .docx hợp lệ');
    var doc = new DP().parseFromString(await f.async('string'), 'application/xml');
    var body = doc.getElementsByTagName('w:body')[0];
-   var map = {}, warn = [], barem = [], cur = null, order = [];
+   var map = {}, warn = [], barem = [], cur = null, order = [], carryHead = [];
    (function walk(node) {
       for (var i = 0; i < node.childNodes.length; i++) {
          var n = node.childNodes[i];
@@ -427,8 +458,17 @@ async function parse(buf, env) {
             if (pk) cur = pk;
             if (cur && cur !== 'essay' && /điểm/i.test(t) && barem.length < 14) barem.push((pk ? '' : '') + t.slice(0, 170));
          } else if (n.nodeName === 'w:tbl') {
-            if (!cur || cur === 'essay') continue;
             var g = tableToGrid(n); if (!g.length) continue;
+            var segs = splitBySections(g, carryHead);
+            if (segs) {
+               if (segs[0].head.length) carryHead = segs[0].head;
+               segs.forEach(function (sg) {
+                  cur = sg.kind; if (cur === 'essay') return;
+                  if (cur === 'tf') parseTf(sg.grid, map, warn); else parseMcSa(sg.grid, cur, map, warn);
+               });
+               continue;
+            }
+            if (!cur || cur === 'essay') continue;
             if (cur === 'tf') parseTf(g, map, warn); else parseMcSa(g, cur, map, warn);
          }
       }
@@ -451,14 +491,14 @@ async function parse(buf, env) {
    return { codes: codes, barem: barem, warnings: warn };
 }
 
-var api = { parse: parse, _codesIn: codesIn, _normSA: normSA, _toDS4: toDS4, version: '1.1' };
+var api = { parse: parse, _codesIn: codesIn, _normSA: normSA, _toDS4: toDS4, version: '1.2' };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 root.TNMAnswerParser = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 ;
 /*!
- * tnmaker_drive.js (v1.4)
+ * tnmaker_drive.js (v1.5)
  * - Mỗi lần "Tải Gói Đề (Word)": tự ghi Đề + Đáp án + Excel đáp án + QR TNMaker lên đúng thư mục Drive (theo lớp + loại bài), tên theo quy tắc.
  * - "Chuyển đáp án QR": đọc file đáp án Word/Excel trong thư mục công cụ → tạo QR TNMaker → ghi vào cùng thư mục.
  * - "Quét đề nhà trường": tìm đáp án GK/CK chưa có QR trong các thư mục → tạo QR.
@@ -597,7 +637,7 @@ async function parseXlsxSmart(buf) {
    function col(ref) { var m = /^([A-Z]+)/.exec(ref)[1], n = 0; for (var i = 0; i < m.length; i++) n = n * 26 + m.charCodeAt(i) - 64; return n - 1; }
    for (var r = 0; r < rows.length; r++) {
       var cs = rows[r].getElementsByTagName('c'), row = [];
-      for (var j = 0; j < cs.length; j++) { var v = cs[j].getElementsByTagName('v')[0], t = cs[j].getAttribute('t'); var x = v ? v.textContent : ''; row[col(cs[j].getAttribute('r'))] = t === 's' ? sst[+x] : x; }
+      for (var j = 0; j < cs.length; j++) { var v = cs[j].getElementsByTagName('v')[0], t = cs[j].getAttribute('t'); var x = v ? v.textContent : ''; row[col(cs[j].getAttribute('r'))] = t === 's' ? sst[+x] : t === 'inlineStr' ? cs[j].textContent : x; }   // inlineStr: file Excel do thư viện khác (openpyxl…) tạo
       grid.push(row);
    }
    var codes = {}, warn = [];
@@ -608,7 +648,7 @@ async function parseXlsxSmart(buf) {
       for (var q = 1; q < grid.length; q++) {
          var val = String((grid[q] && grid[q][c]) || '').trim(); if (!val) continue;
          if (/^[A-D]$/i.test(val)) o.mc.push(val.toUpperCase());
-         else if (/^[ĐS]{4}$/.test(val)) o.tf.push(val);
+         else if (/^[ĐđDdSs]{4}$/.test(val.replace(/[\s\-_,;|]/g, ''))) o.tf.push(val.replace(/[\s\-_,;|]/g, '').toUpperCase().replace(/D/g, 'Đ'));   // "SDSD", "Đ S Đ S" → ĐSĐS
          else o.sa.push(val.replace(/,/g, '.'));
       }
       codes[code] = o;
@@ -741,7 +781,7 @@ function buildPanel() {
 if (typeof window.TNM_EXPORT_XLSX === 'undefined') window.TNM_EXPORT_XLSX = true;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildPanel); else buildPanel();
 
-window.TNMakerDrive = { hook: hook, afterExport: afterExport, convertToolFolder: convertToolFolder, scanSchool: scanSchool, detectType: detectType, yearTag: yearTag, classify: classify, baseName: baseName, isAnswerFile: isAnswerFile, FOLDERS: FOLDERS, parseXlsxSmart: parseXlsxSmart, ensureDocx: ensureDocx, version: '1.4' };
+window.TNMakerDrive = { hook: hook, afterExport: afterExport, convertToolFolder: convertToolFolder, scanSchool: scanSchool, detectType: detectType, yearTag: yearTag, classify: classify, baseName: baseName, isAnswerFile: isAnswerFile, FOLDERS: FOLDERS, parseXlsxSmart: parseXlsxSmart, ensureDocx: ensureDocx, version: '1.5' };
 })();
 
 ;
