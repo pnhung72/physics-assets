@@ -866,6 +866,7 @@ var CSS = '#tnmf{position:fixed;inset:0;z-index:99995;background:#f3f4f6;color:#
 '#tnmf .tb label{display:inline-flex;gap:4px;align-items:center}#tnmf .tb input[type=number]{width:54px;padding:3px}' +
 '#tnmf .tb input[type=text]{padding:4px 6px;min-width:160px}' +
 '#tnmf .st{padding:5px 12px;background:#fffde7;border-bottom:1px solid #eee;font-size:12.5px;min-height:26px}' +
+'#tnmf table.g th{color:#263238!important;font-size:13px!important;text-shadow:none!important}#tnmf table.g th.sec{color:#4e342e!important}#tnmf table.g input{color:#111!important;font-family:inherit!important}#tnmf table.g input.x{color:#b71c1c!important}#tnmf .st,#tnmf .tb,#tnmf .ft,#tnmf .rb{color:#1f2937!important}' +
 '#tnmf .mn{flex:1;display:flex;min-height:0}#tnmf .gw{flex:1;overflow:auto;padding:8px}' +
 '#tnmf table.g{border-collapse:collapse;background:#fff}' +
 '#tnmf table.g th,#tnmf table.g td{border:1px solid #cfd4da;padding:0;text-align:center}' +
