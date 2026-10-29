@@ -787,3 +787,50 @@
     checkSpelling: checkSpelling, formatReport: formatReport, proofread: aiProofread, clearCache: clearCache
   };
 });
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$root = 'D:\Chuyên môn\Thiết kế web dạy học'
+$found = @(Get-ChildItem -LiteralPath $root -Recurse -Filter 'exam_qa_gate1.js' -ErrorAction SilentlyContinue)
+if ($found.Count -eq 1) { $src = $found[0].FullName }
+else { $found | ForEach-Object { $_.FullName }; $src = Read-Host 'Dán đường dẫn đầy đủ của exam_qa_gate1.js' }
+$src = $src.Trim('"')
+if (-not (Test-Path -LiteralPath $src)) { Write-Host "Không thấy file: $src" -ForegroundColor Red; return }
+
+$code = [IO.File]::ReadAllText($src, [Text.Encoding]::UTF8)
+if ($code.Contains('__adapterV21')) { Write-Host 'File này đã có bộ chuyển, không làm lại.' -ForegroundColor Yellow; return }
+
+$shim = @'
+/* === v2.1 ADAPTER: gom cải tiến vào file này để TestOnline.html không phải sửa thêm === */
+(function () {
+  var FORCE_STRICT = false; // true = ẩn nút "Vẫn xuất" khi có LỖI
+  var Q = window.ExamQA;
+  if (!Q || typeof Q.gate !== 'function' || Q.__adapterV21) return;
+  var origGate = Q.gate;
+  Q.gate = function (pkgs, opts) {
+    opts = Object.assign({}, opts || {});
+    var ai = Object.assign({}, opts.ai || {});
+    try { if (typeof ai.aiGetKey !== 'function' && typeof window.aiGetKey === 'function') ai.aiGetKey = window.aiGetKey; } catch (e) {}
+    try { if (typeof ai.aiVerifyVariant !== 'function' && typeof window.aiVerifyVariant === 'function') ai.aiVerifyVariant = window.aiVerifyVariant; } catch (e) {}
+    try { if (typeof ai.aiSleep !== 'function' && typeof window.aiSleep === 'function') ai.aiSleep = window.aiSleep; } catch (e) {}
+    opts.ai = ai;
+    var hasKey = false;
+    try { hasKey = typeof ai.aiGetKey === 'function' && !!ai.aiGetKey(); } catch (e) {}
+    if (window.EXAM_QA_AI_VERIFY !== false) { opts.aiVerify = hasKey; opts.aiProofread = hasKey; }
+    if (!opts.model) { try { if (typeof AI_GEMINI_MODEL !== 'undefined') opts.model = AI_GEMINI_MODEL; } catch (e) {} }
+    if (FORCE_STRICT) opts.strict = true;
+    return origGate.call(this, pkgs, opts);
+  };
+  Q.__adapterV21 = true;
+})();
+'@
+
+$nl = "`r`n"
+$out = $code.TrimEnd() + $nl + $nl + (($shim -split "\r?\n") -join $nl).Trim() + $nl
+$dst = Join-Path (Split-Path $src) 'exam_qa_gate.js'
+if (Test-Path -LiteralPath $dst) { Copy-Item -LiteralPath $dst -Destination ($dst + '.bak_' + (Get-Date -Format 'yyyyMMdd_HHmmss')) -Force }
+[IO.File]::WriteAllText($dst, $out, (New-Object Text.UTF8Encoding($false)))
+Write-Host "Đã tạo: $dst" -ForegroundColor Green
+
+if (Get-Command node -ErrorAction SilentlyContinue) {
+  node --check $dst
+  if ($LASTEXITCODE -eq 0) { Write-Host 'Kiểm tra cú pháp: ĐẠT' -ForegroundColor Green } else { Write-Host 'Kiểm tra cú pháp: LỖI, đừng đưa lên GitHub' -ForegroundColor Red }
+} else { Write-Host 'Máy không có node nên chưa kiểm tra cú pháp được.' -ForegroundColor Yellow }
