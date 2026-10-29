@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.7
+ * luyende_drive.js  v1.8
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -267,10 +267,10 @@
       return Promise.all([f.async('string'), zip.file('word/_rels/document.xml.rels') ? zip.file('word/_rels/document.xml.rels').async('string') : Promise.resolve(''), zip.file('word/styles.xml') ? zip.file('word/styles.xml').async('string') : Promise.resolve('')]).then(function (r) {
         var docXml = new Parser().parseFromString(r[0], 'application/xml'), rels = new Parser().parseFromString(r[1] || '<x/>', 'application/xml');
         var defPt = 12, sm = /<w:docDefaults>[\s\S]*?<w:sz w:val="(\d+)"/.exec(r[2]); if (sm) defPt = parseInt(sm[1], 10) / 2;
-        var ctx = { images: {}, defPt: defPt, mode: '' }, jobs = [];
+        var ctx = { images: {}, defPt: defPt, mode: '', skipped: [] }, jobs = [];
         Array.prototype.forEach.call(rels.getElementsByTagName('Relationship'), function (rel) {
           var id = rel.getAttribute('Id'), tg = rel.getAttribute('Target') || '', ty = rel.getAttribute('Type') || '';
-          if (!/image$/.test(ty)) return; var mm = mimeOf(tg); if (!mm) return;
+          if (!/image$/.test(ty)) return; var mm = mimeOf(tg); if (!mm) { ctx.skipped.push(tg); return; }
           var file = zip.file('word/' + tg.replace(/^\//, '').replace(/^word\//, ''));
           if (file) jobs.push(file.async('base64').then(function (b) { ctx.images[id] = 'data:' + mm + ';base64,' + b; }));
         });
@@ -461,6 +461,7 @@
     exam.p1.forEach(function (q) {
       var letter = ans.p1 && ans.p1[q.no - 1], ci = letter ? letter.charCodeAt(0) - 65 : -1;
       if (!(ci >= 0 && ci < 4)) { warn.push('Phần I câu ' + q.no + ': thiếu đáp án'); return; }
+      q.choices.forEach(function (c, i) { if (!stripTags(c) .replace(/[.\s]/g, '') && !/<svg|ld-img/.test(c)) warn.push('Phần I câu ' + q.no + ': phương án ' + 'ABCD'.charAt(i) + ' trống (công thức không đọc được?)'); });
       var cs = q.choices.map(function (c, i) { return { choice: c, answer: i === ci }; });
       var refs = q.choices.some(function (c) { return /(\b[A-D]\b\s*(,|và|hoặc)\s*\b[A-D]\b)|(\bcả\b[^.]*\b[A-D]\b)/i.test(stripTags(c)); });
       if (!refs) cs = shuffle(cs);
@@ -517,7 +518,10 @@
       var de = docBlocks(docs[0]), da = parseAnswers({ doc: docs[1].doc, ctx: docs[1].ctx }, info.code);
       var exam = parseExam(de.blocks), res = buildQuestions(exam, da, info);
       res.minutes = exam.meta.minutes;
-      res.diag = 'đọc từ đề: P1=' + exam.p1.length + ', P2=' + exam.p2.length + ', P3=' + exam.p3.length + ', P4=' + exam.p4.length +
+      var sk = docs[0].ctx.skipped || [];
+      if (sk.length) res.warnings.push('Đề có ' + sk.length + ' hình/công thức dạng ' + sk.map(function (t) { return (t.split('.').pop() || '?').toLowerCase(); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join('/') + ' (trình duyệt không hiển thị được, có thể là công thức MathType)');
+      var nums = function (a) { return a.map(function (q) { return q.no; }).join(','); };
+      res.diag = 'câu đọc từ đề: P1[' + nums(exam.p1) + '] P2[' + nums(exam.p2) + '] P3[' + nums(exam.p3) + '] P4[' + nums(exam.p4) + ']' +
         ' | đáp án: P1=' + (da.p1 ? da.p1.length : 'không thấy') + ', P2=' + Object.keys(da.p2).length + ', P3=' + Object.keys(da.p3).length + ', thang điểm P4=' + da.rubrics.length;
       return res;
     });
@@ -569,6 +573,7 @@
       .then(function (o) {
         var res = o.res;
         if (!res.list.length) { pushLog('đề rỗng', [res.diag || '', res.warnings.slice(0, 8)]); console.warn('[luyende_drive] Chi tiết:', res.diag, res.warnings); throw new Error('Không đọc được câu hỏi nào từ file đề (mã ' + o.info.code + '). ' + (res.diag || '') + (res.warnings.length ? ' | ' + res.warnings.slice(0, 3).join(' ; ') : '')); }
+        pushLog('đề ' + o.info.code, [res.diag || '', res.list.length + ' câu']);
         if (res.warnings.length) { console.warn('[luyende_drive] Cảnh báo:', res.warnings); pushLog('cảnh báo đề', res.warnings); }
         launch(res, o.info); done();
       })
@@ -627,12 +632,17 @@
     return true;
   }
   // Bọc displayQuestion: nếu một câu lỗi thì hiện nguyên nhân ngay trong khung câu hỏi (thay vì trống)
+  function typesetNow() {
+    var box = $('quiz-content') || $('test-section'); if (!box) return;
+    try { if (typeof root.renderMathInElement === 'function') root.renderMathInElement(box, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }); } catch (e) { pushLog('katex', [e]); }
+    try { if (root.MathJax && typeof root.MathJax.typesetPromise === 'function') root.MathJax.typesetPromise([box]); } catch (e) { pushLog('mathjax', [e]); }
+  }
   var guarded = false;
   function guardDisplayQuestion() {
     if (guarded || typeof root.displayQuestion !== 'function') return; guarded = true;
     var orig = root.displayQuestion;
     root.displayQuestion = function (index) {
-      try { return orig.apply(this, arguments); }
+      try { var rv = orig.apply(this, arguments); if (isDriveTest()) { setTimeout(typesetNow, 30); setTimeout(typesetNow, 400); } return rv; }
       catch (e) {
         console.error('[luyende_drive] displayQuestion(' + index + ') lỗi:', e); pushLog('displayQuestion(' + (index + 1) + ')', [e]);
         var q = gTest()[index] || {}, box = $('quiz-content');
@@ -732,7 +742,7 @@
     var ac = false, lk = null, sub = '';
     try { ac = typeof antiCheat !== 'undefined'; lk = root.localStorage.getItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
     try { sub = ' | câu ' + (gIdx() + 1) + '/' + gTest().length + ' (' + ((gTest()[gIdx()] || {}).type || '?') + ')'; } catch (e) {}
-    return 'luyende_drive v1.7 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
+    return 'luyende_drive v1.8 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
   }
   function renderLog() { if (logBox) { logBox.querySelector('pre').textContent = statusLine() + '\n\n' + (logBuf.join('\n') || '(chưa có lỗi nào)'); } }
   function ensureLogUI() {
