@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.2
+ * luyende_drive.js  v1.4
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -17,7 +17,8 @@
               GK1: '1qU8iSwBfOcVwvCA_r4wSOfKlF2gV20op', CK1: '1PY4lI5BnDbEQOK-7rocrGDPfrxbZaPlu', GK2: '1u_XU6sMw52INVOYj2vf5_0LsJpqK2jja', CK2: '1h0y5s1ZnYJqoJGRz4B4h8lqkp_vPEous' }
       // Lớp 12: thêm sau, dạng '12': { GK1: '...', ... }
     },
-    defaultMinutes: { TX: 15, GK: 45, CK: 45 }
+    defaultMinutes: { TX: 15, GK: 45, CK: 45 },
+    devKey: ''   // đặt chuỗi bí mật của riêng anh/chị qua window.LUYENDE_DRIVE_CONFIG = { devKey: '...' } để bật cờ nhà phát triển
   };
   if (root.LUYENDE_DRIVE_CONFIG) { for (var k in root.LUYENDE_DRIVE_CONFIG) CFG[k] = root.LUYENDE_DRIVE_CONFIG[k]; }
 
@@ -502,6 +503,7 @@
 
   function isAdminUser() {
     try {
+      if (root.localStorage && root.localStorage.getItem('ld_dev') === '1') return true;   // cờ nhà phát triển (đặt một lần, xem initDevFlag)
       if (typeof isAdminMode !== 'undefined' && isAdminMode) return true;
       if (typeof adminAuth !== 'undefined' && adminAuth && adminAuth.isAuthenticated) return true;
       var raw = root.localStorage && root.localStorage.getItem('adminAuth');   // admin đã đăng nhập ở trang chủ (logoutAdmin xoá khoá này)
@@ -513,6 +515,19 @@
     } catch (e) {}
     return false;
   }
+
+  // Cờ nhà phát triển: mở trang với đuôi  #ld-dev=<devKey>  một lần -> máy này luôn được miễn chống gian lận. Tắt: #ld-dev-off
+  function initDevFlag() {
+    try {
+      var h = decodeURIComponent(root.location.hash || '');
+      if (h === '#ld-dev-off') { root.localStorage.removeItem('ld_dev'); }
+      else if (CFG.devKey && h === '#ld-dev=' + CFG.devKey) { root.localStorage.setItem('ld_dev', '1'); }
+      else return;
+      if (root.history && root.history.replaceState) root.history.replaceState(null, '', root.location.pathname + root.location.search);
+    } catch (e) {}
+  }
+  initDevFlag();
+
   // Admin/giáo viên không bị chống gian lận: chặn khoá trang, bỏ khoá cũ còn sót trên máy này
   function clearLocalAntiCheatLock() {
     try { root.localStorage.removeItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
@@ -593,12 +608,55 @@
     return true;
   }
 
+
+  // ===================== BẢNG NHẬT KÝ LỖI (chỉ admin) =====================
+  var logBuf = [], logBtn = null, logBox = null;
+  function pushLog(kind, args) {
+    try {
+      var t = new Date().toLocaleTimeString('vi-VN'), m = Array.prototype.map.call(args, function (a) {
+        if (a && a.stack) return a.message + ' @ ' + String(a.stack).split('\n').slice(1, 3).join(' | ');
+        if (typeof a === 'object') { try { return JSON.stringify(a).slice(0, 300); } catch (e) { return String(a); } }
+        return String(a);
+      }).join(' ');
+      logBuf.push(t + ' [' + kind + '] ' + m); if (logBuf.length > 60) logBuf.shift();
+      if (logBox && logBox.style.display !== 'none') renderLog();
+    } catch (e) {}
+  }
+  function statusLine() {
+    var ac = false, lk = null, sub = '';
+    try { ac = typeof antiCheat !== 'undefined'; lk = root.localStorage.getItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
+    try { sub = ' | câu ' + ((root.currentQuestionIndex || 0) + 1) + '/' + ((root.currentTest || []).length) + ' (' + (((root.currentTest || [])[root.currentQuestionIndex || 0] || {}).type || '?') + ')'; } catch (e) {}
+    return 'luyende_drive v1.4 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
+  }
+  function renderLog() { if (logBox) { logBox.querySelector('pre').textContent = statusLine() + '\n\n' + (logBuf.join('\n') || '(chưa có lỗi nào)'); } }
+  function ensureLogUI() {
+    if (logBtn || !root.document || !root.document.body || !isAdminUser()) return;
+    logBtn = root.document.createElement('button'); logBtn.textContent = '🐞 Nhật ký';
+    logBtn.style.cssText = 'position:fixed;left:8px;bottom:70px;z-index:2147483000;padding:6px 10px;border-radius:14px;border:none;background:#444;color:#fff;font-size:12px;opacity:.85;cursor:pointer';
+    logBox = root.document.createElement('div');
+    logBox.style.cssText = 'display:none;position:fixed;left:8px;bottom:104px;width:min(560px,92vw);max-height:50vh;overflow:auto;z-index:2147483000;background:#111;color:#9fe;border-radius:8px;padding:8px;font:11px/1.4 monospace;white-space:pre-wrap;word-break:break-all';
+    logBox.innerHTML = '<button style="float:right;margin-left:6px">Chép</button><pre style="margin:0;white-space:pre-wrap"></pre>';
+    logBox.querySelector('button').onclick = function () { try { root.navigator.clipboard.writeText(logBox.querySelector('pre').textContent); this.textContent = 'Đã chép'; } catch (e) { this.textContent = 'Không chép được'; } };
+    logBtn.onclick = function () { logBox.style.display = logBox.style.display === 'none' ? 'block' : 'none'; renderLog(); };
+    root.document.body.appendChild(logBtn); root.document.body.appendChild(logBox);
+  }
+  (function hookLogs() {
+    if (!root.addEventListener) return;
+    root.addEventListener('error', function (e) { pushLog('error', [(e.message || 'lỗi') + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')']); });
+    root.addEventListener('unhandledrejection', function (e) { pushLog('promise', [e.reason && (e.reason.message || e.reason) || 'rejection']); });
+    ['error', 'warn'].forEach(function (k) {
+      var o = root.console && root.console[k]; if (!o) return;
+      root.console[k] = function () { var a = arguments; if (k === 'error' || /luyende_drive|displayQuestion|normalize/i.test(String(a[0]))) pushLog(k, a); return o.apply(this, a); };
+    });
+    var n = 0, t = setInterval(function () { ensureLogUI(); if (logBox && logBox.style.display !== 'none') renderLog(); if (++n > 600) clearInterval(t); }, 1000);
+  })();
+
   // ===================== XUẤT / KHỞI ĐỘNG =====================
   var api = { CFG: CFG, loadDocx: loadDocx, docBlocks: docBlocks, parseExam: parseExam, parseAnswers: parseAnswers, buildQuestions: buildQuestions, splitChoices: splitChoices, omml: omml, groupToSvg: groupToSvg };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.LuyenDeDrive = api;
   if (root.document && root.document.getElementById) {
-    var ex = 0, exT = setInterval(function () { exemptAdminFromAntiCheat(); if (++ex >= 20) clearInterval(exT); }, 1000); exemptAdminFromAntiCheat();
+    setInterval(exemptAdminFromAntiCheat, 1500); exemptAdminFromAntiCheat();   // chạy liên tục: admin vừa đăng nhập xong hoặc vừa bị khoá đều được gỡ ngay
     var tries = 0, go = function () { if (!initUI() && tries++ < 20) setTimeout(go, 300); };
     if (root.document.readyState === 'loading') root.document.addEventListener('DOMContentLoaded', go); else go();
   }
