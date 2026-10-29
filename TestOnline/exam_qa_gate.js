@@ -787,18 +787,7 @@
     checkSpelling: checkSpelling, formatReport: formatReport, proofread: aiProofread, clearCache: clearCache
   };
 });
-[Console]::OutputEncoding = [Text.Encoding]::UTF8
-$root = 'D:\Chuyên môn\Thiết kế web dạy học'
-$found = @(Get-ChildItem -LiteralPath $root -Recurse -Filter 'exam_qa_gate1.js' -ErrorAction SilentlyContinue)
-if ($found.Count -eq 1) { $src = $found[0].FullName }
-else { $found | ForEach-Object { $_.FullName }; $src = Read-Host 'Dán đường dẫn đầy đủ của exam_qa_gate1.js' }
-$src = $src.Trim('"')
-if (-not (Test-Path -LiteralPath $src)) { Write-Host "Không thấy file: $src" -ForegroundColor Red; return }
 
-$code = [IO.File]::ReadAllText($src, [Text.Encoding]::UTF8)
-if ($code.Contains('__adapterV21')) { Write-Host 'File này đã có bộ chuyển, không làm lại.' -ForegroundColor Yellow; return }
-
-$shim = @'
 /* === v2.1 ADAPTER: gom cải tiến vào file này để TestOnline.html không phải sửa thêm === */
 (function () {
   var FORCE_STRICT = false; // true = ẩn nút "Vẫn xuất" khi có LỖI
@@ -821,16 +810,3 @@ $shim = @'
   };
   Q.__adapterV21 = true;
 })();
-'@
-
-$nl = "`r`n"
-$out = $code.TrimEnd() + $nl + $nl + (($shim -split "\r?\n") -join $nl).Trim() + $nl
-$dst = Join-Path (Split-Path $src) 'exam_qa_gate.js'
-if (Test-Path -LiteralPath $dst) { Copy-Item -LiteralPath $dst -Destination ($dst + '.bak_' + (Get-Date -Format 'yyyyMMdd_HHmmss')) -Force }
-[IO.File]::WriteAllText($dst, $out, (New-Object Text.UTF8Encoding($false)))
-Write-Host "Đã tạo: $dst" -ForegroundColor Green
-
-if (Get-Command node -ErrorAction SilentlyContinue) {
-  node --check $dst
-  if ($LASTEXITCODE -eq 0) { Write-Host 'Kiểm tra cú pháp: ĐẠT' -ForegroundColor Green } else { Write-Host 'Kiểm tra cú pháp: LỖI, đừng đưa lên GitHub' -ForegroundColor Red }
-} else { Write-Host 'Máy không có node nên chưa kiểm tra cú pháp được.' -ForegroundColor Yellow }
