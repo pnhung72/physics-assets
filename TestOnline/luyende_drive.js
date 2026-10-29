@@ -1,7 +1,7 @@
 /*!
- * luyende_drive.js  v1.8
+ * luyende_drive.js  v1.9
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
- * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
+ * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), công thức MathType (OLE/MTEF -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
  * - Đẩy đề vào đúng cấu trúc currentTest của TestOnline: đồng hồ, chống gian lận, chấm điểm dùng lại như các chế độ khác.
  * Dán thẻ <script src=".../luyende_drive.js"></script> ở CUỐI file TestOnline (sau mọi script khác).
@@ -88,9 +88,238 @@
         return all();
     }
   }
-  function mathWrap(latex) { latex = String(latex).replace(/\$/g, '').replace(/\s*\n\s*/g, ' ').trim(); return latex ? '$' + esc(latex) + '$' : ''; }
+  function mathWrap(latex) {
+    latex = String(latex).replace(/\$/g, '').replace(/\s*\n\s*/g, ' ').trim();
+    var prev; do { prev = latex; latex = latex.replace(/^(?:\\ |\\,|\\;|\\quad\s*)+/, '').replace(/(?:\\ |\\,|\\;|\\quad\s*|~)+$/, '').trim(); } while (latex !== prev);
+    latex = latex.replace(/\\+$/, '').trim();   // không để lại dấu \ đơn độc ngay trước $ đóng
+    return latex ? '$' + esc(latex) + '$' : '';
+  }
 
   // ===================== HÌNH VẼ: nhóm khung hình -> SVG =====================
+  // ===================== MATHTYPE (OLE "Equation Native" / MTEF) -> LaTeX =====================
+  // Công thức MathType trong .docx là đối tượng nhúng (word/embeddings/oleObjectN.bin) kèm ảnh WMF (trình duyệt không vẽ được WMF),
+  // nên phải đọc trực tiếp dữ liệu MTEF bên trong rồi đổi sang LaTeX.
+  function cfbStream(u8, wantName) {
+    if (!u8 || u8.length < 512 || u8[0] !== 0xD0 || u8[1] !== 0xCF || u8[2] !== 0x11 || u8[3] !== 0xE0) return null;
+    var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    var ss = 1 << dv.getUint16(30, true), mss = 1 << dv.getUint16(32, true);
+    var dirStart = dv.getUint32(48, true), cutoff = dv.getUint32(56, true), miniStart = dv.getUint32(60, true), difStart = dv.getUint32(68, true), nDif = dv.getUint32(72, true);
+    var END = 0xFFFFFFFA;
+    function secOff(id) { return (id + 1) * ss; }
+    var fatSecs = [], i, j;
+    for (i = 0; i < 109; i++) { var v = dv.getUint32(76 + i * 4, true); if (v >= END) break; fatSecs.push(v); }
+    var ds = difStart;
+    for (i = 0; i < nDif && ds < END; i++) {
+      var off = secOff(ds); if (off + ss > u8.length) break;
+      for (j = 0; j < ss / 4 - 1; j++) { var w = dv.getUint32(off + j * 4, true); if (w < END) fatSecs.push(w); }
+      ds = dv.getUint32(off + ss - 4, true);
+    }
+    var fat = [];
+    fatSecs.forEach(function (s) { var off = secOff(s); if (off + ss > u8.length) return; for (var k = 0; k < ss / 4; k++) fat.push(dv.getUint32(off + k * 4, true)); });
+    function chain(start) { var out = [], s = start, guard = 0; while (s < END && guard++ < 100000) { out.push(s); s = fat[s]; if (s === undefined) break; } return out; }
+    function readChain(start) {
+      var secs = chain(start), out = new Uint8Array(secs.length * ss), n = 0;
+      secs.forEach(function (s) { var off = secOff(s); if (off + ss <= u8.length) out.set(u8.subarray(off, off + ss), n); n += ss; });
+      return out;
+    }
+    var dir = readChain(dirStart), root = null, ent = null;
+    for (i = 0; i + 128 <= dir.length; i += 128) {
+      var dd = new DataView(dir.buffer, dir.byteOffset + i, 128), nl = dd.getUint16(64, true), name = '';
+      for (j = 0; j + 2 <= nl - 2 && j < 62; j += 2) name += String.fromCharCode(dd.getUint16(j, true));
+      var ty = dir[i + 66], st = dd.getUint32(116, true), sz = dd.getUint32(120, true);
+      if (ty === 5) root = { start: st, size: sz };
+      if (ty === 2 && name === wantName) ent = { start: st, size: sz };
+    }
+    if (!ent) return null;
+    if (ent.size >= cutoff || !root) return readChain(ent.start).subarray(0, ent.size);
+    var mini = readChain(root.start), mf = readChain(miniStart), mfat = [];
+    var mdv = new DataView(mf.buffer, mf.byteOffset, mf.byteLength);
+    for (i = 0; i + 4 <= mf.length; i += 4) mfat.push(mdv.getUint32(i, true));
+    var out = new Uint8Array(ent.size), n = 0, s = ent.start, guard = 0;
+    while (s < END && n < ent.size && guard++ < 100000) {
+      var o = s * mss, take = Math.min(mss, ent.size - n);
+      out.set(mini.subarray(o, o + take), n); n += take; s = mfat[s]; if (s === undefined) break;
+    }
+    return out;
+  }
+
+  var MT_FN = { sin: 1, cos: 1, tan: 1, cot: 1, sec: 1, csc: 1, log: 1, ln: 1, lim: 1, max: 1, min: 1, exp: 1, arcsin: 1, arccos: 1, arctan: 1, sinh: 1, cosh: 1, tanh: 1, det: 1, deg: 1, lg: 1 };
+  var MT_EXTRA = { 0x2212: '-', 0x2013: '-', 0x2014: '-', 0x2032: "'", 0x2033: "''", 0x22C5: '\\cdot ', 0x2219: '\\cdot ', 0x00D7: '\\times ', 0x2260: '\\neq ', 0x2264: '\\leq ', 0x2265: '\\geq ', 0x2248: '\\approx ', 0x2261: '\\equiv ', 0x221D: '\\propto ',
+    0x2208: '\\in ', 0x2209: '\\notin ', 0x2202: '\\partial ', 0x2207: '\\nabla ', 0x21D2: '\\Rightarrow ', 0x21D4: '\\Leftrightarrow ', 0x2192: '\\rightarrow ', 0x2190: '\\leftarrow ', 0x2194: '\\leftrightarrow ', 0x2191: '\\uparrow ', 0x2193: '\\downarrow ',
+    0x00B1: '\\pm ', 0x2213: '\\mp ', 0x221E: '\\infty ', 0x00B0: '^{\\circ}', 0x2218: '\\circ ', 0x22A5: '\\perp ', 0x2225: '\\parallel ', 0x2220: '\\angle ', 0x2234: '\\therefore ', 0x2026: '\\ldots ', 0x22EF: '\\cdots ',
+    0x03D5: '\\phi ', 0x03C6: '\\varphi ', 0x03D1: '\\vartheta ', 0x03B8: '\\theta ', 0x03B5: '\\varepsilon ', 0x03F5: '\\epsilon ', 0x03BE: '\\xi ', 0x03C7: '\\chi ', 0x03C8: '\\psi ', 0x03B6: '\\zeta ', 0x03B9: '\\iota ', 0x03BA: '\\kappa ', 0x03BD: '\\nu ', 0x03BF: 'o ',
+    0x0393: '\\Gamma ', 0x0394: '\\Delta ', 0x0398: '\\Theta ', 0x039B: '\\Lambda ', 0x039E: '\\Xi ', 0x03A0: '\\Pi ', 0x03A3: '\\Sigma ', 0x03A6: '\\Phi ', 0x03A8: '\\Psi ', 0x03A9: '\\Omega ', 0x00B7: '\\cdot ', 0x2211: '\\sum ', 0x222B: '\\int ', 0x221A: '\\surd ', 0x00A0: '\\ ', 0x2009: '\\, ', 0x2002: '\\ ', 0x2003: '\\quad ' };
+  // Bảng mã Symbol (Equation Editor 3.0 / MTEF v3: ký tự 8-bit trong phông Symbol)
+  var SYMBOL8 = { 0x61: 'α', 0x62: 'β', 0x63: 'χ', 0x64: 'δ', 0x65: 'ε', 0x66: 'φ', 0x67: 'γ', 0x68: 'η', 0x69: 'ι', 0x6B: 'κ', 0x6C: 'λ', 0x6D: 'μ', 0x6E: 'ν', 0x6F: 'ο', 0x70: 'π', 0x71: 'θ', 0x72: 'ρ', 0x73: 'σ', 0x74: 'τ', 0x75: 'υ', 0x77: 'ω', 0x78: 'ξ', 0x79: 'ψ', 0x7A: 'ζ',
+    0x44: 'Δ', 0x46: 'Φ', 0x47: 'Γ', 0x51: 'Θ', 0x4C: 'Λ', 0x50: 'Π', 0x53: 'Σ', 0x57: 'Ω', 0x58: 'Ξ', 0x59: 'Ψ', 0xB1: '±', 0xB4: '×', 0xB7: '·', 0xA3: '≤', 0xB3: '≥', 0xB9: '≠', 0xBB: '≈', 0xAE: '→', 0xAC: '←', 0xA5: '∞', 0xB0: '°', 0xB6: '∂', 0xD1: '∇', 0xB5: '∝', 0xD6: '√', 0xE5: '∑', 0xF2: '∫', 0x2D: '−' };
+
+  function mtChar(n, ver) {
+    var code = n.mt;
+    if (ver < 5 || code === undefined || code === null) {   // MTEF v3: chỉ có mã 8-bit
+      var c8 = n.c8 !== undefined ? n.c8 : code;
+      var tf = n.tf;
+      if ((tf === 4 || tf === 5 || tf === 6) && SYMBOL8[c8]) code = SYMBOL8[c8].charCodeAt(0); else code = c8;
+    }
+    if (code >= 0xF000 && code <= 0xF0FF) code -= 0xF000;   // vùng riêng của phông Symbol
+    if (MT_EXTRA[code] !== undefined) return MT_EXTRA[code];
+    var ch = String.fromCharCode(code);
+    return latexText(ch);
+  }
+
+  function mtefParse(d, hdr) {
+    var p = hdr, ver = d[p++];
+    if (ver !== 5 && ver !== 3) return null;
+    p += 4;   // platform, product, version, subversion
+    if (ver === 5) { while (p < d.length && d[p] !== 0) p++; p++; p++; }   // chuỗi app key + byte tuỳ chọn
+    function u16() { var v = d[p] | (d[p + 1] << 8); p += 2; return v; }
+    function nudge() { var a = d[p++], b = d[p++]; if (a === 128 && b === 128) p += 4; }
+    function nibArray() {
+      var n = d[p++], half = false, cur = 0;
+      function nib() { var v; if (!half) { cur = d[p++]; v = cur >> 4; half = true; } else { v = cur & 15; half = false; } return v; }
+      for (var i = 0; i < n; i++) { nib(); var g = 0; while (g++ < 40 && nib() !== 15) { } }
+      // (nếu dừng ở giữa byte thì bỏ nửa byte còn lại: p đã trỏ sau byte đó)
+    }
+    function list(depth) {
+      var out = [];
+      while (p < d.length) {
+        var tag = d[p++], o, n, i;
+        switch (tag) {
+          case 0: return out;
+          case 1: { o = d[p++]; if (o & 8) nudge(); if (o & 4) p += 2; if (o & 2) { p++; var ns = d[p++]; p += ns * 3; } out.push({ t: 'line', nul: !!(o & 1), k: (o & 1) ? [] : list(depth + 1) }); break; }
+          case 2: {
+            o = d[p++]; if (o & 8) nudge(); var node = { t: 'ch', tf: d[p++] - 128 };
+            if (!(o & 0x20)) node.mt = u16();
+            if (o & 4) node.c8 = d[p++]; else if (o & 0x10) node.c8 = u16();
+            if (ver === 3 && node.mt === undefined) { node.c8 = node.c8; }
+            if (o & 1) node.em = list(depth + 1);
+            out.push(node); break;
+          }
+          case 3: {
+            o = d[p++]; if (o & 8) nudge(); var sel = d[p++], va = d[p++]; if (va & 0x80) va = (va & 0x7F) | (d[p++] << 8); p++;
+            out.push({ t: 'tm', sel: sel, va: va, k: list(depth + 1) }); break;
+          }
+          case 4: { o = d[p++]; if (o & 8) nudge(); var ha = d[p++], vaP = d[p++]; if (o & 2) { p++; var ns2 = d[p++]; p += ns2 * 3; } out.push({ t: 'pile', k: list(depth + 1) }); break; }
+          case 5: {
+            o = d[p++]; if (o & 8) nudge(); p += 3; var rows = d[p++], cols = d[p++];
+            p += Math.ceil((rows + 1) * 2 / 8) + Math.ceil((cols + 1) * 2 / 8);
+            out.push({ t: 'mat', rows: rows, cols: cols, k: list(depth + 1) }); break;
+          }
+          case 6: { o = d[p++]; if (o & 8) nudge(); out.push({ t: 'em', ty: d[p++] }); break; }
+          case 7: { n = d[p++]; p += n * 3; break; }
+          case 8: { p += 1; break; }
+          case 9: { var ls = d[p++]; p += (ls === 101) ? 2 : 1; break; }
+          case 10: case 11: case 12: case 13: case 14: break;
+          case 15: { p += 1; break; }
+          case 16: { o = d[p++]; var nv = (o & 1) ? 4 : 3; p += nv * 2; if (o & 4) { while (p < d.length && d[p] !== 0) p++; p++; } break; }
+          case 17: { if (ver === 5) { p++; } else { p += 1; } while (p < d.length && d[p] !== 0) p++; p++; break; }
+          case 18: { p++; nibArray(); nibArray(); n = d[p++]; for (i = 0; i < n; i++) { var fi = d[p++]; if (fi !== 0) p++; } break; }
+          case 19: { while (p < d.length && d[p] !== 0) p++; p++; break; }
+          default: throw new Error('MTEF tag ' + tag);
+        }
+      }
+      return out;
+    }
+    return { ver: ver, tree: list(0) };
+  }
+
+  var EMB = { 2: '\\dot', 3: '\\ddot', 8: '\\tilde', 9: '\\hat', 11: '\\overrightarrow', 12: '\\overleftarrow', 13: '\\overleftrightarrow', 16: '\\overline', 17: '\\overline' };
+  var BIGOP = { 15: '\\int ', 16: '\\sum ', 17: '\\prod ', 18: '\\coprod ', 19: '\\bigcup ', 20: '\\bigcap ', 21: '\\int ', 22: '\\sum ' };
+  function mtLatex(parsed) {
+    var ver = parsed.ver;
+    function lineStr(n) { return n ? seq(n.k) : ''; }
+    function slotsOf(tm) { return tm.k.filter(function (c) { return c.t === 'line' || c.t === 'pile' || c.t === 'mat'; }); }
+    function slotStr(s) { return s ? (s.t === 'line' ? (s.nul ? '' : seq(s.k)) : one(s)) : ''; }
+    function fence(sel, va) {
+      var L = va & 1, R = va & 2, pairs = { 0: ['\\langle', '\\rangle'], 1: ['(', ')'], 2: ['\\{', '\\}'], 3: ['[', ']'], 4: ['|', '|'], 5: ['\\|', '\\|'], 6: ['\\lfloor', '\\rfloor'], 7: ['\\lceil', '\\rceil'], 8: ['[', ']'], 9: ['[', ']'] };
+      var pr = pairs[sel] || ['(', ')'];
+      return [L ? pr[0] : '.', R ? pr[1] : '.'];
+    }
+    function one(n) {
+      if (n.t === 'line') return n.nul ? '' : seq(n.k);
+      if (n.t === 'pile') { return '\\begin{matrix}' + n.k.map(function (l) { return lineStr(l); }).join('\\\\') + '\\end{matrix}'; }
+      if (n.t === 'mat') {
+        var cells = n.k.map(lineStr), rows = [], r, c;
+        for (r = 0; r < n.rows; r++) { var row = []; for (c = 0; c < n.cols; c++) row.push(cells[r * n.cols + c] || ''); rows.push(row.join('&')); }
+        return '\\begin{matrix}' + rows.join('\\\\') + '\\end{matrix}';
+      }
+      if (n.t === 'tm') return tm(n);
+      return '';
+    }
+    function tm(n) {
+      var s = slotsOf(n), a = slotStr(s[0]), b = slotStr(s[1]), c = slotStr(s[2]), sel = n.sel, va = n.va;
+      switch (sel) {
+        case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: {
+          var f = fence(sel, va);
+          if (sel === 2 && (va & 1) && !(va & 2) && s[0] && s[0].t === 'pile') return '\\begin{cases}' + s[0].k.map(lineStr).join('\\\\') + '\\end{cases}';
+          return '\\left' + f[0] + ' ' + a + ' \\right' + f[1];
+        }
+        case 10: return b ? '\\sqrt[' + b + ']{' + a + '}' : '\\sqrt{' + a + '}';
+        case 11: return (va & 1) ? '{' + a + '}/{' + b + '}' : '\\frac{' + a + '}{' + b + '}';
+        case 12: return '\\underline{' + a + '}';
+        case 13: return '\\overline{' + a + '}';
+        case 14: { var arr = '\\rightarrow '; if (va & 2) arr = '\\leftarrow '; if (va & 4) arr = '\\leftrightarrow '; return (b ? '\\overset{' + b + '}{' + arr + '}' : arr) + a; }
+        case 15: case 16: case 17: case 18: case 19: case 20: case 21: case 22:
+          return BIGOP[sel] + (b ? '_{' + b + '}' : '') + (c ? '^{' + c + '}' : '') + ' ' + (sel === 21 || sel === 22 ? '' : a);
+        case 23: return '\\lim_{' + b + '} ';
+        case 24: case 25: return '\\overbrace{' + a + '}' + (b ? '^{' + b + '}' : '');
+        case 27: { var u = s.filter(function (x) { return x.t !== 'line' || !x.nul; }); return '_{' + slotStr(u[0]) + '}'; }
+        case 28: { var u2 = s.filter(function (x) { return x.t !== 'line' || !x.nul; }); return '^{' + slotStr(u2[0]) + '}'; }
+        case 29: { var u3 = s.filter(function (x) { return x.t !== 'line' || !x.nul; }); return '_{' + slotStr(u3[0]) + '}^{' + slotStr(u3[1]) + '}'; }
+        case 31: return '\\overrightarrow{' + a + '}';
+        case 32: return '\\tilde{' + a + '}';
+        case 33: return '\\hat{' + a + '}';
+        case 34: return '\\widehat{' + a + '}';
+        case 36: return '\\cancel{' + a + '}';
+        case 37: return '\\boxed{' + a + '}';
+        default: return s.map(slotStr).join(' ');
+      }
+    }
+    function seq(nodes) {
+      var out = '', i = 0;
+      while (i < nodes.length) {
+        var n = nodes[i];
+        if (n.t === 'ch') {
+          // gom các ký tự liên tiếp cùng kiểu chữ: hàm (sin, cos...) và chữ thường (đơn vị)
+          if (n.tf === 2 && !(n.em && n.em.length)) {
+            var j = i, w = ''; while (j < nodes.length && nodes[j].t === 'ch' && nodes[j].tf === 2) { w += String.fromCharCode(nodes[j].mt || nodes[j].c8 || 63); j++; }
+            if (MT_FN[w]) { out += '\\' + w + ' '; } else out += '\\mathrm{' + w.replace(/[{}\\]/g, '') + '}';
+            i = j; continue;
+          }
+          if (n.tf === 1 && !(n.em && n.em.length)) {
+            var k = i, tx = ''; while (k < nodes.length && nodes[k].t === 'ch' && nodes[k].tf === 1 && !(nodes[k].em && nodes[k].em.length)) { var cc = mtCharRaw(nodes[k], ver); tx += cc; k++; }
+            out += '\\text{' + tx.replace(/[{}\\$%&#_^~]/g, '') + '}'; i = k; continue;
+          }
+          var s = mtChar(n, ver);
+          if (n.em && n.em.length) n.em.forEach(function (e) {
+            if (e.ty === 5) s = s + "'"; else if (e.ty === 6) s = s + "''"; else if (e.ty === 7) s = s + "'''";
+            else if (EMB[e.ty]) s = EMB[e.ty] + '{' + s + '}';
+          });
+          out += s; i++; continue;
+        }
+        if (n.t === 'em') { i++; continue; }
+        var r = one(n);
+        // chỉ số trên/dưới gắn vào ký tự đứng trước; nếu trước đó chưa có gì thì thêm {} để KaTeX không báo lỗi
+        if (n.t === 'tm' && (n.sel === 27 || n.sel === 28 || n.sel === 29) && !out) r = '{}' + r;
+        out += r; i++;
+      }
+      return out;
+    }
+    function mtCharRaw(n, v) {
+      var code = n.mt !== undefined ? n.mt : n.c8; if (v < 5 && n.c8 !== undefined) code = n.c8;
+      return String.fromCharCode(code === undefined ? 63 : code);
+    }
+    var body = parsed.tree.filter(function (x) { return x.t === 'line' || x.t === 'pile'; });
+    return seq(body.length ? (body[0].t === 'line' ? body[0].k : [body[0]]) : parsed.tree).replace(/\s+/g, ' ').trim();
+  }
+  function mathTypeToLatex(bin) {
+    try {
+      var d = cfbStream(bin, 'Equation Native'); if (!d || d.length < 30) return '';
+      var hdr = d[0] | (d[1] << 8);   // độ dài EQNOLEFILEHDR (thường 28)
+      var parsed = mtefParse(d, hdr); if (!parsed) return '';
+      return mtLatex(parsed);
+    } catch (e) { return ''; }
+  }
+
   function attrNum(n, a, d) { var v = n ? parseFloat(at(n, a)) : NaN; return isNaN(v) ? d : v; }
   function xf(sp) {
     var pr = child(sp, 'wps:spPr'); var x = pr && child(pr, 'a:xfrm'); if (!x) return null;
@@ -212,7 +441,10 @@
         case 'w:br': out += '\u0003'; break;   // xuống dòng mềm: ranh giới dòng, docBlocks sẽ tách
         case 'w:drawing': out += drawingToHtml(c, ctx); break;
         case 'w:pict': out += pictToHtml(c, ctx); break;
-        case 'w:object': out += pictToHtml(c, ctx); break;
+        case 'w:object': {
+          var ole = desc(c, 'o:OLEObject')[0], lx = ole && ctx.ole ? ctx.ole[at(ole, 'r:id')] : '', mw = lx ? mathWrap(lx) : '';
+          out += mw ? ' ' + mw + ' ' : pictToHtml(c, ctx); break;
+        }
         case 'mc:AlternateContent': out += altToHtml(c, ctx); break;
       }
     });
@@ -231,7 +463,7 @@
         }
       });
     })(p);
-    var res = out.replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ');
+    var res = out.replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ').replace(/(\$) +(?=[.,;:!?)\]])/g, '$1').replace(/([(\[]) +(?=\$)/g, '$1');
     if (!keepBreaks) res = res.replace(/\u0003/g, ' ').replace(/ {2,}/g, ' ');
     return res.trim();
   }
@@ -267,14 +499,27 @@
       return Promise.all([f.async('string'), zip.file('word/_rels/document.xml.rels') ? zip.file('word/_rels/document.xml.rels').async('string') : Promise.resolve(''), zip.file('word/styles.xml') ? zip.file('word/styles.xml').async('string') : Promise.resolve('')]).then(function (r) {
         var docXml = new Parser().parseFromString(r[0], 'application/xml'), rels = new Parser().parseFromString(r[1] || '<x/>', 'application/xml');
         var defPt = 12, sm = /<w:docDefaults>[\s\S]*?<w:sz w:val="(\d+)"/.exec(r[2]); if (sm) defPt = parseInt(sm[1], 10) / 2;
-        var ctx = { images: {}, defPt: defPt, mode: '', skipped: [] }, jobs = [];
+        var ctx = { images: {}, ole: {}, defPt: defPt, mode: '', skipped: [] }, jobs = [], skippedImg = {};
         Array.prototype.forEach.call(rels.getElementsByTagName('Relationship'), function (rel) {
           var id = rel.getAttribute('Id'), tg = rel.getAttribute('Target') || '', ty = rel.getAttribute('Type') || '';
-          if (!/image$/.test(ty)) return; var mm = mimeOf(tg); if (!mm) { ctx.skipped.push(tg); return; }
           var file = zip.file('word/' + tg.replace(/^\//, '').replace(/^word\//, ''));
+          if (/oleObject$/.test(ty)) {   // công thức MathType nhúng (.bin) -> LaTeX
+            if (file) jobs.push(file.async('uint8array').then(function (u8) { var lx = mathTypeToLatex(u8); if (lx) ctx.ole[id] = lx; }));
+            return;
+          }
+          if (!/image$/.test(ty)) return; var mm = mimeOf(tg); if (!mm) { skippedImg[id] = tg; return; }
           if (file) jobs.push(file.async('base64').then(function (b) { ctx.images[id] = 'data:' + mm + ';base64,' + b; }));
         });
-        return Promise.all(jobs).then(function () { return { doc: docXml, ctx: ctx }; });
+        return Promise.all(jobs).then(function () {
+          // ảnh WMF/EMF đi kèm công thức đã đọc được thì không còn là vấn đề
+          var covered = {};
+          Array.prototype.forEach.call(desc(docXml, 'w:object'), function (ob) {
+            var ole = desc(ob, 'o:OLEObject')[0], im = desc(ob, 'v:imagedata')[0];
+            if (ole && im && ctx.ole[at(ole, 'r:id')]) covered[at(im, 'r:id')] = true;
+          });
+          Object.keys(skippedImg).forEach(function (id) { if (!covered[id]) ctx.skipped.push(skippedImg[id]); });
+          return { doc: docXml, ctx: ctx };
+        });
       });
     });
   }
@@ -387,7 +632,7 @@
       var hasCode = head.slice(1).some(function (h) { return /\b\d{4}\b/.test(h); });
       return (!hasCode && head.length === 2) ? 1 : -1;
     }
-    function normTF(v) { return String(v).toUpperCase().replace(/[^SĐD]/g, '').replace(/Đ/g, 'D'); }
+    function normTF(v) { return String(v).normalize('NFC').toUpperCase().replace(/[ĐÐ]/g, 'D').replace(/[^SD]/g, ''); }
     tables.forEach(function (rows) {
       if (!rows.length) return;
       var head = rows[0].map(stripTags), first = head[0] || '';
@@ -413,7 +658,7 @@
           if (sm) { secNo = RM[sm[1].toUpperCase()]; return; }
           var v = cells[1 + kc]; if (v === undefined || v === '') return;
           var no = parseInt(lab.replace(/\D/g, ''), 10); if (isNaN(no)) return;
-          var tf = normTF(v), kind = secNo || (/^[A-D]$/i.test(v) ? 1 : (/^[SĐDsđd\s]+$/.test(v) && tf.length >= 3 ? 2 : 3));
+          var tf = normTF(v), kind = secNo || (/^[A-D]$/i.test(v) ? 1 : (/^[SĐÐDsđðd\s]+$/.test(v) && tf.length >= 3 ? 2 : 3));
           if (kind === 1) { ans.p1 = ans.p1 || []; ans.p1[no - 1] = v.toUpperCase().replace(/[^A-D]/g, ''); }
           else if (kind === 2) ans.p2[no] = tf;
           else if (kind === 3) ans.p3[no] = v;
@@ -427,7 +672,7 @@
       if (col > 0 && rows.length > 1 && /^(câu\s*)?\d+$/i.test(stripTags(rows[1][0] || ''))) {
         var body1 = rows.slice(1), vals = body1.map(function (r) { return stripTags(r[col] || ''); });
         var isP1 = vals.every(function (v) { return /^[A-D]$/i.test(v); });
-        var isTF = !isP1 && vals.every(function (v) { return normTF(v).length >= 3 && /^[SĐDsđd\s,;.\-]+$/.test(v); });
+        var isTF = !isP1 && vals.every(function (v) { return normTF(v).length >= 3 && /^[SĐÐDsđðd\s,;.\-]+$/.test(v); });
         body1.forEach(function (r) {
           var no = parseInt(stripTags(r[0]).replace(/\D/g, ''), 10), v = stripTags(r[col] || '');
           if (isP1) { ans.p1 = ans.p1 || []; ans.p1[no - 1] = v.toUpperCase(); }
@@ -438,13 +683,15 @@
       }
       // Phần IV: bảng thang điểm (2 cột "nội dung | 0,25 đ" hoặc 3 cột có nhãn a/b/c/d)
       var SC = /^\d+(?:[.,]\d+)?\s*(?:đ|điểm)?$/i;
-      if (rows.length && rows.every(function (r) { return r.length >= 2 && SC.test(stripTags(r[r.length - 1])); }) &&
-          rows.some(function (r) { return /đ|điểm/i.test(stripTags(r[r.length - 1])); })) {
+      var scored = rows.filter(function (r) { return r.length >= 2 && SC.test(stripTags(r[r.length - 1])); });
+      if (rows.length && rows.every(function (r) { return r.length >= 2; }) && scored.length >= Math.ceil(rows.length * 0.6) &&
+          scored.some(function (r) { return /đ|điểm/i.test(stripTags(r[r.length - 1])); })) {
         var parts = {}, label = '';
         rows.forEach(function (r) {
           var lb = stripTags(r[0]).toLowerCase(), hasLb = r.length >= 3 && /^[a-d]$/.test(lb); if (hasLb) label = lb;
-          var last = stripTags(r[r.length - 1]), pt = pnum(last), line = (hasLb ? r.slice(1, r.length - 1) : r.slice(0, r.length - 1)).join(' ');
+          var last = stripTags(r[r.length - 1]), isSc = SC.test(last), pt = isSc ? pnum(last) : NaN, line = (hasLb ? r.slice(1, isSc ? r.length - 1 : r.length) : r.slice(0, isSc ? r.length - 1 : r.length)).join(' ');
           var sc = last.replace(/\s*điểm/i, 'đ'); if (!/đ$/.test(sc)) sc += 'đ';
+          if (!isSc) { if (!parts[label]) parts[label] = { lines: [], score: 0 }; parts[label].lines.push(line + ' ' + last); return; }
           if (!parts[label]) parts[label] = { lines: [], score: 0 };
           parts[label].lines.push(line + ' <em>(' + sc + ')</em>'); if (!isNaN(pt)) parts[label].score += pt;
         });
@@ -457,10 +704,11 @@
   // ===================== DỰNG CÂU HỎI TESTONLINE =====================
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function buildQuestions(exam, ans, info) {
-    var base = { grade: String(info.grade), task: info.task, history: String(info.year), level: 'B', source: 'drive:' + info.code }, qs = { p1: [], p2: [], p3: [], p4: [] }, warn = exam.warnings.slice();
+    var base = { grade: String(info.grade), task: info.task, history: String(info.year), level: 'B', source: 'drive:' + info.code }, qs = { p1: [], p2: [], p3: [], p4: [] }, warn = exam.warnings.slice(), dropped = [];
+    if (!ans.p1) warn.push('Không đọc được bảng đáp án Phần I (kiểm tra file Da: hàng tiêu đề mã đề ' + info.code + ').');
     exam.p1.forEach(function (q) {
       var letter = ans.p1 && ans.p1[q.no - 1], ci = letter ? letter.charCodeAt(0) - 65 : -1;
-      if (!(ci >= 0 && ci < 4)) { warn.push('Phần I câu ' + q.no + ': thiếu đáp án'); return; }
+      if (!(ci >= 0 && ci < 4)) { warn.push('Phần I câu ' + q.no + ': thiếu đáp án'); dropped.push('Phần I câu ' + q.no + ' (thiếu đáp án)'); return; }
       q.choices.forEach(function (c, i) { if (!stripTags(c) .replace(/[.\s]/g, '') && !/<svg|ld-img/.test(c)) warn.push('Phần I câu ' + q.no + ': phương án ' + 'ABCD'.charAt(i) + ' trống (công thức không đọc được?)'); });
       var cs = q.choices.map(function (c, i) { return { choice: c, answer: i === ci }; });
       var refs = q.choices.some(function (c) { return /(\b[A-D]\b\s*(,|và|hoặc)\s*\b[A-D]\b)|(\bcả\b[^.]*\b[A-D]\b)/i.test(stripTags(c)); });
@@ -470,17 +718,17 @@
     qs.p1 = shuffle(qs.p1);
     exam.p2.forEach(function (q) {
       var key = ans.p2[q.no] || '';
-      if (key.length !== q.parts.length) { warn.push('Phần II câu ' + q.no + ': số ý (' + q.parts.length + ') không khớp đáp án (' + key + ')'); if (!key) return; }
+      if (key.length !== q.parts.length) { warn.push('Phần II câu ' + q.no + ': số ý (' + q.parts.length + ') không khớp đáp án (' + key + ')'); if (!key) { dropped.push('Phần II câu ' + q.no + ' (thiếu đáp án Đ/S)'); return; } }
       qs.p2.push(Object.assign({ ID: 'LD_' + info.code + '_' + info.year + '_P2_' + q.no, type: 'trueFalse', mainQuestion: q.stem,
         subQuestions: q.parts.map(function (p, i) { return { question: p.html, answer: key.charAt(i) === 'D' }; }), score: 1 }, base));
     });
     exam.p3.forEach(function (q) {
-      var a = ans.p3[q.no]; if (a === undefined || a === '') { warn.push('Phần III câu ' + q.no + ': thiếu đáp án'); return; }
+      var a = ans.p3[q.no]; if (a === undefined || a === '') { warn.push('Phần III câu ' + q.no + ': thiếu đáp án'); dropped.push('Phần III câu ' + q.no + ' (thiếu đáp án)'); return; }
       var alt = a.indexOf(',') >= 0 ? [a, a.replace(',', '.')] : [a];
       qs.p3.push(Object.assign({ ID: 'LD_' + info.code + '_' + info.year + '_P3_' + q.no, type: 'essay', mainQuestion: q.stem, answer: alt, score: 0.5, _origAnswer: a }, base));
     });
     exam.p4.forEach(function (q, idx) {
-      var rb = ans.rubrics[idx]; if (!rb) { warn.push('Phần IV câu ' + q.no + ': thiếu thang điểm'); return; }
+      var rb = ans.rubrics[idx]; if (!rb) { warn.push('Phần IV câu ' + q.no + ': thiếu thang điểm (vẫn nạp câu, chấm tay)'); rb = { '': { lines: [], score: 1 } }; }
       var parts = {}, subs = [], answers = [], total = 0;
       var plist = q.parts.length ? q.parts : [{ key: 'a', html: 'Trình bày lời giải:' }], merged = null;
       if (!q.parts.length) { merged = { lines: [], score: 0 }; Object.keys(rb).forEach(function (k) { merged.lines = merged.lines.concat(rb[k].lines); merged.score += rb[k].score; }); }
@@ -491,7 +739,7 @@
       });
       qs.p4.push(Object.assign({ ID: 'LD_' + info.code + '_' + info.year + '_P4_' + q.no, type: 'essay_multi', mainQuestion: q.stem, parts: parts, subQuestions: subs, answer: answers, score: total || 1 }, base));
     });
-    return { list: [].concat(qs.p1, qs.p2, qs.p3, qs.p4), warnings: warn, counts: { p1: qs.p1.length, p2: qs.p2.length, p3: qs.p3.length, p4: qs.p4.length } };
+    return { list: [].concat(qs.p1, qs.p2, qs.p3, qs.p4), warnings: warn, dropped: dropped, counts: { p1: qs.p1.length, p2: qs.p2.length, p3: qs.p3.length, p4: qs.p4.length } };
   }
 
   // ===================== GỌI DRIVE (Apps Script) =====================
@@ -632,10 +880,25 @@
     return true;
   }
   // Bọc displayQuestion: nếu một câu lỗi thì hiện nguyên nhân ngay trong khung câu hỏi (thay vì trống)
+  var katexQ = [], katexState = 0;   // 0 chưa nạp, 1 đang nạp, 2 lỗi, 3 sẵn sàng
+  function loadKatex(cb) {
+    if (typeof root.renderMathInElement === 'function') return cb(true);
+    if (katexState === 2) return cb(false);
+    katexQ.push(cb); if (katexState === 1) return; katexState = 1;
+    var d = root.document, base = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/';
+    function flush(ok) { katexState = ok ? 3 : 2; var q = katexQ; katexQ = []; q.forEach(function (f) { try { f(ok); } catch (e) {} }); }
+    function script(src, next) { var s = d.createElement('script'); s.src = src; s.onload = next; s.onerror = function () { flush(false); }; d.head.appendChild(s); }
+    if (!d.getElementById('ld-katex-css')) { var l = d.createElement('link'); l.id = 'ld-katex-css'; l.rel = 'stylesheet'; l.href = base + 'katex.min.css'; d.head.appendChild(l); }
+    function loadAuto() { script(base + 'contrib/auto-render.min.js', function () { flush(typeof root.renderMathInElement === 'function'); }); }
+    if (root.katex) loadAuto(); else script(base + 'katex.min.js', loadAuto);
+  }
+  var KATEX_OPT = { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false };
   function typesetNow() {
     var box = $('quiz-content') || $('test-section'); if (!box) return;
-    try { if (typeof root.renderMathInElement === 'function') root.renderMathInElement(box, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }); } catch (e) { pushLog('katex', [e]); }
-    try { if (root.MathJax && typeof root.MathJax.typesetPromise === 'function') root.MathJax.typesetPromise([box]); } catch (e) { pushLog('mathjax', [e]); }
+    loadKatex(function (ok) {
+      if (ok) { try { root.renderMathInElement(box, KATEX_OPT); } catch (e) { pushLog('katex', [e]); } return; }
+      try { if (root.MathJax && typeof root.MathJax.typesetPromise === 'function') root.MathJax.typesetPromise([box]); } catch (e) { pushLog('mathjax', [e]); }
+    });
   }
   var guarded = false;
   function guardDisplayQuestion() {
@@ -701,6 +964,7 @@
     if (isAdminUser()) console.info('[luyende_drive] Admin: bỏ qua chống gian lận để thử đề.');
     else try { if (typeof antiCheat !== 'undefined' && antiCheat && typeof antiCheat.start === 'function') antiCheat.start(); } catch (e) { console.warn('antiCheat.start:', e); }
     note('Đã tải đề ' + info.code + ' (' + res.list.length + ' câu, ' + minutes + ' phút).', 'success');
+    if (res.dropped && res.dropped.length) setTimeout(function () { note('⚠ Đề thiếu ' + res.dropped.length + ' câu vì: ' + res.dropped.join('; ') + '. Kiểm tra file Da (đáp án).', 'error'); }, 1200);
   }
 
   function initUI() {
@@ -742,7 +1006,7 @@
     var ac = false, lk = null, sub = '';
     try { ac = typeof antiCheat !== 'undefined'; lk = root.localStorage.getItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
     try { sub = ' | câu ' + (gIdx() + 1) + '/' + gTest().length + ' (' + ((gTest()[gIdx()] || {}).type || '?') + ')'; } catch (e) {}
-    return 'luyende_drive v1.8 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
+    return 'luyende_drive v1.9 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
   }
   function renderLog() { if (logBox) { logBox.querySelector('pre').textContent = statusLine() + '\n\n' + (logBuf.join('\n') || '(chưa có lỗi nào)'); } }
   function ensureLogUI() {
@@ -764,7 +1028,7 @@
   })();
 
   // ===================== XUẤT / KHỞI ĐỘNG =====================
-  var api = { CFG: CFG, loadDocx: loadDocx, docBlocks: docBlocks, parseExam: parseExam, parseAnswers: parseAnswers, buildQuestions: buildQuestions, splitChoices: splitChoices, omml: omml, groupToSvg: groupToSvg };
+  var api = { CFG: CFG, loadDocx: loadDocx, docBlocks: docBlocks, parseExam: parseExam, parseAnswers: parseAnswers, buildQuestions: buildQuestions, splitChoices: splitChoices, omml: omml, groupToSvg: groupToSvg, mathTypeToLatex: mathTypeToLatex };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.LuyenDeDrive = api;
   if (root.document && root.document.getElementById) {
