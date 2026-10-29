@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.5
+ * luyende_drive.js  v1.6
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -289,7 +289,7 @@
   }
 
   // ===================== TÁCH ĐỀ =====================
-  var RE_SEC = /^\s*(?:PHẦN|Phần)\s+(IV|III|II|I)\b/i, RE_Q = /^\s*Câu\s+(\d+)\s*[.:]\s*/i, RE_PART = /^\s*([a-d])\s*\)\s*/i, RE_HET = /^\s*[-–—\s]*HẾT[-–—\s]*$/i;
+  var RE_SEC = /^\s*(?:PHẦN|Phần)\s*(IV|III|II|I|[1-4])(?![A-Za-zÀ-ỹ])/i, RE_Q = /^\s*Câu\s*(\d+)\s*(?:[.:)]\s*|\s+)/i, RE_PART = /^\s*([a-d])\s*\)\s*/i, RE_HET = /^\s*[-–—\s]*HẾT[-–—\s]*$/i;
   var TOK_RE = /<svg[\s\S]*?<\/svg>|<span class="ld-img"[\s\S]*?<\/span>|<table[\s\S]*?<\/table>|\$[^$]*\$/g;
   function protect(s, store) { return s.replace(TOK_RE, function (m) { store.push(m); return '\u0001' + (store.length - 1) + '\u0002'; }); }
   function restore(s, store) { return s.replace(/\u0001(\d+)\u0002/g, function (m, i) { return store[+i]; }); }
@@ -306,10 +306,11 @@
 
   function parseExam(blocks) {
     var sec = 0, cur = null, groups = { 1: [], 2: [], 3: [], 4: [] }, meta = { minutes: null };
-    var roman = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4 };
+    var roman = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, '1': 1, '2': 2, '3': 3, '4': 4 }, firstTexts = [];
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i], plain = stripTags(b.html);
-      if (!sec) { var tm = /Thời gian làm bài\s*(\d+)\s*phút/i.exec(plain); if (tm) meta.minutes = parseInt(tm[1], 10); }
+      if (plain && firstTexts.length < 6) firstTexts.push(plain.slice(0, 70));
+      if (!sec) { var tm = /Thời gian làm bài\s*:?\s*(\d+)\s*phút/i.exec(plain); if (tm) meta.minutes = parseInt(tm[1], 10); }
       if (b.kind === 'p' && RE_HET.test(plain)) break;
       var sm = b.kind === 'p' && RE_SEC.exec(plain);
       if (sm) { sec = roman[sm[1].toUpperCase()]; cur = null; continue; }
@@ -319,6 +320,8 @@
       if (cur && (b.html && stripTags(b.html) !== '' || /<svg|ld-img|<table/.test(b.html))) cur.blocks.push(b);
     }
     var out = { meta: meta, p1: [], p2: [], p3: [], p4: [], warnings: [] };
+    if (!sec) out.warnings.push('Không thấy tiêu đề "PHẦN I/II/III/IV" trong file đề. Các dòng đầu đọc được: ' + firstTexts.join(' ¦ '));
+    else if (!groups[1].length && !groups[2].length && !groups[3].length && !groups[4].length) out.warnings.push('Có tiêu đề PHẦN nhưng không thấy dòng bắt đầu bằng "Câu 1."');
     groups[1].forEach(function (q) {
       var bs = q.blocks, ci = -1;
       for (var i = 1; i < bs.length; i++) if (/^\s*A\s*\./.test(bs[i].html)) { ci = i; break; }
@@ -354,30 +357,71 @@
     var ctx = parsed.ctx, body = parsed.doc.getElementsByTagName('w:body')[0];
     var tables = kids(body).filter(function (c) { return c.nodeName === 'w:tbl'; }).map(function (t) { return tblRows(t, ctx); });
     var ans = { p1: null, p2: {}, p3: {}, rubrics: [] }, tfSeen = false;
+    function codeCol(head) {   // cột của mã đề trong hàng tiêu đề (chấp nhận "0201", "Mã đề 0201"...)
+      for (var i = 1; i < head.length; i++) { var m = /\b(\d{4})\b/.exec(head[i]); if (m && m[1] === code) return i; }
+      var hasCode = head.slice(1).some(function (h) { return /\b\d{4}\b/.test(h); });
+      return (!hasCode && head.length === 2) ? 1 : -1;
+    }
+    function normTF(v) { return String(v).toUpperCase().replace(/[^SĐD]/g, '').replace(/Đ/g, 'D'); }
     tables.forEach(function (rows) {
       if (!rows.length) return;
       var head = rows[0].map(stripTags), first = head[0] || '';
-      // Phần I: hàng tiêu đề 1..12, mỗi hàng sau là một mã đề
-      if (/Mã\s*Đề/i.test(first) && head[1] === '1' && head.length >= 13) {
-        var row = rows.filter(function (r) { return stripTags(r[0]) === code; })[0] || (rows.length === 2 ? rows[1] : null);
-        if (row) ans.p1 = row.slice(1).map(function (c) { return stripTags(c).toUpperCase(); });
+      var nums = head.slice(1).map(function (h) { return h.replace(/^câu\s*/i, ''); });
+      // Phần I (ngang): hàng tiêu đề 1..12, mỗi hàng sau là một mã đề
+      if (nums.length >= 12 && nums[0] === '1' && nums[1] === '2') {
+        var row = rows.filter(function (r) { return /\b(\d{4})\b/.exec(stripTags(r[0]) || '') && /\b(\d{4})\b/.exec(stripTags(r[0]))[1] === code; })[0] || (rows.length === 2 ? rows[1] : null);
+        if (row) ans.p1 = row.slice(1).map(function (c) { return stripTags(c).toUpperCase().replace(/[^A-D]/g, ''); });
         return;
       }
-      // Phần II / III: hàng tiêu đề là các mã đề, cột đầu là số câu
-      if (/Mã\s*Đề/i.test(first) && /^\d{4}$/.test(head[1] || '')) {
-        var col = head.indexOf(code); if (col < 0 && head.length === 2) col = 1; if (col < 0) return;
-        var isTF = rows.slice(1).every(function (r) { return /^[SĐD]{3,}$/i.test(stripTags(r[col] || '')); });
-        rows.slice(1).forEach(function (r) { var no = parseInt(stripTags(r[0]), 10), v = stripTags(r[col] || ''); if (isTF) ans.p2[no] = v.toUpperCase().replace(/Đ/g, 'D'); else ans.p3[no] = v; });
+      // Bảng gộp: các hàng mã đề (0201 0202 ...), rồi hàng "Phần 1/2/3", rồi từng câu (số hoặc "Câu n")
+      var codes = [], hdrEnd = -1;
+      for (var hi = 0; hi < Math.min(3, rows.length); hi++) {
+        var found = rows[hi].map(stripTags).filter(function (c) { return /^(?:mã\s*đề\s*)?\d{4}$/i.test(c); });
+        if (found.length) { codes = codes.concat(found.map(function (c) { return /\d{4}/.exec(c)[0]; })); hdrEnd = hi; }
+      }
+      var kc = codes.indexOf(code); if (kc < 0 && codes.length === 1) kc = 0;
+      if (hdrEnd >= 0 && kc >= 0 && rows.length > hdrEnd + 2) {
+        var secNo = 0, got = 0, RM = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
+        rows.slice(hdrEnd + 1).forEach(function (r) {
+          var cells = r.map(stripTags), lab = cells[0] || '';
+          var sm = /^Phần\s*(IV|III|II|I|[1-4])(?![A-Za-zÀ-ỹ])/i.exec(lab);
+          if (sm) { secNo = RM[sm[1].toUpperCase()]; return; }
+          var v = cells[1 + kc]; if (v === undefined || v === '') return;
+          var no = parseInt(lab.replace(/\D/g, ''), 10); if (isNaN(no)) return;
+          var tf = normTF(v), kind = secNo || (/^[A-D]$/i.test(v) ? 1 : (/^[SĐDsđd\s]+$/.test(v) && tf.length >= 3 ? 2 : 3));
+          if (kind === 1) { ans.p1 = ans.p1 || []; ans.p1[no - 1] = v.toUpperCase().replace(/[^A-D]/g, ''); }
+          else if (kind === 2) ans.p2[no] = tf;
+          else if (kind === 3) ans.p3[no] = v;
+          else return;
+          got++;
+        });
+        if (got) return;
+      }
+      // Phần I / II / III (dọc): hàng tiêu đề là các mã đề, cột đầu là số câu
+      var col = codeCol(head);
+      if (col > 0 && rows.length > 1 && /^(câu\s*)?\d+$/i.test(stripTags(rows[1][0] || ''))) {
+        var body1 = rows.slice(1), vals = body1.map(function (r) { return stripTags(r[col] || ''); });
+        var isP1 = vals.every(function (v) { return /^[A-D]$/i.test(v); });
+        var isTF = !isP1 && vals.every(function (v) { return normTF(v).length >= 3 && /^[SĐDsđd\s,;.\-]+$/.test(v); });
+        body1.forEach(function (r) {
+          var no = parseInt(stripTags(r[0]).replace(/\D/g, ''), 10), v = stripTags(r[col] || '');
+          if (isP1) { ans.p1 = ans.p1 || []; ans.p1[no - 1] = v.toUpperCase(); }
+          else if (isTF) ans.p2[no] = normTF(v);
+          else ans.p3[no] = v;
+        });
         return;
       }
-      // Phần IV: bảng thang điểm, cột cuối chứa "điểm"
-      if (rows.every(function (r) { return r.length >= 3 && /điểm/i.test(stripTags(r[r.length - 1])); })) {
+      // Phần IV: bảng thang điểm (2 cột "nội dung | 0,25 đ" hoặc 3 cột có nhãn a/b/c/d)
+      var SC = /^\d+(?:[.,]\d+)?\s*(?:đ|điểm)?$/i;
+      if (rows.length && rows.every(function (r) { return r.length >= 2 && SC.test(stripTags(r[r.length - 1])); }) &&
+          rows.some(function (r) { return /đ|điểm/i.test(stripTags(r[r.length - 1])); })) {
         var parts = {}, label = '';
         rows.forEach(function (r) {
-          var lb = stripTags(r[0]).toLowerCase(); if (/^[a-d]$/.test(lb)) label = lb;
-          var pt = pnum(r[r.length - 1]), line = r.slice(1, r.length - 1).join(' ');
+          var lb = stripTags(r[0]).toLowerCase(), hasLb = r.length >= 3 && /^[a-d]$/.test(lb); if (hasLb) label = lb;
+          var last = stripTags(r[r.length - 1]), pt = pnum(last), line = (hasLb ? r.slice(1, r.length - 1) : r.slice(0, r.length - 1)).join(' ');
+          var sc = last.replace(/\s*điểm/i, 'đ'); if (!/đ$/.test(sc)) sc += 'đ';
           if (!parts[label]) parts[label] = { lines: [], score: 0 };
-          parts[label].lines.push(line + ' <em>(' + stripTags(r[r.length - 1]).replace(/\s*điểm/i, 'đ') + ')</em>'); if (!isNaN(pt)) parts[label].score += pt;
+          parts[label].lines.push(line + ' <em>(' + sc + ')</em>'); if (!isNaN(pt)) parts[label].score += pt;
         });
         ans.rubrics.push(parts);
       }
@@ -412,8 +456,10 @@
     exam.p4.forEach(function (q, idx) {
       var rb = ans.rubrics[idx]; if (!rb) { warn.push('Phần IV câu ' + q.no + ': thiếu thang điểm'); return; }
       var parts = {}, subs = [], answers = [], total = 0;
-      q.parts.forEach(function (p) {
-        var r = rb[p.key] || { lines: [], score: 0 }; total += r.score;
+      var plist = q.parts.length ? q.parts : [{ key: 'a', html: 'Trình bày lời giải:' }], merged = null;
+      if (!q.parts.length) { merged = { lines: [], score: 0 }; Object.keys(rb).forEach(function (k) { merged.lines = merged.lines.concat(rb[k].lines); merged.score += rb[k].score; }); }
+      plist.forEach(function (p) {
+        var r = merged || rb[p.key] || { lines: [], score: 0 }; total += r.score;
         var ah = r.lines.join('<br>'); parts[p.key] = { question: p.html, answer: [ah], score: r.score };
         subs.push({ question: p.html, answer: ah, score: r.score }); answers.push(ah);
       });
@@ -445,7 +491,10 @@
     }).then(function (docs) {
       var de = docBlocks(docs[0]), da = parseAnswers({ doc: docs[1].doc, ctx: docs[1].ctx }, info.code);
       var exam = parseExam(de.blocks), res = buildQuestions(exam, da, info);
-      res.minutes = exam.meta.minutes; return res;
+      res.minutes = exam.meta.minutes;
+      res.diag = 'đọc từ đề: P1=' + exam.p1.length + ', P2=' + exam.p2.length + ', P3=' + exam.p3.length + ', P4=' + exam.p4.length +
+        ' | đáp án: P1=' + (da.p1 ? da.p1.length : 'không thấy') + ', P2=' + Object.keys(da.p2).length + ', P3=' + Object.keys(da.p3).length + ', thang điểm P4=' + da.rubrics.length;
+      return res;
     });
   }
 
@@ -493,7 +542,8 @@
         return loadExam(fid, map[year + '|' + code], info, deps).then(function (res) { return { res: res, info: info }; });
       })
       .then(function (o) {
-        var res = o.res; if (!res.list.length) throw new Error('Không đọc được câu hỏi nào từ file đề');
+        var res = o.res;
+        if (!res.list.length) { pushLog('đề rỗng', [res.diag || '', res.warnings.slice(0, 8)]); console.warn('[luyende_drive] Chi tiết:', res.diag, res.warnings); throw new Error('Không đọc được câu hỏi nào từ file đề (mã ' + o.info.code + '). ' + (res.diag || '') + (res.warnings.length ? ' | ' + res.warnings.slice(0, 3).join(' ; ') : '')); }
         if (res.warnings.length) { console.warn('[luyende_drive] Cảnh báo:', res.warnings); pushLog('cảnh báo đề', res.warnings); }
         launch(res, o.info); done();
       })
@@ -657,7 +707,7 @@
     var ac = false, lk = null, sub = '';
     try { ac = typeof antiCheat !== 'undefined'; lk = root.localStorage.getItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
     try { sub = ' | câu ' + (gIdx() + 1) + '/' + gTest().length + ' (' + ((gTest()[gIdx()] || {}).type || '?') + ')'; } catch (e) {}
-    return 'luyende_drive v1.5 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
+    return 'luyende_drive v1.6 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
   }
   function renderLog() { if (logBox) { logBox.querySelector('pre').textContent = statusLine() + '\n\n' + (logBuf.join('\n') || '(chưa có lỗi nào)'); } }
   function ensureLogUI() {
