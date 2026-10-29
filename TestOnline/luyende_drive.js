@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.0
+ * luyende_drive.js  v1.1
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -499,6 +499,32 @@
       .catch(function (e) { console.error('[luyende_drive]', e); note('Lỗi luyện đề: ' + e.message, 'error'); done(); });
   }
 
+
+  function isAdminUser() {
+    try {
+      if (typeof isAdminMode !== 'undefined' && isAdminMode) return true;
+      if (typeof ADMIN_PHONES !== 'undefined' && ADMIN_PHONES && root.localStorage) {
+        var ph = root.localStorage.getItem('user_phone');
+        if (ph && (Array.isArray(ADMIN_PHONES) ? ADMIN_PHONES.indexOf(ph) >= 0 : String(ADMIN_PHONES).indexOf(ph) >= 0)) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  // Bọc displayQuestion: nếu một câu lỗi thì hiện nguyên nhân ngay trong khung câu hỏi (thay vì trống)
+  var guarded = false;
+  function guardDisplayQuestion() {
+    if (guarded || typeof root.displayQuestion !== 'function') return; guarded = true;
+    var orig = root.displayQuestion;
+    root.displayQuestion = function (index) {
+      try { return orig.apply(this, arguments); }
+      catch (e) {
+        console.error('[luyende_drive] displayQuestion(' + index + ') lỗi:', e);
+        var q = (root.currentTest || [])[index] || {}, box = $('quiz-content');
+        if (box) box.innerHTML = '<div style="padding:16px;border:2px solid #c0392b;border-radius:8px;color:#c0392b"><b>Không hiển thị được câu ' + (index + 1) + '</b><br>Loại câu: ' + esc(q.type || '?') + '<br>Lỗi: ' + esc(e && e.message || e) + '<br><small>' + esc(String(e && e.stack || '').split('\n').slice(0, 3).join(' | ')) + '</small></div>';
+      }
+    };
+  }
+
   function launch(res, info) {
     var minutes = minutesFor(info.task, res.minutes);
     resetQuizState();
@@ -511,10 +537,12 @@
     $('setup-section').classList.add('hidden'); $('test-section').classList.remove('hidden');
     updateTestInfoForDeployMode(info.grade, info.task, info.year, examCode);
     var ti = $('test-info'); if (ti) ti.textContent += ' (đề gốc ' + info.code + ')';
+    guardDisplayQuestion();
     displayQuestion(currentQuestionIndex); updateNavigation(); updateProgressBar();
     var td = $('hsktt-timer-display'); if (td) td.style.display = 'block';
     startTimer(minutes * 60);
-    try { if (typeof antiCheat !== 'undefined' && antiCheat && typeof antiCheat.start === 'function') antiCheat.start(); } catch (e) { console.warn('antiCheat.start:', e); }
+    if (isAdminUser()) console.info('[luyende_drive] Admin: bỏ qua chống gian lận để thử đề.');
+    else try { if (typeof antiCheat !== 'undefined' && antiCheat && typeof antiCheat.start === 'function') antiCheat.start(); } catch (e) { console.warn('antiCheat.start:', e); }
     note('Đã tải đề ' + info.code + ' (' + res.list.length + ' câu, ' + minutes + ' phút).', 'success');
   }
 
