@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.6
+ * luyende_drive.js  v1.7
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -209,7 +209,7 @@
       switch (c.nodeName) {
         case 'w:t': { var t = esc(c.textContent); out += vv === 'superscript' ? '<sup>' + t + '</sup>' : vv === 'subscript' ? '<sub>' + t + '</sub>' : t; break; }
         case 'w:tab': out += ' '; break;
-        case 'w:br': out += ' '; break;
+        case 'w:br': out += '\u0003'; break;   // xuống dòng mềm: ranh giới dòng, docBlocks sẽ tách
         case 'w:drawing': out += drawingToHtml(c, ctx); break;
         case 'w:pict': out += pictToHtml(c, ctx); break;
         case 'w:object': out += pictToHtml(c, ctx); break;
@@ -218,7 +218,7 @@
     });
     return out;
   }
-  function paraToHtml(p, ctx) {
+  function paraToHtml(p, ctx, keepBreaks) {
     var out = '';
     (function walk(node) {
       kids(node).forEach(function (c) {
@@ -231,7 +231,9 @@
         }
       });
     })(p);
-    return out.replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ').trim();
+    var res = out.replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ');
+    if (!keepBreaks) res = res.replace(/\u0003/g, ' ').replace(/ {2,}/g, ' ');
+    return res.trim();
   }
   function tblToHtml(tbl, ctx) {
     var rows = kids(tbl).filter(function (r) { return r.nodeName === 'w:tr'; });
@@ -280,7 +282,11 @@
     var body = parsed.doc.getElementsByTagName('w:body')[0], ctx = parsed.ctx, blocks = [];
     (function walk(node) {
       kids(node).forEach(function (c) {
-        if (c.nodeName === 'w:p') { var h = paraToHtml(c, ctx); blocks.push({ kind: 'p', html: h }); }
+        if (c.nodeName === 'w:p') {
+          var h = paraToHtml(c, ctx, true);
+          if (h.indexOf('\u0003') < 0) blocks.push({ kind: 'p', html: h });
+          else h.split('\u0003').forEach(function (piece) { piece = piece.trim(); if (piece) blocks.push({ kind: 'p', html: piece }); });   // mỗi dòng mềm là một khối riêng
+        }
         else if (c.nodeName === 'w:tbl') blocks.push({ kind: 'tbl', html: tblToHtml(c, ctx), node: c });
         else if (c.nodeName === 'w:sdt') { var sc = child(c, 'w:sdtContent'); if (sc) walk(sc); }
       });
@@ -304,8 +310,9 @@
   }
   function joinBlocks(bs) { return bs.map(function (b) { return b.html; }).filter(Boolean).join('\n'); }
 
+  var FIG_LEAD = /^(?:\s*(?:<span class="ld-img"[^>]*><\/span>|<svg[\s\S]*?<\/svg>))+\s*/, FIG_TAIL = /(?:\s*(?:<span class="ld-img"[^>]*><\/span>|<svg[\s\S]*?<\/svg>))+\s*$/;
   function parseExam(blocks) {
-    var sec = 0, cur = null, groups = { 1: [], 2: [], 3: [], 4: [] }, meta = { minutes: null };
+    var pendFig = '', sec = 0, cur = null, groups = { 1: [], 2: [], 3: [], 4: [] }, meta = { minutes: null };
     var roman = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, '1': 1, '2': 2, '3': 3, '4': 4 }, firstTexts = [];
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i], plain = stripTags(b.html);
@@ -315,8 +322,26 @@
       var sm = b.kind === 'p' && RE_SEC.exec(plain);
       if (sm) { sec = roman[sm[1].toUpperCase()]; cur = null; continue; }
       if (!sec) continue;
-      var qm = b.kind === 'p' && RE_Q.exec(b.html);
-      if (qm) { cur = { sec: sec, no: parseInt(qm[1], 10), blocks: [{ kind: 'p', html: b.html.replace(RE_Q, '') }] }; groups[sec].push(cur); continue; }
+      var bh = b.html, lead = '';
+      if (b.kind === 'p') { var lm = FIG_LEAD.exec(bh); if (lm && lm[0].length < bh.length && RE_Q.test(bh.slice(lm[0].length))) { lead = lm[0]; bh = bh.slice(lm[0].length); } }
+      // khối chỉ có hình, ngay sau đó là "Câu n" mới (Phần III/IV): hình thuộc câu sau
+      if (b.kind === 'p' && sec >= 3 && stripTags(b.html) === '' && /<svg|ld-img/.test(b.html)) {
+        var nx = null; for (var j = i + 1; j < blocks.length; j++) if (blocks[j].html) { nx = blocks[j]; break; }
+        if (nx && nx.kind === 'p') { var nl = FIG_LEAD.exec(nx.html), nt = nl ? nx.html.slice(nl[0].length) : nx.html; if (RE_Q.test(nt)) { pendFig += b.html; continue; } }
+      }
+      var qm = b.kind === 'p' && RE_Q.exec(bh);
+      if (qm) {
+        var fig = pendFig + lead; pendFig = '';
+        // Phần III/IV không có phương án: hình nằm cuối câu trước (trước dấu xuống dòng) là hình của câu mới
+        if (sec >= 3 && cur && cur.blocks.length) {
+          var li = cur.blocks.length - 1; while (li > 0 && cur.blocks[li].fig) li--;   // bỏ qua khối hình đã gắn từ trước
+          var lb = cur.blocks[li], tm = FIG_TAIL.exec(lb.html);
+          if (tm && lb.kind === 'p' && !lb.fig) { fig = tm[0] + fig; lb.html = lb.html.slice(0, tm.index); if (li > 0 && !stripTags(lb.html) && !/<svg|ld-img/.test(lb.html)) cur.blocks.splice(li, 1); }
+        }
+        cur = { sec: sec, no: parseInt(qm[1], 10), blocks: [{ kind: 'p', html: bh.replace(RE_Q, '') }] };
+        if (fig) cur.blocks.push({ kind: 'p', html: fig, fig: true });
+        groups[sec].push(cur); continue;
+      }
       if (cur && (b.html && stripTags(b.html) !== '' || /<svg|ld-img|<table/.test(b.html))) cur.blocks.push(b);
     }
     var out = { meta: meta, p1: [], p2: [], p3: [], p4: [], warnings: [] };
@@ -707,7 +732,7 @@
     var ac = false, lk = null, sub = '';
     try { ac = typeof antiCheat !== 'undefined'; lk = root.localStorage.getItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
     try { sub = ' | câu ' + (gIdx() + 1) + '/' + gTest().length + ' (' + ((gTest()[gIdx()] || {}).type || '?') + ')'; } catch (e) {}
-    return 'luyende_drive v1.6 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
+    return 'luyende_drive v1.7 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
   }
   function renderLog() { if (logBox) { logBox.querySelector('pre').textContent = statusLine() + '\n\n' + (logBuf.join('\n') || '(chưa có lỗi nào)'); } }
   function ensureLogUI() {
