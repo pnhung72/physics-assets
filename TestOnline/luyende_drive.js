@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.1
+ * luyende_drive.js  v1.2
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -503,12 +503,38 @@
   function isAdminUser() {
     try {
       if (typeof isAdminMode !== 'undefined' && isAdminMode) return true;
+      if (typeof adminAuth !== 'undefined' && adminAuth && adminAuth.isAuthenticated) return true;
+      var raw = root.localStorage && root.localStorage.getItem('adminAuth');   // admin đã đăng nhập ở trang chủ (logoutAdmin xoá khoá này)
+      if (raw) { var o = JSON.parse(raw); if (o && (o.isAuthenticated || o.token)) return true; }
       if (typeof ADMIN_PHONES !== 'undefined' && ADMIN_PHONES && root.localStorage) {
         var ph = root.localStorage.getItem('user_phone');
         if (ph && (Array.isArray(ADMIN_PHONES) ? ADMIN_PHONES.indexOf(ph) >= 0 : String(ADMIN_PHONES).indexOf(ph) >= 0)) return true;
       }
     } catch (e) {}
     return false;
+  }
+  // Admin/giáo viên không bị chống gian lận: chặn khoá trang, bỏ khoá cũ còn sót trên máy này
+  function clearLocalAntiCheatLock() {
+    try { root.localStorage.removeItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
+    var ov = $('anticheat-lock-overlay');
+    if (ov) {
+      ov.remove();
+      Array.prototype.forEach.call(root.document.querySelectorAll('#quiz-content input, #quiz-content textarea, #quiz-content button, #test-section button'), function (el) { el.disabled = false; });
+    }
+    try { if (typeof antiCheat !== 'undefined' && antiCheat) { antiCheat.locked = false; antiCheat.violations = 0; if (antiCheat.stopPolling) antiCheat.stopPolling(); } } catch (e) {}
+  }
+  function exemptAdminFromAntiCheat() {
+    var ac; try { ac = (typeof antiCheat !== 'undefined') ? antiCheat : null; } catch (e) { ac = null; }
+    if (!ac) return false;
+    if (!ac.__ldExempt) {
+      ac.__ldExempt = true;
+      ['lockPage', 'start'].forEach(function (m) {
+        var orig = ac[m]; if (typeof orig !== 'function') return;
+        ac[m] = function () { if (isAdminUser()) { clearLocalAntiCheatLock(); return; } return orig.apply(this, arguments); };
+      });
+    }
+    if (isAdminUser()) clearLocalAntiCheatLock();
+    return true;
   }
   // Bọc displayQuestion: nếu một câu lỗi thì hiện nguyên nhân ngay trong khung câu hỏi (thay vì trống)
   var guarded = false;
@@ -572,6 +598,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.LuyenDeDrive = api;
   if (root.document && root.document.getElementById) {
+    var ex = 0, exT = setInterval(function () { exemptAdminFromAntiCheat(); if (++ex >= 20) clearInterval(exT); }, 1000); exemptAdminFromAntiCheat();
     var tries = 0, go = function () { if (!initUI() && tries++ < 20) setTimeout(go, 300); };
     if (root.document.readyState === 'loading') root.document.addEventListener('DOMContentLoaded', go); else go();
   }
