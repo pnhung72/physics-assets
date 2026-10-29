@@ -1,5 +1,5 @@
 /*!
- * luyende_drive.js  v1.4
+ * luyende_drive.js  v1.5
  * Chế độ "Luyện đề" của TestOnline lấy đề từ Google Drive (De_<mã>_<năm>.docx + Da_<mã>_<năm>.docx).
  * - Đọc nguyên file .docx: chữ, công thức Word (OMML -> LaTeX), ảnh, đồ thị vẽ bằng khung hình (-> SVG), bảng.
  * - Xáo thứ tự câu và phương án A-D của PHẦN I mỗi lần mở đề.
@@ -494,7 +494,7 @@
       })
       .then(function (o) {
         var res = o.res; if (!res.list.length) throw new Error('Không đọc được câu hỏi nào từ file đề');
-        if (res.warnings.length) console.warn('[luyende_drive] Cảnh báo:', res.warnings);
+        if (res.warnings.length) { console.warn('[luyende_drive] Cảnh báo:', res.warnings); pushLog('cảnh báo đề', res.warnings); }
         launch(res, o.info); done();
       })
       .catch(function (e) { console.error('[luyende_drive]', e); note('Lỗi luyện đề: ' + e.message, 'error'); done(); });
@@ -559,11 +559,42 @@
     root.displayQuestion = function (index) {
       try { return orig.apply(this, arguments); }
       catch (e) {
-        console.error('[luyende_drive] displayQuestion(' + index + ') lỗi:', e);
-        var q = (root.currentTest || [])[index] || {}, box = $('quiz-content');
+        console.error('[luyende_drive] displayQuestion(' + index + ') lỗi:', e); pushLog('displayQuestion(' + (index + 1) + ')', [e]);
+        var q = gTest()[index] || {}, box = $('quiz-content');
         if (box) box.innerHTML = '<div style="padding:16px;border:2px solid #c0392b;border-radius:8px;color:#c0392b"><b>Không hiển thị được câu ' + (index + 1) + '</b><br>Loại câu: ' + esc(q.type || '?') + '<br>Lỗi: ' + esc(e && e.message || e) + '<br><small>' + esc(String(e && e.stack || '').split('\n').slice(0, 3).join(' | ')) + '</small></div>';
       }
     };
+  }
+
+
+  // currentTest / currentQuestionIndex / quizSubmitted có thể khai báo bằng let (không nằm trên window) -> đọc bằng tên trần
+  function gTest() { try { return currentTest || []; } catch (e) { return root.currentTest || []; } }
+  function gIdx() { try { return currentQuestionIndex || 0; } catch (e) { return root.currentQuestionIndex || 0; } }
+  function gSubmitted() { try { return !!quizSubmitted; } catch (e) { return !!root.quizSubmitted; } }
+  // Đề luyện đề từ Drive chỉ vẽ MỘT câu mỗi lần. Các hàm chuyển câu cũ của TestOline ẩn mọi .question-container rồi tìm #question-N nên làm trống khung.
+  // Vì vậy trong đề Drive, bấm số câu / Câu trước / Câu tiếp đi thẳng tới displayQuestion.
+  function isDriveTest() { try { var q = gTest()[0]; return !!(q && String(q.source).indexOf('drive:') === 0 && !gSubmitted()); } catch (e) { return false; } }
+  function goQuestion(idx) {
+    var n = gTest().length; if (idx < 0 || idx >= n) return;
+    try { if (typeof forceSaveCurrentAnswer === 'function') forceSaveCurrentAnswer(); } catch (e) { pushLog('lưu đáp án', [e]); }
+    try { currentQuestionIndex = idx; } catch (e) { root.currentQuestionIndex = idx; }
+    (typeof displayQuestion === 'function' ? displayQuestion : root.displayQuestion)(idx);
+    try { if (typeof updateProgressBar === 'function') updateProgressBar(); } catch (e) {}
+    Array.prototype.forEach.call(root.document.querySelectorAll('.nav-dot'), function (d, i) { d.classList.toggle('active', i === idx); });
+  }
+  function installDriveNav() {
+    root.document.addEventListener('click', function (e) {
+      if (!isDriveTest() || !e.target || !e.target.closest) return;
+      var dot = e.target.closest('.nav-dot');
+      if (dot && dot.parentNode) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        return goQuestion(Array.prototype.indexOf.call(dot.parentNode.children, dot));
+      }
+      var btn = e.target.closest('button'); if (!btn || !btn.closest('#test-section')) return;
+      var t = (btn.textContent || '').replace(/\s+/g, ' ').trim(), cur = gIdx();
+      if (/^Câu tiếp/i.test(t)) { e.preventDefault(); e.stopImmediatePropagation(); goQuestion(cur + 1); }
+      else if (/^Câu trước/i.test(t)) { e.preventDefault(); e.stopImmediatePropagation(); goQuestion(cur - 1); }
+    }, true);
   }
 
   function launch(res, info) {
@@ -625,8 +656,8 @@
   function statusLine() {
     var ac = false, lk = null, sub = '';
     try { ac = typeof antiCheat !== 'undefined'; lk = root.localStorage.getItem('anticheat_locked_' + root.location.pathname); } catch (e) {}
-    try { sub = ' | câu ' + ((root.currentQuestionIndex || 0) + 1) + '/' + ((root.currentTest || []).length) + ' (' + (((root.currentTest || [])[root.currentQuestionIndex || 0] || {}).type || '?') + ')'; } catch (e) {}
-    return 'luyende_drive v1.4 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
+    try { sub = ' | câu ' + (gIdx() + 1) + '/' + gTest().length + ' (' + ((gTest()[gIdx()] || {}).type || '?') + ')'; } catch (e) {}
+    return 'luyende_drive v1.5 | admin=' + isAdminUser() + ' | antiCheat=' + ac + ' | cờ khoá=' + lk + sub;
   }
   function renderLog() { if (logBox) { logBox.querySelector('pre').textContent = statusLine() + '\n\n' + (logBuf.join('\n') || '(chưa có lỗi nào)'); } }
   function ensureLogUI() {
@@ -644,10 +675,6 @@
     if (!root.addEventListener) return;
     root.addEventListener('error', function (e) { pushLog('error', [(e.message || 'lỗi') + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')']); });
     root.addEventListener('unhandledrejection', function (e) { pushLog('promise', [e.reason && (e.reason.message || e.reason) || 'rejection']); });
-    ['error', 'warn'].forEach(function (k) {
-      var o = root.console && root.console[k]; if (!o) return;
-      root.console[k] = function () { var a = arguments; if (k === 'error' || /luyende_drive|displayQuestion|normalize/i.test(String(a[0]))) pushLog(k, a); return o.apply(this, a); };
-    });
     var n = 0, t = setInterval(function () { ensureLogUI(); if (logBox && logBox.style.display !== 'none') renderLog(); if (++n > 600) clearInterval(t); }, 1000);
   })();
 
@@ -657,6 +684,7 @@
   root.LuyenDeDrive = api;
   if (root.document && root.document.getElementById) {
     setInterval(exemptAdminFromAntiCheat, 1500); exemptAdminFromAntiCheat();   // chạy liên tục: admin vừa đăng nhập xong hoặc vừa bị khoá đều được gỡ ngay
+    installDriveNav();
     var tries = 0, go = function () { if (!initUI() && tries++ < 20) setTimeout(go, 300); };
     if (root.document.readyState === 'loading') root.document.addEventListener('DOMContentLoaded', go); else go();
   }
