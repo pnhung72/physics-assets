@@ -6,6 +6,15 @@
   var CHU_KY_PHUT = 5;
   var NGUONG_GIO = { 'Hiệu trưởng': 2, 'PHT': 4 };
   var emailHop = '';
+  var lanTai = 0;
+
+  (function themStyle() {
+    var st = document.createElement('style');
+    st.textContent = '.kpi-mail-body{white-space:pre-wrap;word-break:break-word;background:#f7f7f9;border-radius:6px;padding:10px 12px;margin:8px 0;font-size:14px;line-height:1.5;color:#333;max-height:260px;overflow:auto}' +
+      '.kpi-mail-meta{font-size:12px;color:#777;margin-top:6px}' +
+      '.kpi-mail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}';
+    document.head.appendChild(st);
+  })();
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -43,12 +52,68 @@
     head.appendChild(el('div', 'kpi-work-item-title', m.tieuDe || '(không tiêu đề)'));
     head.appendChild(el('div', 'kpi-work-item-time', 'chưa đọc ' + dinhDangGio(m.gio)));
     item.appendChild(head);
+    item.appendChild(el('div', 'kpi-mail-meta', 'Đang tải nội dung...')).setAttribute('data-meta', m.id);
+    var nd = el('div', 'kpi-mail-body', '');
+    nd.setAttribute('data-body', m.id);
+    nd.style.display = 'none';
+    item.appendChild(nd);
+    var acts = el('div', 'kpi-mail-actions');
     var a = el('a', 'kpi-btn kpi-btn-sm', 'Mở thư');
-    a.href = 'https://mail.google.com/mail/' + (emailHop ? '?authuser=' + encodeURIComponent(emailHop) : 'u/0/') + '#all/' + encodeURIComponent(m.id);
+    a.href = (emailHop && emailHop.indexOf('@') > 0)
+      ? 'https://mail.google.com/a/' + emailHop.split('@')[1] + '/#all/' + encodeURIComponent(m.id)
+      : 'https://mail.google.com/mail/u/0/#all/' + encodeURIComponent(m.id);
     a.target = '_blank';
     a.rel = 'noopener';
-    item.appendChild(a);
+    acts.appendChild(a);
+    var b = el('button', 'kpi-btn kpi-btn-sm', 'Đánh dấu đã đọc');
+    b.addEventListener('click', function () { daDoc(m.id, b); });
+    acts.appendChild(b);
+    item.appendChild(acts);
     box.appendChild(item);
+  }
+
+  function duongDan(c, tham) {
+    return c.url + (c.url.indexOf('?') > -1 ? '&' : '?') + 'token=' + encodeURIComponent(c.token) + tham;
+  }
+
+  function taiNoiDung(ids) {
+    var c = docCfg();
+    if (!ids.length || !c.url || !c.token) return;
+    var lan = ++lanTai;
+    fetch(duongDan(c, '&action=noiDung&ids=' + encodeURIComponent(ids.join(','))), { redirect: 'follow' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (d) {
+        if (lan !== lanTai) return;
+        if (d.loi) throw new Error(d.loi);
+        if (!d.noiDung) throw new Error('Script chưa có chức năng xem nội dung (cần tạo Phiên bản mới)');
+        ids.forEach(function (id) {
+          var meta = document.querySelector('[data-meta="' + id + '"]');
+          var body = document.querySelector('[data-body="' + id + '"]');
+          var t = d.noiDung[id];
+          if (!meta || !body) return;
+          if (!t) { meta.textContent = '(Không đọc được nội dung thư này)'; return; }
+          meta.textContent = 'Từ: ' + t.tu + ' - ' + t.ngay + (t.dinhKem && t.dinhKem.length ? ' - Đính kèm: ' + t.dinhKem.join(', ') : '');
+          body.textContent = t.nd || '(Thư không có nội dung chữ)';
+          body.style.display = '';
+        });
+      })
+      .catch(function (e) {
+        document.querySelectorAll('[data-meta]').forEach(function (n) { n.textContent = 'Không tải được nội dung: ' + e.message; });
+      });
+  }
+
+  function daDoc(id, nut) {
+    var c = docCfg();
+    nut.disabled = true;
+    nut.textContent = 'Đang xử lý...';
+    fetch(duongDan(c, '&action=daDoc&id=' + encodeURIComponent(id)), { redirect: 'follow' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (d) {
+        if (d.loi) throw new Error(d.loi);
+        if (!d.ok) throw new Error('Script chưa có chức năng đánh dấu đã đọc (cần tạo Phiên bản mới)');
+        tai();
+      })
+      .catch(function (e) { nut.disabled = false; nut.textContent = 'Đánh dấu đã đọc'; trangThai('Lỗi: ' + e.message, true); });
   }
 
   function ve(d) {
@@ -78,6 +143,7 @@
       });
     }
     capNhatNhan(ld.length);
+    taiNoiDung(ld.slice(0, 10).map(function (m) { return m.id; }));
   }
 
   function tai() {
