@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="vi">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Hệ thống quản lý KPI cho giáo viên - Phiên bản nâng cao</title>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      <style>
+         :root {
+         --kpi-primary-color: #3f51b5;
+         --kpi-secondary-color: #5c6bc0;
+         --kpi-accent-color: #ff4081;
+         --kpi-light-color: #f5f7fa;
+         --kpi-dark-color: #2c3e50;
+         --kpi-success-color: #4caf50;
+         --kpi-warning-color: #ff9800;
+         --kpi-danger-color: #f44336;
+         --kpi-gray-color: #78909c;
+         --kpi-border-radius: 8px;
+         --kpi-box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+         --kpi-transition: all 0.3s ease;
+         }
+         .kpi-system * {
+         box-sizing: border-box;
+         margin: 0;
+         padding: 0;
+         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+         }
+         .kpi-system body {
+         background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+         color: #333;
+         line-height: 1.6;
+         min-height: 100vh;
+         padding: 20px;
+         }
+         .kpi-system .kpi-container {
+         max-width: 1200px;
+         margin: 0 auto;
+         background: white;
+         border-radius: 12px;
+         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+         overflow: hidden;
+         }
+         .kpi-system .kpi-login-screen {
+         padding: 40px;
+         text-align: center;
+         background: white;
+         }
+         .kpi-system .kpi-login-form {
+         max-width: 400px;
+         margin: 0 auto;
+         padding: 30px;
+         background: var(--kpi-light-color);
+         border-radius: 10px;
+         box-shadow: var(--kpi-box-shadow);
+         }
+         .kpi-system .kpi-login-form h2 {
+         margin-bottom: 20px;
+         color: var(--kpi-primary-color);
+         }
+         .kpi-system .kpi-form-group {
+         margin-bottom: 20px;
+         text-align: left;
+         }
+         .kpi-system .kpi-form-group label {
+         display: block;
+         margin-bottom: 8px;
+         font-weight: 600;
+         color: var(--kpi-dark-color);
+         }
+         .kpi-system .kpi-form-group input {
+         width: 100%;
+         padding: 12px 15px;
+         border: 2px solid #ddd;
+         border-radius: 6px;
+         font-size: 16px;
+         transition: var(--kpi-transition);
+         }
+         .kpi-system .kpi-form-group input:focus {
+         border-color: var(--kpi-primary-color);
+         outline: none;
+         }
+         .kpi-system .kpi-btn {
+         display: inline-block;
+         padding: 12px 25px;
+         background-color: var(--kpi-primary-color);
+         color: white;
+         border: none;
+         border-radius: 6px;
+         cursor: pointer;
+         text-decoration: none;
+         transition: var(--kpi-transition);
+         font-size: 16px;
+         font-weight: 600;
+         }
+         .kpi-system .kpi-btn:hover {
+         background-color: var(--kpi-secondary-color);
+         transform: translateY(-2px);
+         box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+         }
+         .kpi-system .kpi-btn-block {
+         display: block;
+         width: 100%;
+         }
+         .kpi-system .kpi-app {
+         display: none;
+         }
+         .kpi-system .kpi-header {
+         background: linear-gradient(135deg, var(--kpi-primary-color), var(--kpi-secondary-color));
+         color: white;
+         padding: 20px;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         }
+         .kpi-system .kpi-user-info {
+         display: flex;
+         align-items: center;
+         gap: 10px;
+         }
+         .kpi-system .kpi-user-avatar {
+         width: 40px;
+         height: 40px;
+         border-radius: 50%;
+         background: rgba(255, 255, 255, 0.2);
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         font-weight: bold;
+         }
+         .kpi-system .kpi-dashboard {
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         gap: 20px;
+         padding: 20px;
+         background: var(--kpi-light-color);
+         }
+         @media (max-width: 768px) {
+         .kpi-system .kpi-dashboard {
+         grid-template-columns: 1fr;
+         }
+         .kpi-system .kpi-header {
+         flex-direction: column;
+         gap: 15px;
+         text-align: center;
+         }
+         }
+         .kpi-system .kpi-card {
+         background: white;
+         border-radius: 10px;
+         padding: 20px;
+         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+         }
+         .kpi-system .kpi-stat-card {
+         text-align: center;
+         padding: 20px;
+         }
+         .kpi-system .kpi-stat-card h3 {
+         color: var(--kpi-primary-color);
+         font-size: 1.2rem;
+         margin-bottom: 15px;
+         }
+         .kpi-system .kpi-stat-card .kpi-value {
+         font-size: 2.5rem;
+         font-weight: bold;
+         margin: 10px 0;
+         color: var(--kpi-dark-color);
+         }
+         .kpi-system .kpi-progress-container {
+         margin: 15px 0;
+         }
+         .kpi-system .kpi-progress-bar {
+         height: 24px;
+         background-color: #e9ecef;
+         border-radius: 12px;
+         overflow: hidden;
+         position: relative;
+         }
+         .kpi-system .kpi-progress {
+         height: 100%;
+         background: linear-gradient(90deg, var(--kpi-primary-color), var(--kpi-secondary-color));
+         text-align: center;
+         line-height: 24px;
+         color: white;
+         transition: width 0.5s ease;
+         border-radius: 12px;
+         }
+         .kpi-system .kpi-tabs {
+         display: flex;
+         margin-bottom: 0;
+         background: #f0f4f8;
+         padding: 0 20px;
+         flex-wrap: wrap;
+         }
+         .kpi-system .kpi-tab {
+         padding: 15px 25px;
+         cursor: pointer;
+         background: #f0f4f8;
+         border: none;
+         font-weight: 600;
+         color: var(--kpi-gray-color);
+         transition: var(--kpi-transition);
+         position: relative;
+         }
+         .kpi-system .kpi-tab.active {
+         background: white;
+         color: var(--kpi-primary-color);
+         }
+         .kpi-system .kpi-tab.active:after {
+         content: '';
+         position: absolute;
+         bottom: 0;
+         left: 0;
+         width: 100%;
+         height: 3px;
+         background: var(--kpi-primary-color);
+         }
+         .kpi-system .kpi-tab-content {
+         display: none;
+         padding: 20px;
+         }
+         .kpi-system .kpi-tab-content.active {
+         display: block;
+         animation: kpi-fadeIn 0.5s;
+         }
+         @keyframes kpi-fadeIn {
+         from { opacity: 0; }
+         to { opacity: 1; }
+         }
+         .kpi-system .kpi-table {
+         width: 100%;
+         border-collapse: collapse;
+         margin-bottom: 20px;
+         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+         }
+         .kpi-system .kpi-table th, 
+         .kpi-system .kpi-table td {
+         padding: 12px 15px;
+         text-align: left;
+         border-bottom: 1px solid #e0e0e0;
+         }
+         .kpi-system .kpi-table th {
+         background: #f5f7fa;
+         color: var(--kpi-dark-color);
+         font-weight: 600;
+         }
+         .kpi-system .kpi-table tr:hover {
+         background: #f9f9f9;
+         }
+         .kpi-system .kpi-editable-cell {
+         cursor: pointer;
+         position: relative;
+         }
+         .kpi-system .kpi-editable-cell:after {
+         content: '\f303';
+         font-family: 'Font Awesome 6 Free';
+         font-weight: 900;
+         margin-left: 8px;
+         opacity: 0.5;
+         font-size: 12px;
+         display: inline-block;
+         }
+         .kpi-system .kpi-editable-cell:hover {
+         background: #f0f4f8;
+         }
+         .kpi-system .kpi-work-item {
+         padding: 15px;
+         border: 1px solid #e0e0e0;
+         border-radius: 8px;
+         margin-bottom: 15px;
+         background: white;
+         transition: var(--kpi-transition);
+         }
+         .kpi-system .kpi-work-item.completed {
+         background: #e8f5e9;
+         border-color: #c8e6c9;
+         }
+         .kpi-system .kpi-work-item-header {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         margin-bottom: 10px;
+         }
+         .kpi-system .kpi-work-item-title {
+         font-weight: 600;
+         font-size: 18px;
+         color: var(--kpi-dark-color);
+         }
+         .kpi-system .kpi-work-item-meta {
+         display: flex;
+         gap: 15px;
+         color: var(--kpi-gray-color);
+         font-size: 14px;
+         margin-bottom: 10px;
+         }
+         .kpi-system .kpi-work-item-actions {
+         display: flex;
+         gap: 10px;
+         margin-top: 15px;
+         }
+         .kpi-system .kpi-btn-sm {
+         padding: 8px 15px;
+         font-size: 14px;
+         }
+         .kpi-system .kpi-btn-success {
+         background: var(--kpi-success-color);
+         }
+         .kpi-system .kpi-btn-warning {
+         background: var(--kpi-warning-color);
+         }
+         .kpi-system .kpi-btn-danger {
+         background: var(--kpi-danger-color);
+         }
+         .kpi-system .kpi-summary {
+         background: #e3f2fd;
+         padding: 20px;
+         border-radius: 8px;
+         margin-top: 20px;
+         }
+         .kpi-system .kpi-highlight {
+         background: #fff8e1;
+         padding: 5px 10px;
+         border-radius: 4px;
+         font-weight: bold;
+         color: var(--kpi-dark-color);
+         }
+         .kpi-system .kpi-footer {
+         text-align: center;
+         padding: 20px;
+         color: var(--kpi-gray-color);
+         font-size: 0.9rem;
+         background: #f5f7fa;
+         border-top: 1px solid #e0e0e0;
+         }
+         .kpi-system .kpi-multi-day-form {
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         gap: 15px;
+         margin-top: 15px;
+         padding: 15px;
+         background: #f9f9f9;
+         border-radius: 8px;
+         }
+         @media (max-width: 768px) {
+         .kpi-system .kpi-multi-day-form {
+         grid-template-columns: 1fr;
+         }
+         }
+         .kpi-system .kpi-notification {
+         position: fixed;
+         top: 20px;
+         right: 20px;
+         padding: 15px 20px;
+         background: var(--kpi-success-color);
+         color: white;
+         border-radius: 8px;
+         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+         transform: translateX(100%);
+         transition: transform 0.3s;
+         z-index: 1000;
+         display: flex;
+         align-items: center;
+         gap: 10px;
+         }
+         .kpi-system .kpi-notification.show {
+         transform: translateX(0);
+         }
+         .kpi-system .kpi-logout-btn {
+         background: transparent;
+         color: white;
+         border: 1px solid rgba(255, 255, 255, 0.5);
+         padding: 8px 15px;
+         border-radius: 6px;
+         cursor: pointer;
+         transition: var(--kpi-transition);
+         }
+         .kpi-system .kpi-logout-btn:hover {
+         background: rgba(255, 255, 255, 0.1);
+         }
+         .kpi-system .kpi-storage-selector {
+         display: flex;
+         justify-content: center;
+         margin: 15px 0;
+         gap: 10px;
+         }
+         .kpi-system .kpi-storage-btn {
+         padding: 8px 15px;
+         border: 2px solid var(--kpi-primary-color);
+         background: white;
+         color: var(--kpi-primary-color);
+         border-radius: 6px;
+         cursor: pointer;
+         transition: var(--kpi-transition);
+         }
+         .kpi-system .kpi-storage-btn.active {
+         background: var(--kpi-primary-color);
+         color: white;
+         }
+         .kpi-system .kpi-drive-status {
+         text-align: center;
+         padding: 10px;
+         margin: 10px 0;
+         border-radius: 6px;
+         background: #f5f7fa;
+         }
+         .kpi-system .kpi-drive-status.connected {
+         background: #e8f5e9;
+         color: var(--kpi-success-color);
+         }
+         .kpi-system .kpi-drive-status.disconnected {
+         background: #ffebee;
+         color: var(--kpi-danger-color);
+         }
+         .kpi-system .kpi-empty-tab {
+         text-align: center;
+         padding: 40px;
+         color: var(--kpi-gray-color);
+         }
+         .kpi-system .kpi-loading {
+         display: inline-block;
+         width: 20px;
+         height: 20px;
+         border: 3px solid rgba(255,255,255,.3);
+         border-radius: 50%;
+         border-top-color: #fff;
+         animation: kpi-spin 1s ease-in-out infinite;
+         }
+         @keyframes kpi-spin {
+         to { transform: rotate(360deg); }
+         }
+         .kpi-system .kpi-error {
+         background: var(--kpi-danger-color);
+         }
+         .kpi-system .kpi-warning {
+         background: var(--kpi-warning-color);
+         }
+         .kpi-system .kpi-real-data {
+         background: #e8f5e9;
+         padding: 10px;
+         border-radius: 6px;
+         margin: 10px 0;
+         border-left: 4px solid var(--kpi-success-color);
+         }
+         .kpi-system .kpi-admin-panel {
+         background: #fff3e0;
+         padding: 15px;
+         border-radius: 8px;
+         margin: 15px 0;
+         border-left: 4px solid var(--kpi-warning-color);
+         }
+         .kpi-system .kpi-admin-btn {
+         background: var(--kpi-warning-color);
+         margin-top: 10px;
+         }
+         .kpi-system .kpi-modal {
+         display: none;
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         background: rgba(0, 0, 0, 0.5);
+         z-index: 2000;
+         align-items: center;
+         justify-content: center;
+         }
+         .kpi-system .kpi-modal-content {
+         background: white;
+         padding: 30px;
+         border-radius: 10px;
+         max-width: 500px;
+         width: 100%;
+         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+         }
+         .kpi-system .kpi-modal-header {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         margin-bottom: 20px;
+         }
+         .kpi-system .kpi-modal-close {
+         background: none;
+         border: none;
+         font-size: 24px;
+         cursor: pointer;
+         color: var(--kpi-gray-color);
+         }
+         .kpi-system .kpi-drive-file-list {
+         max-height: 300px;
+         overflow-y: auto;
+         margin: 15px 0;
+         border: 1px solid #e0e0e0;
+         border-radius: 6px;
+         padding: 10px;
+         }
+         .kpi-system .kpi-drive-file-item {
+         padding: 10px;
+         border-bottom: 1px solid #e0e0e0;
+         cursor: pointer;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         }
+         .kpi-system .kpi-drive-file-item:hover {
+         background: #f5f7fa;
+         }
+         .kpi-system .kpi-drive-file-item:last-child {
+         border-bottom: none;
+         }
+         .kpi-system .kpi-drive-file-date {
+         font-size: 0.8em;
+         color: var(--kpi-gray-color);
+         }
+         .kpi-error-details {
+         font-size: 0.9em;
+         margin-top: 10px;
+         padding: 10px;
+         background: rgba(255, 255, 255, 0.2);
+         border-radius: 4px;
+         max-height: 100px;
+         overflow-y: auto;
+         }
+         .kpi-drive-help {
+         margin-top: 15px;
+         padding: 10px;
+         background: #e3f2fd;
+         border-radius: 6px;
+         font-size: 0.9em;
+         }
+         .kpi-cors-fix {
+         margin-top: 15px;
+         padding: 15px;
+         background: #fff8e1;
+         border-radius: 8px;
+         border-left: 4px solid var(--kpi-warning-color);
+         }
+         .kpi-settings-panel {
+         background: #f9f9f9;
+         padding: 20px;
+         border-radius: 8px;
+         margin-bottom: 20px;
+         }
+         .kpi-settings-panel h3 {
+         margin-bottom: 15px;
+         color: var(--kpi-primary-color);
+         }
+         .kpi-settings-row {
+         display: flex;
+         gap: 15px;
+         margin-bottom: 15px;
+         flex-wrap: wrap;
+         }
+         .kpi-settings-row .kpi-form-group {
+         flex: 1;
+         min-width: 200px;
+         margin-bottom: 0;
+         }
+         .kpi-day-off-selector {
+         display: flex;
+         flex-wrap: wrap;
+         gap: 10px;
+         margin-top: 10px;
+         }
+         .kpi-day-off-checkbox {
+         display: flex;
+         align-items: center;
+         gap: 5px;
+         }
+         .connecting {
+         background: #fff3cd !important;
+         color: #856404 !important;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="kpi-system">
+         <div class="kpi-container">
+            <div id="kpi-login-screen" class="kpi-login-screen">
+               <div class="kpi-login-form">
+                  <h2>Đăng nhập hệ thống KPI</h2>
+                  <div class="kpi-form-group">
+                     <label for="kpi-username">Tên đăng nhập</label>
+                     <input type="text" id="kpi-username" placeholder="Nhập tên đăng nhập" value="pnhung72">
+                  </div>
+                  <div class="kpi-form-group">
+                     <label for="kpi-password">Mật khẩu</label>
+                     <input type="password" id="kpi-password" placeholder="Nhập mật khẩu" value="password">
+                  </div>
+                  <button class="kpi-btn kpi-btn-block" id="kpi-login-btn">Đăng nhập</button>
+                  <div class="kpi-admin-panel">
+                     <h3>Truy cập nhanh cho Admin</h3>
+                     <button class="kpi-btn kpi-btn-block kpi-admin-btn" id="kpi-admin-btn">
+                     <i class="fas fa-lock-open"></i> Truy cập với quyền Admin
+                     </button>
+                  </div>
+                  <div class="kpi-real-data">
+                     <p><strong>Thông tin đăng nhập thực:</strong></p>
+                     <p>Tên đăng nhập: <code>pnhung72</code> hoặc <code>giaovien</code></p>
+                     <p>Mật khẩu: <code>password</code></p>
+                  </div>
+               </div>
+            </div>
+            <div id="kpi-app" class="kpi-app">
+               <header class="kpi-header">
+                  <h1>HỆ THỐNG QUẢN LÝ KPI CHO GIÁO VIÊN</h1>
+                  <div class="kpi-user-info">
+                     <div class="kpi-user-avatar" id="kpi-user-avatar">GV</div>
+                     <span id="kpi-user-name">Giáo viên</span>
+                     <span id="kpi-user-role" style="font-size: 0.9em; opacity: 0.8;"></span>
+                     <button class="kpi-logout-btn" id="kpi-logout-btn"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+                  </div>
+               </header>
+               <div class="kpi-storage-selector">
+                  <button class="kpi-storage-btn active" id="kpi-local-mode">Lưu trữ cục bộ</button>
+                  <button class="kpi-storage-btn" id="kpi-drive-mode">Google Drive</button>
+               </div>
+               <div id="kpi-drive-status" class="kpi-drive-status disconnected">
+                  <i class="fas fa-cloud"></i> Chưa kết nối với Google Drive
+               </div>
+               <div class="kpi-settings-panel">
+                  <h3><i class="fas fa-cog"></i> Cài đặt hệ thống</h3>
+                  <div class="kpi-settings-row">
+                     <div class="kpi-form-group">
+                        <label for="kpi-daily-target">Số giờ chuẩn/ngày:</label>
+                        <input type="number" id="kpi-daily-target" min="1" max="24" step="0.5" value="8">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label>Ngày nghỉ trong tuần:</label>
+                        <div class="kpi-day-off-selector">
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-2" value="2">
+                              <label for="kpi-day-off-2">Thứ 2</label>
+                           </div>
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-3" value="3">
+                              <label for="kpi-day-off-3">Thứ 3</label>
+                           </div>
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-4" value="4">
+                              <label for="kpi-day-off-4">Thứ 4</label>
+                           </div>
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-5" value="5">
+                              <label for="kpi-day-off-5">Thứ 5</label>
+                           </div>
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-6" value="6">
+                              <label for="kpi-day-off-6">Thứ 6</label>
+                           </div>
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-7" value="7" checked>
+                              <label for="kpi-day-off-7">Thứ 7</label>
+                           </div>
+                           <div class="kpi-day-off-checkbox">
+                              <input type="checkbox" id="kpi-day-off-1" value="1" checked>
+                              <label for="kpi-day-off-1">Chủ nhật</label>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  <button class="kpi-btn" id="kpi-save-settings"><i class="fas fa-save"></i> Lưu cài đặt</button>
+               </div>
+               <div class="kpi-dashboard">
+                  <div class="kpi-card kpi-stat-card">
+                     <h3>Tổng thời gian làm việc hôm nay</h3>
+                     <div class="kpi-value" id="kpi-total-hours">0 giờ</div>
+                     <div class="kpi-progress-container">
+                        <div class="kpi-progress-bar">
+                           <div class="kpi-progress" id="kpi-progress-bar" style="width: 0%;">0%</div>
+                        </div>
+                        <p>Mục tiêu: <span id="kpi-daily-target-display">8</span> giờ/ngày</p>
+                     </div>
+                  </div>
+                  <div class="kpi-card kpi-stat-card">
+                     <h3>KPI tháng này</h3>
+                     <div class="kpi-value" id="kpi-kpi-score">0%</div>
+                     <p>Dựa trên tổng thời gian làm việc và hoàn thành công việc</p>
+                  </div>
+               </div>
+               <div class="kpi-tabs">
+                  <div class="kpi-tab active" data-tab="kpi-timetable">Thời khóa biểu</div>
+                  <div class="kpi-tab" data-tab="kpi-school-plan">Kế hoạch nhà trường</div>
+                  <div class="kpi-tab" data-tab="kpi-homeroom-plan">Kế hoạch chủ nhiệm</div>
+                  <div class="kpi-tab" data-tab="kpi-regular-work">Công việc thường nhật</div>
+                  <div class="kpi-tab" data-tab="kpi-irregular-work">Công việc đột xuất</div>
+               </div>
+               <div class="kpi-tab-content active" id="kpi-timetable">
+                  <div class="kpi-card">
+                     <h2>Thời khóa biểu của giáo viên: <span id="kpi-teacher-name">Hùng</span></h2>
+                     <p>Áp dụng từ ngày <span id="kpi-schedule-start-date">08/09/2022</span></p>
+                     <div style="overflow-x: auto;">
+                        <table class="kpi-table" id="kpi-timetable-table">
+                           <thead>
+                              <tr>
+                                 <th>Buổi</th>
+                                 <th>Tiết</th>
+                                 <th>Thứ 2</th>
+                                 <th>Thứ 3</th>
+                                 <th>Thứ 4</th>
+                                 <th>Thứ 5</th>
+                                 <th>Thứ 6</th>
+                                 <th>Thứ 7</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <!-- Sáng -->
+                              <tr>
+                                 <td rowspan="5">Sáng</td>
+                                 <td>1</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="1"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="1"></td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="1">Lý-10A13</td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="1"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="1"></td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="1"></td>
+                              </tr>
+                              <tr>
+                                 <td>2</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="2"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="2"></td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="2"></td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="2"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="2"></td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="2"></td>
+                              </tr>
+                              <tr>
+                                 <td>3</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="3">Lý-10A12</td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="3"></td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="3">Lý-10A12</td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="3"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="3"></td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="3"></td>
+                              </tr>
+                              <tr>
+                                 <td>4</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="4">Lý-10A13</td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="4"></td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="4">Lý-10A12</td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="4"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="4"></td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="4"></td>
+                              </tr>
+                              <tr>
+                                 <td>5</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="5">Lý-10A13</td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="5"></td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="5"></td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="5"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="5"></td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="5"></td>
+                              </tr>
+                              <!-- Chiều -->
+                              <tr>
+                                 <td rowspan="5">Chiều</td>
+                                 <td>1</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="6"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="6">Lý-11B13</td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="6">Lý-11B11</td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="6"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="6">Lý-11B11</td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="6"></td>
+                              </tr>
+                              <tr>
+                                 <td>2</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="7"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="7">Lý-11B13</td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="7">Lý-11B11</td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="7"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="7">Lý-11B12</td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="7"></td>
+                              </tr>
+                              <tr>
+                                 <td>3</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="8"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="8">Lý-11B12</td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="8">Lý-11B12</td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="8"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="8">Lý-11B13</td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="8"></td>
+                              </tr>
+                              <tr>
+                                 <td>4</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="9"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="9">Lý-11B12</td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="9"></td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="9"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="9">Lý-11B13</td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="9"></td>
+                              </tr>
+                              <tr>
+                                 <td>5</td>
+                                 <td class="kpi-editable-cell" data-day="2" data-lesson="10"></td>
+                                 <td class="kpi-editable-cell" data-day="3" data-lesson="10"></td>
+                                 <td class="kpi-editable-cell" data-day="4" data-lesson="10"></td>
+                                 <td class="kpi-editable-cell" data-day="5" data-lesson="10"></td>
+                                 <td class="kpi-editable-cell" data-day="6" data-lesson="10"></td>
+                                 <td class="kpi-editable-cell" data-day="7" data-lesson="10"></td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                     <div style="margin-top: 20px; display: flex; gap: 10px;">
+                        <button class="kpi-btn" id="kpi-save-timetable"><i class="fas fa-save"></i> Lưu thời khóa biểu</button>
+                        <button class="kpi-btn" id="kpi-reset-timetable"><i class="fas fa-undo"></i> Đặt lại</button>
+                        <button class="kpi-btn" id="kpi-sync-drive"><i class="fas fa-sync-alt"></i> Đồng bộ Drive</button>
+                     </div>
+                     <div class="kpi-summary">
+                        <h3>Tính toán KPI từ thời khóa biểu</h3>
+                        <p>Tổng số tiết dạy trong tuần: <span class="kpi-highlight" id="kpi-total-lessons">0 tiết</span></p>
+                        <p>Thời gian giảng dạy: <span class="kpi-highlight" id="kpi-teaching-time">0 giờ</span> (mỗi tiết 45 phút)</p>
+                        <p>Thời gian chuẩn bị ước tính: <span class="kpi-highlight" id="kpi-preparation-time">0 giờ</span> (0.5 giờ/tiết)</p>
+                        <p>Tổng thời gian công việc giảng dạy: <span class="kpi-highlight" id="kpi-total-teaching-work">0 giờ</span></p>
+                     </div>
+                  </div>
+               </div>
+               <div class="kpi-tab-content" id="kpi-school-plan">
+                  <div class="kpi-card">
+                     <h2>Kế hoạch của nhà trường</h2>
+                     <p>Quản lý các công việc được giao từ nhà trường</p>
+                     <div class="kpi-form-group">
+                        <label for="kpi-school-task">Công việc:</label>
+                        <input type="text" id="kpi-school-task" placeholder="Nhập công việc nhà trường">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-school-deadline">Hạn hoàn thành:</label>
+                        <input type="date" id="kpi-school-deadline">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-school-hours">Thời gian dự kiến (giờ):</label>
+                        <input type="number" id="kpi-school-hours" min="0" step="0.5">
+                     </div>
+                     <div class="kpi-multi-day-form">
+                        <div class="kpi-form-group">
+                           <label for="kpi-school-start-date">Ngày bắt đầu:</label>
+                           <input type="date" id="kpi-school-start-date">
+                        </div>
+                        <div class="kpi-form-group">
+                           <label for="kpi-school-days">Số ngày thực hiện:</label>
+                           <input type="number" id="kpi-school-days" min="1" value="1">
+                        </div>
+                     </div>
+                     <button class="kpi-btn" id="kpi-add-school-task"><i class="fas fa-plus"></i> Thêm công việc</button>
+                     <h3 style="margin-top: 30px;">Danh sách công việc nhà trường</h3>
+                     <div id="kpi-school-tasks-list"></div>
+                  </div>
+               </div>
+               <div class="kpi-tab-content" id="kpi-homeroom-plan">
+                  <div class="kpi-card">
+                     <h2>Kế hoạch chủ nhiệm</h2>
+                     <p>Quản lý các công tác chủ nhiệm</p>
+                     <div class="kpi-form-group">
+                        <label for="kpi-homeroom-task">Công việc:</label>
+                        <input type="text" id="kpi-homeroom-task" placeholder="Nhập công việc chủ nhiệm">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-homeroom-deadline">Hạn hoàn thành:</label>
+                        <input type="date" id="kpi-homeroom-deadline">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-homeroom-hours">Thời gian dự kiến (giờ):</label>
+                        <input type="number" id="kpi-homeroom-hours" min="0" step="0.5">
+                     </div>
+                     <div class="kpi-multi-day-form">
+                        <div class="kpi-form-group">
+                           <label for="kpi-homeroom-start-date">Ngày bắt đầu:</label>
+                           <input type="date" id="kpi-homeroom-start-date">
+                        </div>
+                        <div class="kpi-form-group">
+                           <label for="kpi-homeroom-days">Số ngày thực hiện:</label>
+                           <input type="number" id="kpi-homeroom-days" min="1" value="1">
+                        </div>
+                     </div>
+                     <button class="kpi-btn" id="kpi-add-homeroom-task"><i class="fas fa-plus"></i> Thêm công việc</button>
+                     <h3 style="margin-top: 30px;">Danh sách công việc chủ nhiệm</h3>
+                     <div id="kpi-homeroom-tasks-list"></div>
+                  </div>
+               </div>
+               <div class="kpi-tab-content" id="kpi-regular-work">
+                  <div class="kpi-card">
+                     <h2>Công việc thường nhật</h2>
+                     <p>Quản lý các công tác thường nhật</p>
+                     <div class="kpi-form-group">
+                        <label for="kpi-regular-task">Công việc:</label>
+                        <input type="text" id="kpi-regular-task" placeholder="Nhập công việc thường nhật">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-regular-hours">Thời gian dự kiến (giờ):</label>
+                        <input type="number" id="kpi-regular-hours" min="0" step="0.5">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-regular-frequency">Tần suất:</label>
+                        <select id="kpi-regular-frequency">
+                           <option value="daily">Hàng ngày</option>
+                           <option value="weekly">Hàng tuần</option>
+                           <option value="monthly">Hàng tháng</option>
+                        </select>
+                     </div>
+                     <button class="kpi-btn" id="kpi-add-regular-task"><i class="fas fa-plus"></i> Thêm công việc</button>
+                     <h3 style="margin-top: 30px;">Danh sách công việc thường nhật</h3>
+                     <div id="kpi-regular-tasks-list"></div>
+                  </div>
+               </div>
+               <div class="kpi-tab-content" id="kpi-irregular-work">
+                  <div class="kpi-card">
+                     <h2>Công việc đột xuất</h2>
+                     <p>Quản lý các công việc đột xuất</p>
+                     <div class="kpi-form-group">
+                        <label for="kpi-irregular-task">Công việc:</label>
+                        <input type="text" id="kpi-irregular-task" placeholder="Nhập công việc đột xuất">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-irregular-deadline">Hạn hoàn thành:</label>
+                        <input type="date" id="kpi-irregular-deadline">
+                     </div>
+                     <div class="kpi-form-group">
+                        <label for="kpi-irregular-hours">Thời gian dự kiến (giờ):</label>
+                        <input type="number" id="kpi-irregular-hours" min="0" step="0.5">
+                     </div>
+                     <button class="kpi-btn" id="kpi-add-irregular-task"><i class="fas fa-plus"></i> Thêm công việc</button>
+                     <h3 style="margin-top: 30px;">Danh sách công việc đột xuất</h3>
+                     <div id="kpi-irregular-tasks-list"></div>
+                  </div>
+               </div>
+               <div class="kpi-footer">
+                  <p>Hệ thống quản lý KPI cho giáo viên &copy; 2023 - Phiên bản nâng cao</p>
+               </div>
+            </div>
+         </div>
+         <div id="kpi-notification" class="kpi-notification">
+            <i class="fas fa-check-circle"></i>
+            <span id="kpi-notification-text"></span>
+         </div>
+         <!-- Modal cho Google Drive -->
+         <div id="kpi-drive-modal" class="kpi-modal">
+            <div class="kpi-modal-content">
+               <div class="kpi-modal-header">
+                  <h2>Quản lý Google Drive</h2>
+                  <button class="kpi-modal-close" id="kpi-drive-modal-close">&times;</button>
+               </div>
+               <div id="kpi-drive-modal-content">
+                  <div id="kpi-drive-auth-section">
+                     <p>Kết nối với Google Drive để lưu trữ và đồng bộ dữ liệu KPI của bạn.</p>
+                     <div class="kpi-form-group">
+                        <label for="kpi-drive-app-url">URL Google Apps Script:</label>
+                        <input type="text" id="kpi-drive-app-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbyU7fkNnuRR4t">
+                     </div>
+                     <button class="kpi-btn kpi-btn-block" id="kpi-drive-connect-btn">
+                     <i class="fab fa-google-drive"></i> Kết nối với Google Drive
+                     </button>
+                     <div class="kpi-cors-fix">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Hướng dẫn xác thực Google Drive</h4>
+                        <p>Ứng dụng cần được xác thực với Google Drive để truy cập dữ liệu.</p>
+                        <p><strong>Quy trình xác thực:</strong></p>
+                        <ol>
+                           <li>Nhập URL Google Apps Script của bạn</li>
+                           <li>Nhấn nút "Kết nối với Google Drive"</li>
+                           <li>Đảm bảo tập lệnh đã được triển khai đúng cách</li>
+                        </ol>
+                        <button class="kpi-btn kpi-btn-block" id="kpi-use-local-btn" style="margin-top: 10px;">
+                        <i class="fas fa-desktop"></i> Sử dụng lưu trữ cục bộ
+                        </button>
+                     </div>
+                     <div class="kpi-drive-help">
+                        <p><strong>Lưu ý:</strong> Tính năng này yêu cầu:</p>
+                        <ul>
+                           <li>Kết nối Internet ổn định</li>
+                           <li>Google Apps Script đã được triển khai</li>
+                           <li>Cho phép pop-up và JavaScript từ trình duyệt</li>
+                        </ul>
+                     </div>
+                     <div id="kpi-drive-error" style="display: none; margin-top: 15px; padding: 10px; background: #ffebee; border-radius: 6px;">
+                        <p id="kpi-drive-error-message"></p>
+                        <div id="kpi-drive-error-details" class="kpi-error-details"></div>
+                     </div>
+                  </div>
+                  <div id="kpi-drive-manage-section" style="display: none;">
+                     <div class="kpi-form-group">
+                        <label for="kpi-drive-filename">Tên file:</label>
+                        <input type="text" id="kpi-drive-filename" value="kpi-data-backup.json">
+                     </div>
+                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button class="kpi-btn" id="kpi-drive-save-btn"><i class="fas fa-save"></i> Lưu lên Drive</button>
+                        <button class="kpi-btn" id="kpi-drive-load-btn"><i class="fas fa-download"></i> Tải từ Drive</button>
+                     </div>
+                     <h3>File đã lưu:</h3>
+                     <div id="kpi-drive-file-list" class="kpi-drive-file-list">
+                        <p>Đang tải danh sách file...</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <script>
+         // Khởi tạo biến toàn cục
+         let kpiData = {
+             timetable: {},
+             schoolTasks: [],
+             homeroomTasks: [],
+             regularTasks: [],
+             irregularTasks: [],
+             dailyProgress: [],
+             storageMode: 'local',
+             user: null,
+             settings: {
+                 dailyTarget: 8,
+                 daysOff: [1, 7] // Mặc định: Chủ nhật (1) và Thứ 7 (7)
+             }
+         };
+         
+         // ================= GOOGLE DRIVE INTEGRATION =================
+         // Biến toàn cục cho Google Drive integration
+         const DRIVE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyU7fkNnuRR4t4gf9_E6jRX8uoNSxaBLVWrOyFi2gw9JKPXwB2GTPIZ7BE9KCLuZjQY7w/exec';
+         let driveAccessToken = null;
+         
+         // Hàm khởi tạo ứng dụng
+         function initApp() {
+             // Xử lý đăng nhập
+             document.getElementById('kpi-login-btn').addEventListener('click', handleLogin);
+             document.getElementById('kpi-admin-btn').addEventListener('click', handleAdminAccess);
+             document.getElementById('kpi-logout-btn').addEventListener('click', handleLogout);
+             
+             // Xử lý tab
+             document.querySelectorAll('.kpi-tab').forEach(tab => {
+                 tab.addEventListener('click', () => {
+                     document.querySelectorAll('.kpi-tab').forEach(t => t.classList.remove('active'));
+                     document.querySelectorAll('.kpi-tab-content').forEach(c => c.classList.remove('active'));
+                     tab.classList.add('active');
+                     document.getElementById(tab.dataset.tab).classList.add('active');
+                 });
+             });
+             
+             // Xử lý thời khóa biểu
+             document.querySelectorAll('.kpi-editable-cell').forEach(cell => {
+                 cell.addEventListener('click', () => {
+                     const currentValue = cell.textContent;
+                     const newValue = prompt('Nhập nội dung cho ô:', currentValue);
+                     if (newValue !== null) {
+                         cell.textContent = newValue;
+                         const day = cell.dataset.day;
+                         const lesson = cell.dataset.lesson;
+                         if (!kpiData.timetable[day]) kpiData.timetable[day] = {};
+                         kpiData.timetable[day][lesson] = newValue;
+                         saveData();
+                         updateTimetableSummary();
+                         updateDailyProgress();
+                     }
+                 });
+             });
+             
+             document.getElementById('kpi-save-timetable').addEventListener('click', () => {
+                 saveData();
+                 showNotification('Đã lưu thời khóa biểu!');
+             });
+             
+             document.getElementById('kpi-reset-timetable').addEventListener('click', () => {
+                 if (confirm('Bạn có chắc muốn đặt lại thời khóa biểu? Dữ liệu sẽ bị xóa.')) {
+                     document.querySelectorAll('.kpi-editable-cell').forEach(cell => {
+                         cell.textContent = '';
+                     });
+                     kpiData.timetable = {};
+                     saveData();
+                     updateTimetableSummary();
+                     showNotification('Đã đặt lại thời khóa biểu!');
+                 }
+             });
+             
+             // Xử lý công việc nhà trường
+             document.getElementById('kpi-add-school-task').addEventListener('click', () => {
+                 addTask('school');
+             });
+             
+             // Xử lý công việc chủ nhiệm
+             document.getElementById('kpi-add-homeroom-task').addEventListener('click', () => {
+                 addTask('homeroom');
+             });
+             
+             // Xử lý công việc thường nhật
+             document.getElementById('kpi-add-regular-task').addEventListener('click', () => {
+                 addTask('regular');
+             });
+             
+             // Xử lý công việc đột xuất
+             document.getElementById('kpi-add-irregular-task').addEventListener('click', () => {
+                 addTask('irregular');
+             });
+             
+             // Xử lý chế độ lưu trữ
+             document.getElementById('kpi-local-mode').addEventListener('click', () => {
+                 setStorageMode('local');
+             });
+             
+             document.getElementById('kpi-drive-mode').addEventListener('click', function() {
+                 showDriveModal();
+             });
+             
+             document.getElementById('kpi-sync-drive').addEventListener('click', () => {
+                 showDriveModal();
+             });
+             
+             // Xử lý modal Google Drive
+             document.getElementById('kpi-drive-modal-close').addEventListener('click', () => {
+                 document.getElementById('kpi-drive-modal').style.display = 'none';
+             });
+             
+             // Xử lý kết nối Google Drive
+             document.getElementById('kpi-drive-connect-btn').addEventListener('click', handleDriveConnect);
+             
+             document.getElementById('kpi-drive-save-btn').addEventListener('click', saveToDrive);
+             document.getElementById('kpi-drive-load-btn').addEventListener('click', loadFromDrive);
+             
+             // Nút sử dụng lưu trữ cục bộ
+             document.getElementById('kpi-use-local-btn').addEventListener('click', () => {
+                 setStorageMode('local');
+                 document.getElementById('kpi-drive-modal').style.display = 'none';
+                 showNotification('Đã chuyển sang chế độ lưu trữ cục bộ');
+             });
+             
+             // Xử lý cài đặt
+             document.getElementById('kpi-save-settings').addEventListener('click', saveSettings);
+             
+             // Cho phép đăng nhập bằng phím Enter
+             document.getElementById('kpi-password').addEventListener('keypress', function(e) {
+                 if (e.key === 'Enter') {
+                     handleLogin();
+                 }
+             });
+             
+             // Kiểm tra xem có dữ liệu đã lưu không
+             checkSavedData();
+             
+             // THÊM: Tự động đăng nhập nếu đã có thông tin trong localStorage
+             autoLoginIfPossible();
+             
+             // THÊM: Kiểm tra kết nối Google Drive khi khởi động
+             setTimeout(() => {
+                 checkAuthRedirect();
+                 testDriveConnection();
+             }, 2000);
+         // Kiểm tra xem Font Awesome đã load chưa
+         function checkFontAwesomeLoaded() {
+         const testIcon = document.createElement('i');
+         testIcon.className = 'fa fa-check';
+         testIcon.style.position = 'absolute';
+         testIcon.style.left = '-9999px';
+         document.body.appendChild(testIcon);
+         
+         setTimeout(() => {
+         const computedStyle = window.getComputedStyle(testIcon, ':before');
+         const contentValue = computedStyle.content;
+         console.log('Font Awesome check:', contentValue);
+         
+         if (contentValue === 'none' || !contentValue) {
+         console.warn('Font Awesome chưa load đúng cách!');
+         // Thử load lại font awesome
+         const newLink = document.createElement('link');
+         newLink.rel = 'stylesheet';
+         newLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css';
+         newLink.integrity = 'sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==';
+         newLink.crossOrigin = 'anonymous';
+         newLink.referrerPolicy = 'no-referrer';
+         document.head.appendChild(newLink);
+         }
+         
+         document.body.removeChild(testIcon);
+         }, 100);
+         }
+         
+         // Gọi hàm kiểm tra
+         setTimeout(checkFontAwesomeLoaded, 2000);
+         
+         }
+         
+         // THÊM: Hàm tự động đăng nhập nếu đã có thông tin
+         function autoLoginIfPossible() {
+             const keys = Object.keys(localStorage);
+             const userKeys = keys.filter(key => key.startsWith('kpiData_'));
+             
+             if (userKeys.length > 0) {
+                 // Lấy key đầu tiên và trích xuất tên người dùng
+                 const username = userKeys[0].replace('kpiData_', '');
+                 
+                 // Điền thông tin đăng nhập
+                 document.getElementById('kpi-username').value = username;
+                 document.getElementById('kpi-password').value = 'password';
+                 
+                 // Hiển thị thông báo
+                 showNotification('Đã tìm thấy thông tin đăng nhập. Nhấn Đăng nhập để tiếp tục.', 'warning');
+             }
+         }
+         
+         // Kiểm tra dữ liệu đã lưu
+         function checkSavedData() {
+             const keys = Object.keys(localStorage);
+             const hasData = keys.some(key => key.startsWith('kpiData_'));
+             
+             if (hasData) {
+                 console.log('Đã tìm thấy dữ liệu đã lưu trong localStorage');
+             }
+         }
+         
+         // Hàm xử lý đăng nhập THỰC
+         function handleLogin() {
+             const username = document.getElementById('kpi-username').value;
+             const password = document.getElementById('kpi-password').value;
+             
+             // Kiểm tra thông tin đăng nhập THỰC
+             if ((username === 'pnhung72' && password === 'password') || 
+                 (username === 'giaovien' && password === 'password')) {
+                 document.getElementById('kpi-login-screen').style.display = 'none';
+                 document.getElementById('kpi-app').style.display = 'block';
+                 
+                 // Thiết lập thông tin người dùng
+                 let userName, userRole, userAvatar;
+                 if (username === 'pnhung72') {
+                     userName = 'Phan Ngọc Hùng';
+                     userRole = 'Giáo viên';
+                     userAvatar = 'PH';
+                 } else {
+                     userName = 'Giáo viên';
+                     userRole = 'Giáo viên';
+                     userAvatar = 'GV';
+                 }
+                 
+                 document.getElementById('kpi-user-name').textContent = userName;
+                 document.getElementById('kpi-user-avatar').textContent = userAvatar;
+                 document.getElementById('kpi-user-role').textContent = userRole;
+                 document.getElementById('kpi-teacher-name').textContent = userName;
+                 
+                 // Lưu thông tin người dùng
+                 kpiData.user = {
+                     username: username,
+                     name: userName,
+                     role: userRole,
+                     loginTime: new Date().toISOString()
+                 };
+                 
+                 // Tải dữ liệu đã lưu sau khi đăng nhập
+                 loadData();
+                 loadSettings();
+                 
+                 // CẬP NHẬT QUAN TRỌNG: Gọi cập nhật UI ngay sau khi đăng nhập
+                 setTimeout(() => {
+                     updateTimetableSummary();
+                     updateDailyProgress();
+                 }, 100);
+                 
+                 showNotification('Đăng nhập thành công!');
+             } else {
+                 showNotification('Tên đăng nhập hoặc mật khẩu không đúng!', 'error');
+             }
+         }
+         
+         // Hàm xử lý truy cập Admin
+         function handleAdminAccess() {
+             document.getElementById('kpi-login-screen').style.display = 'none';
+             document.getElementById('kpi-app').style.display = 'block';
+             
+             // Thiết lập thông tin admin
+             document.getElementById('kpi-user-name').textContent = 'Administrator';
+             document.getElementById('kpi-user-avatar').textContent = 'A';
+             document.getElementById('kpi-user-role').textContent = 'Quản trị hệ thống';
+             document.getElementById('kpi-teacher-name').textContent = 'Administrator';
+             
+             // Lưu thông tin admin
+             kpiData.user = {
+                 username: 'admin',
+                 name: 'Administrator',
+                 role: 'admin',
+                 loginTime: new Date().toISOString()
+             };
+             
+             // Tự động điền thông tin đăng nhập
+             document.getElementById('kpi-username').value = 'admin';
+             document.getElementById('kpi-password').value = 'admin123';
+             
+             // Tải dữ liệu đã lưu sau khi đăng nhập
+             loadData();
+             loadSettings();
+             
+             // CẬP NHẬT QUAN TRỌNG: Gọi cập nhật UI ngay sau khi đăng nhập
+                 setTimeout(() => {
+                     updateTimetableSummary();
+                     updateDailyProgress();
+                 }, 100);
+                 
+                 showNotification('Đăng nhập với quyền Administrator thành công!');
+         }
+         
+         // Hàm xử lý đăng xuất
+         function handleLogout() {
+             kpiData.user = null;
+             document.getElementById('kpi-login-screen').style.display = 'block';
+             document.getElementById('kpi-app').style.display = 'none';
+             document.getElementById('kpi-username').value = '';
+             document.getElementById('kpi-password').value = '';
+             showNotification('Đã đăng xuất thành công!');
+         }
+             
+         // Hàm thêm công việc THỰC
+         function addTask(type) {
+             let task, deadline, hours, startDate, days, frequency;
+             
+             switch (type) {
+                 case 'school':
+                     task = document.getElementById('kpi-school-task').value;
+                     deadline = document.getElementById('kpi-school-deadline').value;
+                     hours = parseFloat(document.getElementById('kpi-school-hours').value);
+                     startDate = document.getElementById('kpi-school-start-date').value;
+                     days = parseInt(document.getElementById('kpi-school-days').value);
+                     break;
+                 case 'homeroom':
+                     task = document.getElementById('kpi-homeroom-task').value;
+                     deadline = document.getElementById('kpi-homeroom-deadline').value;
+                     hours = parseFloat(document.getElementById('kpi-homeroom-hours').value);
+                     startDate = document.getElementById('kpi-homeroom-start-date').value;
+                     days = parseInt(document.getElementById('kpi-homeroom-days').value);
+                     break;
+                 case 'regular':
+                     task = document.getElementById('kpi-regular-task').value;
+                     hours = parseFloat(document.getElementById('kpi-regular-hours').value);
+                     frequency = document.getElementById('kpi-regular-frequency').value;
+                     break;
+                 case 'irregular':
+                     task = document.getElementById('kpi-irregular-task').value;
+                     deadline = document.getElementById('kpi-irregular-deadline').value;
+                     hours = parseFloat(document.getElementById('kpi-irregular-hours').value);
+                     break;
+             }
+             
+             if (!task || (type !== 'regular' && !hours)) {
+                 showNotification('Vui lòng nhập đầy đủ thông tin!', 'error');
+                 return;
+             }
+             
+             const newTask = {
+                 id: Date.now(),
+                 task: task,
+                 hours: hours,
+                 completed: false,
+                 createdAt: new Date().toISOString()
+             };
+             
+             if (type === 'school' || type === 'homeroom') {
+                 newTask.deadline = deadline;
+                 newTask.startDate = startDate;
+                 newTask.days = days || 1;
+             } else if (type === 'regular') {
+                 newTask.frequency = frequency;
+             } else if (type === 'irregular') {
+                 newTask.deadline = deadline;
+             }
+             
+             kpiData[type + 'Tasks'].push(newTask);
+             saveData();
+             updateTasksList(type);
+             
+             // Reset form
+             if (type === 'school') {
+                 document.getElementById('kpi-school-task').value = '';
+                 document.getElementById('kpi-school-deadline').value = '';
+                 document.getElementById('kpi-school-hours').value = '';
+                 document.getElementById('kpi-school-start-date').value = '';
+                 document.getElementById('kpi-school-days').value = '1';
+             } else if (type === 'homeroom') {
+                 document.getElementById('kpi-homeroom-task').value = '';
+                 document.getElementById('kpi-homeroom-deadline').value = '';
+                 document.getElementById('kpi-homeroom-hours').value = '';
+                 document.getElementById('kpi-homeroom-start-date').value = '';
+                 document.getElementById('kpi-homeroom-days').value = '1';
+             } else if (type === 'regular') {
+                 document.getElementById('kpi-regular-task').value = '';
+                 document.getElementById('kpi-regular-hours').value = '';
+             } else if (type === 'irregular') {
+                 document.getElementById('kpi-irregular-task').value = '';
+                 document.getElementById('kpi-irregular-deadline').value = '';
+                 document.getElementById('kpi-irregular-hours').value = '';
+             }
+             
+             showNotification('Đã thêm công việc mới!');
+         }
+         
+         // Hàm cập nhật UI
+         function updateUI() {
+             // Cập nhật thời khóa biểu
+             for (const day in kpiData.timetable) {
+                 for (const lesson in kpiData.timetable[day]) {
+                     const cell = document.querySelector(`.kpi-editable-cell[data-day="${day}"][data-lesson="${lesson}"]`);
+                     if (cell) {
+                         cell.textContent = kpiData.timetable[day][lesson];
+                     }
+                 }
+             }
+             
+             // Cập nhật danh sách công việc
+             updateTasksList('school');
+             updateTasksList('homeroom');
+             updateTasksList('regular');
+             updateTasksList('irregular');
+             
+             // Cập nhật tổng quan
+             updateTimetableSummary();
+             updateDailyProgress();
+         }
+         
+         // Hàm cập nhật danh sách công việc THỰC
+         function updateTasksList(type) {
+             const listElement = document.getElementById(`kpi-${type}-tasks-list`);
+             listElement.innerHTML = '';
+             
+             if (kpiData[type + 'Tasks'].length === 0) {
+                 listElement.innerHTML = '<div class="kpi-empty-tab"><p>Chưa có công việc nào</p></div>';
+                 return;
+             }
+             
+             kpiData[type + 'Tasks'].forEach(task => {
+                 const taskElement = document.createElement('div');
+                 taskElement.className = `kpi-work-item ${task.completed ? 'completed' : ''}`;
+                 
+                 let taskHtml = `
+                     <div class="kpi-work-item-header">
+                         <div class="kpi-work-item-title">${task.task}</div>
+                         <div class="kpi-work-item-time">${task.hours} giờ</div>
+                     </div>
+                     <div class="kpi-work-item-meta">
+                 `;
+                 
+                 if (task.deadline) {
+                     taskHtml += `<span><i class="fas fa-calendar-day"></i> Hạn: ${formatDate(task.deadline)}</span>`;
+                 }
+                 
+                 if (task.startDate && task.days) {
+                     taskHtml += `<span><i class="fas fa-calendar-range"></i> Bắt đầu: ${formatDate(task.startDate)} (${task.days} ngày)</span>`;
+                 }
+                 
+                 if (task.frequency) {
+                     const frequencyText = {
+                         daily: 'Hàng ngày',
+                         weekly: 'Hàng tuần',
+                         monthly: 'Hàng tháng'
+                     }[task.frequency];
+                     taskHtml += `<span><i class="fas fa-history"></i> ${frequencyText}</span>`;
+                 }
+                 
+                 taskHtml += `<span><i class="fas fa-clock"></i> Tạo: ${formatDateTime(task.createdAt)}</span>`;
+                 
+                 if (task.completed && task.completedAt) {
+                     taskHtml += `<span><i class="fas fa-check-circle"></i> Hoàn thành: ${formatDateTime(task.completedAt)}</span>`;
+                 }
+                 
+                 taskHtml += `</div>`;
+                 
+                 taskHtml += `
+                     <div class="kpi-work-item-actions">
+                         <button class="kpi-btn kpi-btn-sm ${task.completed ? 'kpi-btn-warning' : 'kpi-btn-success'}" data-id="${task.id}" data-action="toggle">
+                             ${task.completed ? '<i class="fas fa-undo"></i> Mở lại' : '<i class="fas fa-check"></i> Hoàn thành'}
+                         </button>
+                         <button class="kpi-btn kpi-btn-sm kpi-btn-danger" data-id="${task.id}" data-action="delete">
+                             <i class="fas fa-trash"></i> Xóa
+                         </button>
+                     </div>
+                 `;
+                 
+                 taskElement.innerHTML = taskHtml;
+                 listElement.appendChild(taskElement);
+             });
+             
+             // Thêm sự kiện cho các nút
+             listElement.querySelectorAll('button').forEach(button => {
+                 button.addEventListener('click', () => {
+                     const id = parseInt(button.dataset.id);
+                     const action = button.dataset.action;
+                     
+                     if (action === 'toggle') {
+                         const task = kpiData[type + 'Tasks'].find(t => t.id === id);
+                         if (task) {
+                             task.completed = !task.completed;
+                             task.completedAt = task.completed ? new Date().toISOString() : null;
+                             saveData();
+                             updateTasksList(type);
+                             updateDailyProgress();
+                             showNotification(`Đã ${task.completed ? 'hoàn thành' : 'mở lại'} công việc!`);
+                         }
+                     } else if (action === 'delete') {
+                         if (confirm('Bạn có chắc muốn xóa công việc này?')) {
+                             kpiData[type + 'Tasks'] = kpiData[type + 'Tasks'].filter(t => t.id !== id);
+                             saveData();
+                             updateTasksList(type);
+                             updateDailyProgress();
+                             showNotification('Đã xóa công việc!');
+                         }
+                     }
+                 });
+             });
+         }
+         
+         // Hàm cập nhật tổng quan thời khóa biểu THỰC (ĐÃ SỬA)
+         function updateTimetableSummary() {
+             let totalLessons = 0;
+             
+             // Đếm số tiết dạy thực tế (chỉ các ô có nội dung)
+             document.querySelectorAll('.kpi-editable-cell').forEach(cell => {
+                 if (cell.textContent && cell.textContent.trim() !== '') {
+                     totalLessons++;
+                 }
+             });
+             
+             const teachingTime = totalLessons * 0.75; // 45 phút = 0.75 giờ
+             const preparationTime = totalLessons * 0.5; // 30 phút chuẩn bị cho mỗi tiết
+             const totalTeachingWork = teachingTime + preparationTime;
+             
+             document.getElementById('kpi-total-lessons').textContent = `${totalLessons} tiết`;
+             document.getElementById('kpi-teaching-time').textContent = `${teachingTime.toFixed(2)} giờ`;
+             document.getElementById('kpi-preparation-time').textContent = `${preparationTime.toFixed(2)} giờ`;
+             document.getElementById('kpi-total-teaching-work').textContent = `${totalTeachingWork.toFixed(2)} giờ`;
+             
+             // Cập nhật dashboard
+             document.getElementById('kpi-total-hours').textContent = `${totalTeachingWork.toFixed(2)} giờ`;
+             
+             const progressPercent = Math.min(100, (totalTeachingWork / kpiData.settings.dailyTarget) * 100);
+             document.getElementById('kpi-progress-bar').style.width = `${progressPercent}%`;
+             document.getElementById('kpi-progress-bar').textContent = `${Math.round(progressPercent)}%`;
+             
+             // Tính KPI điểm THỰC dựa trên công việc hoàn thành
+             updateKpiScore();
+         }
+         
+         // Hàm tính điểm KPI THỰC
+         function updateKpiScore() {
+         // Tính tổng thời gian công việc đã hoàn thành
+         let totalCompletedHours = 0;
+         let totalPlannedHours = 0;
+         
+         // 1. Tính thời gian từ thời khóa biểu (coi như đã hoàn thành)
+         let totalLessons = 0;
+         document.querySelectorAll('.kpi-editable-cell').forEach(cell => {
+         if (cell.textContent && cell.textContent.trim() !== '') {
+            totalLessons++;
+         }
+         });
+         
+         const teachingTime = totalLessons * 0.75; // 45 phút = 0.75 giờ
+         const preparationTime = totalLessons * 0.5; // 30 phút chuẩn bị cho mỗi tiết
+         const totalTeachingWork = teachingTime + preparationTime;
+         
+         totalCompletedHours += totalTeachingWork;
+         totalPlannedHours += totalTeachingWork;
+         
+         // 2. Công việc nhà trường
+         kpiData.schoolTasks.forEach(task => {
+         totalPlannedHours += task.hours;
+         if (task.completed) totalCompletedHours += task.hours;
+         });
+         
+         // 3. Công việc chủ nhiệm
+         kpiData.homeroomTasks.forEach(task => {
+         totalPlannedHours += task.hours;
+         if (task.completed) totalCompletedHours += task.hours;
+         });
+         
+         // 4. Công việc thường nhật
+         kpiData.regularTasks.forEach(task => {
+         totalPlannedHours += task.hours;
+         if (task.completed) totalCompletedHours += task.hours;
+         });
+         
+         // 5. Công việc đột xuất
+         kpiData.irregularTasks.forEach(task => {
+         totalPlannedHours += task.hours;
+         if (task.completed) totalCompletedHours += task.hours;
+         });
+         
+         // Tính điểm KPI thực tế
+         const kpiScore = totalPlannedHours > 0 
+         ? Math.min(100, Math.round((totalCompletedHours / totalPlannedHours) * 100))
+         : 100; // Nếu không có công việc nào, coi như hoàn thành 100%
+         
+         document.getElementById('kpi-kpi-score').textContent = `${kpiScore}%`;
+         
+         // Cập nhật màu sắc dựa trên điểm KPI
+         const kpiElement = document.getElementById('kpi-kpi-score');
+         kpiElement.style.color = kpiScore >= 80 ? 'var(--kpi-success-color)' : 
+                            kpiScore >= 50 ? 'var(--kpi-warning-color)' : 
+                            'var(--kpi-danger-color)';
+         }
+         
+         // Hàm cập nhật tiến trình hàng ngày THỰC (Đã sửa)
+         function updateDailyProgress() {
+         const today = new Date();
+         const dayOfWeek = today.getDay(); // 0 là Chủ nhật, 1 là Thứ 2, ..., 6 là Thứ 7
+         
+         // Chuyển đổi sang định dạng số (1-7) để phù hợp với dữ liệu thời khóa biểu
+         // Chủ nhật = 1, Thứ 2 = 2, ..., Thứ 7 = 7
+         const dayNumber = dayOfWeek === 0 ? 1 : dayOfWeek + 1;
+         
+         // Kiểm tra xem hôm nay có phải là ngày nghỉ không
+         const isDayOff = kpiData.settings.daysOff.includes(dayNumber);
+         
+         if (isDayOff) {
+         document.getElementById('kpi-total-hours').textContent = "0.00 giờ (Ngày nghỉ)";
+         document.getElementById('kpi-progress-bar').style.width = "0%";
+         document.getElementById('kpi-progress-bar').textContent = "0%";
+         updateKpiScore();
+         return;
+         }
+         
+         // Tính tổng thời gian làm việc hôm nay
+         let todayHours = 0;
+         
+         // Tính thời gian dạy từ thời khóa biểu
+         const dayCells = document.querySelectorAll(`.kpi-editable-cell[data-day="${dayNumber}"]`);
+         
+         // Đếm số môn học KHÁC NHAU để tính thời gian chuẩn bị
+         const uniqueSubjects = new Set();
+         
+         dayCells.forEach(cell => {
+         if (cell.textContent && cell.textContent.trim() !== '') {
+            // Thêm thời gian dạy thực tế (0.75 giờ/tiết)
+            todayHours += 0.75; // 45 phút mỗi tiết
+            
+            // Trích xuất tên môn học (ví dụ: "Lý-10A13" -> "Lý")
+            const subjectMatch = cell.textContent.match(/^[^\d-]+/); // Lấy phần chữ cái đầu tiên
+            if (subjectMatch) {
+                uniqueSubjects.add(subjectMatch[0].trim());
+            }
+         }
+         });
+         
+         // Tính thời gian chuẩn bị: 0.5 giờ cho mỗi môn học KHÁC NHAU
+         const preparationTime = uniqueSubjects.size * 0.5;
+         todayHours += preparationTime;
+         
+         // Kiểm tra các công việc đã hoàn thành hôm nay
+         const todayStr = today.toISOString().split('T')[0];
+         const allTasks = [
+         ...kpiData.schoolTasks,
+         ...kpiData.homeroomTasks,
+         ...kpiData.regularTasks,
+         ...kpiData.irregularTasks
+         ];
+         
+         allTasks.forEach(task => {
+         if (task.completed && task.completedAt && task.completedAt.startsWith(todayStr)) {
+            todayHours += task.hours;
+         }
+         });
+         
+         document.getElementById('kpi-total-hours').textContent = `${todayHours.toFixed(2)} giờ`;
+         
+         const progressPercent = Math.min(100, (todayHours / kpiData.settings.dailyTarget) * 100);
+         document.getElementById('kpi-progress-bar').style.width = `${progressPercent}%`;
+         document.getElementById('kpi-progress-bar').textContent = `${Math.round(progressPercent)}%`;
+         
+         // Cập nhật KPI
+         updateKpiScore();
+         }
+         
+         // Hàm khởi tạo dữ liệu mẫu cho thời khóa biểu
+         function initializeSampleTimetable() {
+             // Dữ liệu thời khóa biểu mẫu
+             kpiData.timetable = {
+                 '2-3': 'Lý-10A12',
+                 '2-4': 'Lý-10A13',
+                 '2-5': 'Lý-10A13',
+                 '3-6': 'Lý-11B13',
+                 '3-7': 'Lý-11B13', 
+                 '3-8': 'Lý-11B12',
+                 '3-9': 'Lý-11B12',
+                 '4-1': 'Lý-10A13',
+                 '4-3': 'Lý-10A12',
+                 '4-4': 'Lý-10A12',
+                 '4-6': 'Lý-11B11',
+                 '4-7': 'Lý-11B11',
+                 '6-6': 'Lý-11B11',
+                 '6-7': 'Lý-11B12',
+                 '6-8': 'Lý-11B13',
+                 '6-9': 'Lý-11B13'
+             };
+             
+             // Cập nhật giao diện với dữ liệu mẫu
+             for (const key in kpiData.timetable) {
+                 const [day, lesson] = key.split('-');
+                 const cell = document.querySelector(`.kpi-editable-cell[data-day="${day}"][data-lesson="${lesson}"]`);
+                 if (cell) {
+                     cell.textContent = kpiData.timetable[key];
+                 }
+             }
+             
+             saveData();
+             updateTimetableSummary();
+             updateDailyProgress();
+             
+             // THÊM: Tự động thêm một số công việc mẫu
+             addSampleTasks();
+         }
+         
+         // THÊM: Hàm thêm công việc mẫu
+         function addSampleTasks() {
+             const today = new Date();
+             const tomorrow = new Date(today);
+             tomorrow.setDate(tomorrow.getDate() + 1);
+             
+             // Thêm công việc nhà trường mẫu
+             kpiData.schoolTasks.push({
+                 id: Date.now() + 1,
+                 task: 'Chấm bài kiểm tra 15 phút',
+                 hours: 2,
+                 completed: false,
+                 deadline: tomorrow.toISOString().split('T')[0],
+                 createdAt: new Date().toISOString()
+             });
+             
+             // Thêm công việc chủ nhiệm mẫu
+             kpiData.homeroomTasks.push({
+                 id: Date.now() + 2,
+                 task: 'Họp phụ huynh cuối kỳ',
+                 hours: 3,
+                 completed: false,
+                 deadline: tomorrow.toISOString().split('T')[0],
+                 createdAt: new Date().toISOString()
+             });
+             
+             // Thêm công việc thường nhật mẫu
+             kpiData.regularTasks.push({
+                 id: Date.now() + 3,
+                 task: 'Soạn giáo án',
+                 hours: 1.5,
+                 completed: false,
+                 frequency: 'daily',
+                 createdAt: new Date().toISOString()
+             });
+             
+             saveData();
+             updateTasksList('school');
+             updateTasksList('homeroom');
+             updateTasksList('regular');
+         }
+         
+         // Hàm tải dữ liệu - tự động khởi tạo dữ liệu mẫu nếu chưa có
+         function loadData() {
+             if (kpiData.user) {
+                 const userDataKey = `kpiData_${kpiData.user.username}`;
+                 const savedData = localStorage.getItem(userDataKey);
+                 
+                 if (savedData) {
+                     const parsedData = JSON.parse(savedData);
+                     // Chỉ cập nhật các phần dữ liệu cần thiết, giữ nguyên thông tin user
+                     kpiData.timetable = parsedData.timetable || {};
+                     kpiData.schoolTasks = parsedData.schoolTasks || [];
+                     kpiData.homeroomTasks = parsedData.homeroomTasks || [];
+                     kpiData.regularTasks = parsedData.regularTasks || [];
+                     kpiData.irregularTasks = parsedData.irregularTasks || [];
+                     kpiData.dailyProgress = parsedData.dailyProgress || [];
+                     kpiData.storageMode = parsedData.storageMode || 'local';
+                     kpiData.settings = parsedData.settings || {
+                         dailyTarget: 8,
+                         daysOff: [1, 7]
+                     };
+                     
+                     // Nếu không có dữ liệu thời khóa biểu, tự động tạo dữ liệu mẫu
+                     if (Object.keys(kpiData.timetable).length === 0) {
+                         initializeSampleTimetable();
+                     }
+                     
+                     updateUI();
+                 } else {
+                     // Nếu không có dữ liệu đã lưu, tự động tạo dữ liệu mẫu
+                     initializeSampleTimetable();
+                 }
+             }
+         }
+         
+         // Hàm hiển thị thông báo
+         function showNotification(message, type = 'success') {
+             const notification = document.getElementById('kpi-notification');
+             const notificationText = document.getElementById('kpi-notification-text');
+             
+             // Đặt màu nền theo loại thông báo
+             if (type === 'error') {
+                 notification.className = 'kpi-notification kpi-error';
+             } else if (type === 'warning') {
+                 notification.className = 'kpi-notification kpi-warning';
+             } else {
+                 notification.className = 'kpi-notification';
+             }
+             
+             notificationText.textContent = message;
+             notification.classList.add('show');
+             
+             setTimeout(() => {
+                 notification.classList.remove('show');
+             }, 3000);
+         }
+         
+         // Hàm lưu dữ liệu THỰC
+         function saveData() {
+             if (kpiData.user) {
+                 const userDataKey = `kpiData_${kpiData.user.username}`;
+                 localStorage.setItem(userDataKey, JSON.stringify(kpiData));
+                 
+                 // Nếu đang ở chế độ Google Drive, đồng bộ lên Drive
+                 if (kpiData.storageMode === 'drive' && driveAccessToken) {
+                     saveToDrive();
+                 }
+             }
+         }
+         
+         // Hàm tải cài đặt
+         function loadSettings() {
+             document.getElementById('kpi-daily-target').value = kpiData.settings.dailyTarget;
+             document.getElementById('kpi-daily-target-display').textContent = kpiData.settings.dailyTarget;
+             
+             // Cập nhật checkbox ngày nghỉ
+             const days = [1, 2, 3, 4, 5, 6, 7];
+             days.forEach(day => {
+                 const checkbox = document.getElementById(`kpi-day-off-${day}`);
+                 if (checkbox) {
+                     checkbox.checked = kpiData.settings.daysOff.includes(day);
+                 }
+             });
+         }
+         
+         // Hàm lưu cài đặt
+         function saveSettings() {
+             kpiData.settings.dailyTarget = parseFloat(document.getElementById('kpi-daily-target').value);
+             document.getElementById('kpi-daily-target-display').textContent = kpiData.settings.dailyTarget;
+             
+             // Lấy danh sách ngày nghỉ
+             kpiData.settings.daysOff = [];
+             const days = [1, 2, 3, 4, 5, 6, 7];
+             days.forEach(day => {
+                 const checkbox = document.getElementById(`kpi-day-off-${day}`);
+                 if (checkbox && checkbox.checked) {
+                     kpiData.settings.daysOff.push(day);
+                 }
+             });
+             
+             saveData();
+             updateDailyProgress();
+             updateTimetableSummary();
+             showNotification('Đã lưu cài đặt!');
+         }
+         
+         // Hàm thiết lập chế độ lưu trữ
+         function setStorageMode(mode) {
+             kpiData.storageMode = mode;
+             
+             // Cập nhật UI
+             document.getElementById('kpi-local-mode').classList.toggle('active', mode === 'local');
+             document.getElementById('kpi-drive-mode').classList.toggle('active', mode === 'drive');
+             
+             const driveStatus = document.getElementById('kpi-drive-status');
+             if (mode === 'drive') {
+                 driveStatus.innerHTML = '<i class="fas fa-cloud"></i> Chế độ Google Drive';
+                 driveStatus.className = 'kpi-drive-status connected';
+             } else {
+                 driveStatus.innerHTML = '<i class="fas fa-desktop"></i> Chế độ lưu trữ cục bộ';
+                 driveStatus.className = 'kpi-drive-status disconnected';
+             }
+             
+             saveData();
+             showNotification(`Đã chuyển sang chế độ lưu trữ ${mode === 'local' ? 'cục bộ' : 'Google Drive'}`);
+         }
+         
+         // Hàm hiển thị modal Google Drive
+         function showDriveModal() {
+             document.getElementById('kpi-drive-modal').style.display = 'block';
+             
+             // Kiểm tra trạng thái kết nối
+             if (driveAccessToken) {
+                 document.getElementById('kpi-drive-status-text').textContent = 'Đã kết nối với Google Drive';
+                 document.getElementById('kpi-drive-connect-btn').textContent = 'Ngắt kết nối';
+                 document.getElementById('kpi-drive-save-btn').disabled = false;
+                 document.getElementById('kpi-drive-load-btn').disabled = false;
+             } else {
+                 document.getElementById('kpi-drive-status-text').textContent = 'Chưa kết nối với Google Drive';
+                 document.getElementById('kpi-drive-connect-btn').textContent = 'Kết nối Google Drive';
+                 document.getElementById('kpi-drive-save-btn').disabled = true;
+                 document.getElementById('kpi-drive-load-btn').disabled = true;
+             }
+         }
+         
+         // Hàm xử lý kết nối Google Drive
+         function handleDriveConnect() {
+             if (driveAccessToken) {
+                 // Ngắt kết nối
+                 driveAccessToken = null;
+                 document.getElementById('kpi-drive-status-text').textContent = 'Đã ngắt kết nối Google Drive';
+                 document.getElementById('kpi-drive-connect-btn').textContent = 'Kết nối Google Drive';
+                 document.getElementById('kpi-drive-save-btn').disabled = true;
+                 document.getElementById('kpi-drive-load-btn').disabled = true;
+                 
+                 // Quay về chế độ lưu trữ cục bộ
+                 setStorageMode('local');
+                 showNotification('Đã ngắt kết nối Google Drive');
+             } else {
+                 // Kết nối với Google Drive
+                 const clientId = '1046769580708-etihbh16pec9et0h2m2d56jideet0p29.apps.googleusercontent.com'; // Thay bằng Client ID thực của bạn
+                 const redirectUri = window.location.origin + window.location.pathname;
+                 const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=https://www.googleapis.com/auth/drive.file&state=drive_auth`;
+                 
+                 // Lưu URL hiện tại để quay lại sau khi xác thực
+                 localStorage.setItem('kpi_redirect_url', window.location.href);
+                 
+                 // Chuyển hướng đến trang xác thực Google
+                 window.location.href = authUrl;
+             }
+         }
+         
+         // Hàm kiểm tra xác thực chuyển hướng
+         function checkAuthRedirect() {
+             const hash = window.location.hash;
+             if (hash && hash.includes('access_token')) {
+                 const params = new URLSearchParams(hash.substring(1));
+                 driveAccessToken = params.get('access_token');
+                 
+                 if (driveAccessToken) {
+                     // Chuyển sang chế độ Google Drive
+                     setStorageMode('drive');
+                     
+                     // Ẩn modal nếu đang hiển thị
+                     document.getElementById('kpi-drive-modal').style.display = 'none';
+                     
+                     // Xóa hash từ URL
+                     history.replaceState(null, null, ' ');
+                     
+                     showNotification('Đã kết nối thành công với Google Drive!');
+                 }
+             }
+         }
+         
+         // Hàm kiểm tra kết nối Google Drive
+         function testDriveConnection() {
+             if (driveAccessToken) {
+                 fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+                     headers: {
+                         'Authorization': `Bearer ${driveAccessToken}`
+                     }
+                 })
+                 .then(response => response.json())
+                 .then(data => {
+                     console.log('Kết nối Google Drive thành công', data);
+                 })
+                 .catch(error => {
+                     console.error('Lỗi kết nối Google Drive', error);
+                     driveAccessToken = null;
+                     setStorageMode('local');
+                 });
+             }
+         }
+         
+         // Hàm lưu dữ liệu lên Google Drive
+         function saveToDrive() {
+             if (!driveAccessToken) {
+                 showNotification('Chưa kết nối với Google Drive!', 'error');
+                 return;
+             }
+             
+             // Tạo dữ liệu JSON
+             const dataStr = JSON.stringify(kpiData);
+             const blob = new Blob([dataStr], {type: 'application/json'});
+             
+             // Tạo metadata cho file
+             const metadata = {
+                 'name': `kpi_data_${kpiData.user.username}.json`,
+                 'mimeType': 'application/json',
+                 'parents': ['root']
+             };
+             
+             // Tạo FormData để gửi file
+             const form = new FormData();
+             form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+             form.append('file', blob);
+             
+             // Gửi yêu cầu tải lên Google Drive
+             fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                 method: 'POST',
+                 headers: new Headers({
+                     'Authorization': `Bearer ${driveAccessToken}`
+                 }),
+                 body: form
+             })
+             .then(response => response.json())
+             .then(data => {
+                 console.log('Đã lưu dữ liệu lên Google Drive', data);
+                 showNotification('Đã lưu dữ liệu lên Google Drive thành công!');
+             })
+             .catch(error => {
+                 console.error('Lỗi khi lưu lên Google Drive', error);
+                 showNotification('Lỗi khi lưu dữ liệu lên Google Drive!', 'error');
+             });
+         }
+         
+         // Hàm tải dữ liệu từ Google Drive
+         function loadFromDrive() {
+             if (!driveAccessToken) {
+                 showNotification('Chưa kết nối với Google Drive!', 'error');
+                 return;
+             }
+             
+             // Tìm file dữ liệu
+             const fileName = `kpi_data_${kpiData.user.username}.json`;
+             
+             fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}'&fields=files(id,name)`, {
+                 headers: {
+                     'Authorization': `Bearer ${driveAccessToken}`
+                 }
+             })
+             .then(response => response.json())
+             .then(data => {
+                 if (data.files && data.files.length > 0) {
+                     const fileId = data.files[0].id;
+                     
+                     // Tải nội dung file
+                     return fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                         headers: {
+                             'Authorization': `Bearer ${driveAccessToken}`
+                         }
+                     });
+                 } else {
+                     throw new Error('Không tìm thấy file dữ liệu trên Google Drive');
+                 }
+             })
+             .then(response => response.json())
+             .then(data => {
+                 // Cập nhật dữ liệu từ Google Drive
+                 kpiData.timetable = data.timetable || {};
+                 kpiData.schoolTasks = data.schoolTasks || [];
+                 kpiData.homeroomTasks = data.homeroomTasks || [];
+                 kpiData.regularTasks = data.regularTasks || [];
+                 kpiData.irregularTasks = data.irregularTasks || [];
+                 kpiData.dailyProgress = data.dailyProgress || [];
+                 kpiData.settings = data.settings || {
+                     dailyTarget: 8,
+                     daysOff: [1, 7]
+                 };
+                 
+                 // Cập nhật UI
+                 updateUI();
+                 
+                 // Lưu vào localStorage để đồng bộ
+                 saveData();
+                 
+                 showNotification('Đã tải dữ liệu từ Google Drive thành công!');
+             })
+             .catch(error => {
+                 console.error('Lỗi khi tải từ Google Drive', error);
+                 showNotification('Lỗi khi tải dữ liệu từ Google Drive!', 'error');
+             });
+         }
+         
+         // Hàm định dạng ngày tháng
+         function formatDate(dateStr) {
+             if (!dateStr) return '';
+             const date = new Date(dateStr);
+             return date.toLocaleDateString('vi-VN');
+         }
+         
+         // Hàm định dạng ngày giờ
+         function formatDateTime(dateTimeStr) {
+             if (!dateTimeStr) return '';
+             const date = new Date(dateTimeStr);
+             return date.toLocaleString('vi-VN');
+         }
+         
+         // Khởi tạo ứng dụng khi trang được tải
+         document.addEventListener('DOMContentLoaded', initApp);
+      </script>
+   </body>
+</html>

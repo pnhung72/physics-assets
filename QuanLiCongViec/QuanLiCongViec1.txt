@@ -1,0 +1,26 @@
+<div id="kpi-root" class="kpi-system">Đang tải hệ thống KPI...</div>
+<script>
+(function () {
+  var BASE = 'https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@main/KeHoach/';
+  var root = document.getElementById('kpi-root');
+
+  [BASE + 'kpi.css',
+   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css'
+  ].forEach(function (href) {
+    var l = document.createElement('link');
+    l.rel = 'stylesheet'; l.href = href;
+    document.head.appendChild(l);
+  });
+
+  fetch(BASE + 'app.html')
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(function (html) {
+      root.innerHTML = html;
+      var s = document.createElement('script');
+      s.src = BASE + 'kpi.js';
+      s.onerror = function () { root.textContent = 'Không tải được kpi.js'; };
+      document.body.appendChild(s);
+    })
+    .catch(function (e) { root.textContent = 'Không tải được hệ thống KPI (' + e.message + ')'; });
+})();
+</script>
