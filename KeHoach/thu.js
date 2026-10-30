@@ -5,6 +5,7 @@
   var KEY = 'kpi_mail_cfg';
   var CHU_KY_PHUT = 5;
   var NGUONG_GIO = { 'Hiệu trưởng': 2, 'PHT': 4 };
+  var emailHop = '';
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -43,7 +44,7 @@
     head.appendChild(el('div', 'kpi-work-item-time', 'chưa đọc ' + dinhDangGio(m.gio)));
     item.appendChild(head);
     var a = el('a', 'kpi-btn kpi-btn-sm', 'Mở thư');
-    a.href = 'https://mail.google.com/mail/u/0/#inbox/' + encodeURIComponent(m.id);
+    a.href = 'https://mail.google.com/mail/' + (emailHop ? '?authuser=' + encodeURIComponent(emailHop) : 'u/0/') + '#all/' + encodeURIComponent(m.id);
     a.target = '_blank';
     a.rel = 'noopener';
     item.appendChild(a);
@@ -88,8 +89,9 @@
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function (d) {
         if (d.loi) throw new Error(d.loi);
+        emailHop = d.me || emailHop;
         ve(d);
-        trangThai('Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN'), false);
+        trangThai('Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN') + (emailHop ? ' - hộp thư ' + emailHop : ''), false);
       })
       .catch(function (e) { trangThai('Lỗi: ' + e.message, true); });
   }
