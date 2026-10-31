@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoạt ảnh Flash (swf)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; }
+  #stage { position: absolute; inset: 0; }
+  #stage ruffle-player { width: 100%; height: 100%; }
+  #msg { color: #fff; font: 16px/1.5 sans-serif; padding: 24px; }
+</style>
+</head>
+<body>
+<div id="stage"><p id="msg">Đang tải hoạt ảnh…</p></div>
+<script>
+  // Cách dùng: player.html?f=vantoc.swf   (file swf cùng thư mục, hoặc thư mục con: ?f=swf/vantoc.swf)
+  // Chỉ nhận đường dẫn tương đối trong cùng kho để tránh nhúng swf lạ.
+  (function () {
+    var RUFFLE_SRC = 'https://unpkg.com/@ruffle-rs/ruffle';   // nên đổi sang bản cố định sau khi thử ổn
+    var f = new URLSearchParams(location.search).get('f') || '';
+    var msg = document.getElementById('msg');
+    if (!/^[\w\-./()]+\.swf$/i.test(f) || f.indexOf('..') >= 0 || f.charAt(0) === '/') { msg.textContent = 'Thiếu hoặc sai tham số f (ví dụ ?f=vantoc.swf).'; return; }
+    var s = document.createElement('script');
+    s.src = RUFFLE_SRC;
+    s.onload = function () {
+      try {
+        var p = window.RufflePlayer.newest().createPlayer();
+        document.getElementById('stage').innerHTML = '';
+        document.getElementById('stage').appendChild(p);
+        p.load(encodeURI(f));
+      } catch (e) { msg.textContent = 'Không chạy được hoạt ảnh: ' + e; }
+    };
+    s.onerror = function () { msg.textContent = 'Không tải được trình chạy Ruffle (kiểm tra mạng).'; };
+    document.head.appendChild(s);
+  })();
+</script>
+</body>
+</html>
