@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tự học Vật lí</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--tx:#1b2430;--mu:#5d6b7d;--pr:#2563eb;--ok:#15803d;--bad:#b91c1c;--wa:#b45309;--bd:#dde3ec}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1520;--card:#18212f;--tx:#e6ebf2;--mu:#9aa8bb;--pr:#5b8dfa;--ok:#4ade80;--bad:#f87171;--wa:#fbbf24;--bd:#2a3648}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,"Segoe UI",Arial,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin:12px 0}
+h1{font-size:1.3rem;margin:.2em 0}h2{font-size:1.1rem;margin:.2em 0}
+input,button{font:inherit}input[type=text]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);margin:6px 0}
+button{background:var(--pr);color:#fff;border:0;border-radius:8px;padding:10px 16px;cursor:pointer}
+button.ph{background:transparent;color:var(--pr);border:1px solid var(--pr)}button:disabled{opacity:.5;cursor:not-allowed}
+.bar{height:10px;background:var(--bd);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+.mu{color:var(--mu);font-size:.9rem}.err{color:var(--bad)}.ok{color:var(--ok)}.wa{color:var(--wa)}
+.opt{display:block;padding:10px;border:1px solid var(--bd);border-radius:8px;margin:6px 0;cursor:pointer}
+.opt:has(input:checked){border-color:var(--pr);background:color-mix(in srgb,var(--pr) 12%,transparent)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:8px}
+.top{position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+// ====== CẤU HÌNH: dán địa chỉ web app Apps Script (đã triển khai bản mới) ======
+const API = 'DÁN_ĐỊA_CHỈ_/exec_VÀO_ĐÂY';
+// ================================================================================
+const $ = id => document.getElementById(id), app = $('app');
+let st = sessionStorage.getItem('ptd_st') || '', timer = null, bai = null;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function typeset(){ if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(()=>{}); }
+function loading(m){ clearInterval(timer); app.innerHTML = '<div class="card mu">'+esc(m||'Đang tải...')+'</div>'; }
+async function goi(action, data){
+  const body = new URLSearchParams(Object.assign({action, st}, data||{}));
+  let r;
+  try { r = await (await fetch(API, {method:'POST', body})).json(); }
+  catch(e){ throw new Error('Không kết nối được máy chủ. Em kiểm tra mạng rồi thử lại.'); }
+  if (!r.success) throw new Error(r.message || 'Có lỗi xảy ra');
+  return r.data;
+}
+function loi(e){ if (/hết hạn|đăng nhập lại/.test(e.message)) { sessionStorage.removeItem('ptd_st'); st=''; return dangNhap(e.message); } app.innerHTML = '<div class="card"><p class="err">'+esc(e.message)+'</p><button onclick="trangChu()">Quay lại</button></div>'; }
+
+function dangNhap(thongBao){
+  clearInterval(timer);
+  app.innerHTML = '<div class="card"><h1>Tự học Vật lí</h1><p class="mu">Đăng nhập bằng ID và họ tên như trong danh sách lớp.</p>'
+   +'<input type="text" id="i1" placeholder="ID học sinh" autocomplete="off"><input type="text" id="i2" placeholder="Họ và tên" autocomplete="off">'
+   +'<p class="err" id="e">'+esc(thongBao||'')+'</p><button id="b">Vào học</button></div>';
+  $('b').onclick = async () => {
+    $('b').disabled = true;
+    try { const d = await goi('ptdDangNhap', {id:$('i1').value, hoTen:$('i2').value}); st = d.token; sessionStorage.setItem('ptd_st', st); trangChu(); }
+    catch(e){ $('e').textContent = e.message; $('b').disabled = false; }
+  };
+}
+
+async function trangChu(){
+  loading();
+  try { hienLoTrinh(await goi('ptdLoTrinh')); } catch(e){ loi(e); }
+}
+function hienLoTrinh(d){
+  const pct = d.tienDo.tong ? Math.round(d.tienDo.dat/d.tienDo.tong*100) : 0;
+  let h = '<div class="card"><div class="row"><h1>Chào '+esc(d.ten)+'</h1><button class="ph" onclick="thoat()">Thoát</button></div>'
+   +'<p class="mu">Lớp '+esc(d.lop)+' · Chu kì '+d.chuKi+' · Tuần '+d.tuan+'/'+d.soTuan+(d.lich?' · Lịch học: '+esc(d.lich):'')+'</p>'
+   +'<div class="bar"><i style="width:'+pct+'%"></i></div><p class="mu">Đã nắm '+d.tienDo.dat+'/'+d.tienDo.tong+' kĩ năng · Chuyên cần '+d.chuyenCan+'%</p></div>';
+  if (d.buoc==='chanDoan') h += '<div class="card"><h2>Bước đầu: bài chẩn đoán</h2><p>Bài ngắn giúp hệ thống biết em cần học phần nào. Em làm một mình, không tra cứu.</p><button onclick="batDau(\'ChanDoan\')">Làm bài chẩn đoán</button></div>';
+  else if (d.buoc==='duyTri') h += '<div class="card"><h2>Kiểm tra ôn lại</h2><p>Vài câu ngắn để xem kiến thức đã được giữ vững chưa.</p><button onclick="batDau(\'DuyTri\')">Làm bài ôn lại</button></div>';
+  else if (d.buoc==='raDien') h += '<div class="card"><h2 class="ok">Chúc mừng em!</h2><p>Em đã hoàn thành chu kì tự học. Vài tuần nữa hệ thống sẽ có bài ôn lại ngắn.</p></div>';
+  else if (d.buoc==='hoanTat') h += '<div class="card"><h2 class="ok">Em đã hoàn tất chương trình tự học</h2></div>';
+  else {
+    if (d.buoc==='cuoiChuKi') h += '<div class="card"><h2>Đã đến bài kiểm tra cuối chu kì</h2><p>Bài có giới hạn thời gian, tính một lần.</p><button onclick="batDau(\'CuoiChuKi\')">Làm bài cuối chu kì</button></div>';
+    if (d.canThiep.length) h += '<div class="card"><p class="wa">Thầy sẽ hỗ trợ em riêng ở: '+d.canThiep.map(esc).join('; ')+'.</p></div>';
+    h += '<h2>Việc hôm nay ('+d.phutMoiBuoi+' phút)</h2>';
+    h += d.nhiemVu.length ? d.nhiemVu.map(item).join('') : '<div class="card mu">Hiện chưa có việc mới.</div>';
+    if (d.sau.length) h += '<h2>Sắp tới</h2>' + d.sau.map(item).join('');
+  }
+  app.innerHTML = h; typeset();
+}
+function item(k){
+  const nut = k.khoa ? '<span class="mu">Cần nắm kĩ năng tiền đề trước</span>'
+    : k.modun.map(m => '<button onclick="moModun(\''+esc(m.maMD)+'\')">Học: '+esc(m.tieuDe)+' ('+m.phut+' phút)</button>').join(' ')
+      + (k.modun.length ? '' : '<button onclick="batDau(\'Chot\',\''+esc(k.maKN)+'\')">Làm câu chốt</button>');
+  return '<div class="card"><div class="row"><b>'+esc(k.tenKN)+'</b><span class="mu">~'+k.phut+' phút'+(k.soLan?' · đã thử '+k.soLan+' lần':'')+'</span></div><div style="margin-top:8px">'+nut+'</div></div>';
+}
+function nhung(link){
+  link = String(link||''); if (!/^https:\/\//.test(link)) return '';
+  let m = link.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/); if (m) return 'https://www.youtube.com/embed/'+m[1];
+  m = link.match(/drive\.google\.com\/file\/d\/([\w-]+)/); if (m) return 'https://drive.google.com/file/d/'+m[1]+'/preview';
+  return link;
+}
+async function moModun(ma){
+  loading();
+  try {
+    const m = await goi('ptdMoDun', {maMD:ma}), src = m.loai==='video' ? nhung(m.link) : '';
+    app.innerHTML = '<div class="card"><button class="ph" onclick="trangChu()">← Quay lại</button><h1>'+esc(m.tieuDe)+'</h1><p class="mu">Kĩ năng: '+esc(m.tenKN)+'</p>'
+      +(src?'<iframe src="'+esc(src)+'" allowfullscreen></iframe>':'')
+      +'<div style="white-space:pre-wrap;margin-top:10px">'+esc(m.noiDung)+'</div>'
+      +'<p><button id="bc" disabled></button></p></div>';
+    let con = m.gayToiThieu; const b = $('bc');
+    const cap = () => { b.disabled = con>0; b.textContent = con>0 ? 'Đọc kĩ trước khi làm câu chốt ('+con+'s)' : 'Làm câu chốt'; };
+    cap(); timer = setInterval(() => { con--; cap(); if (con<=0) clearInterval(timer); }, 1000);
+    b.onclick = () => batDau('Chot', m.maKN); typeset();
+  } catch(e){ loi(e); }
+}
+async function batDau(loai, maKN){
+  loading('Đang chuẩn bị bài...');
+  try { bai = await goi('ptdBatDau', {loai, maKN:maKN||''}); lamBai(); } catch(e){ loi(e); }
+}
+function lamBai(){
+  let h = '<div class="top card"><div class="row"><b>'+({ChanDoan:'Bài chẩn đoán',Chot:'Câu chốt',CuoiChuKi:'Bài cuối chu kì',DuyTri:'Bài ôn lại'}[bai.loai]||'Bài làm')+'</b><b id="dh"></b></div></div>';
+  bai.cau.forEach((q,i) => {
+    h += '<div class="card"><p><b>Câu '+q.stt+'.</b> <span style="white-space:pre-wrap">'+esc(q.de)+'</span></p>'
+      + q.opts.map((o,j) => '<label class="opt"><input type="radio" name="q'+i+'" value="'+j+'"> '+'ABCD'[j]+'. '+esc(o)+'</label>').join('')+'</div>';
+  });
+  h += '<button id="nop">Nộp bài</button>';
+  app.innerHTML = h; typeset(); window.scrollTo(0,0);
+  let con = bai.gioiHanPhut*60;
+  const cap = () => { $('dh').textContent = Math.floor(con/60)+':'+String(con%60).padStart(2,'0'); if (con<=0){ clearInterval(timer); nop(); } con--; };
+  cap(); timer = setInterval(cap, 1000);
+  $('nop').onclick = () => { const thieu = bai.cau.filter((_,i)=>!document.querySelector('input[name=q'+i+']:checked')).length;
+    if (!thieu || confirm('Em còn '+thieu+' câu chưa làm. Vẫn nộp bài?')) nop(); };
+}
+async function nop(){
+  clearInterval(timer);
+  const da = bai.cau.map((_,i) => { const c = document.querySelector('input[name=q'+i+']:checked'); return c ? Number(c.value) : -1; });
+  const aid = bai.aid; bai = null; loading('Đang chấm bài...');
+  try { ketQua(await goi('ptdNop', {aid, dapAn: JSON.stringify(da)})); } catch(e){ loi(e); }
+}
+function ketQua(r){
+  const nut = '<p><button onclick="trangChu()">Về trang học</button></p>';
+  let h = '<div class="card">';
+  if (!r.hopLe) h += '<h2 class="wa">Bài chưa được tính</h2><p>'+esc(r.thongBao)+'</p>';
+  else if (r.loai==='ChanDoan') h += '<h2>Kết quả chẩn đoán: '+r.diem10+'/10</h2><p>Em đã vững '+r.daVung+'/'+r.tong+' kĩ năng.</p>'+(r.canHoc.length?'<p>Em sẽ học: '+r.canHoc.map(esc).join('; ')+'.</p>':'');
+  else if (r.loai==='Chot') {
+    h += r.dat ? '<h2 class="ok">Đạt '+r.phanTram+'%! Em đã nắm kĩ năng này.</h2>' : '<h2 class="wa">Em được '+r.phanTram+'%, chưa đạt.</h2><p>Đọc lời giải bên dưới rồi học lại và thử bộ câu khác.</p>';
+    if (r.canThiep) h += '<p class="wa">Thầy sẽ hỗ trợ riêng em ở kĩ năng này.</p>';
+    h += r.chiTiet.map(c => '<div class="card"><b>Câu '+c.stt+': '+(c.dung?'<span class="ok">đúng</span>':'<span class="err">sai</span>')+'</b>'+(c.dung?'':' · đáp án đúng '+esc(c.dapAnDung))+(c.giaiThich?'<p class="mu" style="white-space:pre-wrap">'+esc(c.giaiThich)+'</p>':'')+'</div>').join('');
+  }
+  else if (r.loai==='CuoiChuKi') {
+    h += r.raDien ? '<h2 class="ok">Chúc mừng! Em đã ra diện phụ đạo ('+r.diem10+'/10).</h2>' : '<h2 class="wa">Điểm '+r.diem10+'/10. Em tiếp tục chu kì mới.</h2><p>Cần học tiếp: '+r.canHocTiep.map(esc).join('; ')+'.</p>';
+    h += '<p class="mu">Chuyên cần '+r.chuyenCan+'%</p><p>'+r.tienBo.map(t => esc(t.tenKN)+': '+(t.truoc==null?'–':t.truoc+'%')+' → '+(t.sau==null?'–':t.sau+'%')).join('<br>')+'</p>';
+  }
+  else if (r.loai==='DuyTri') h += r.hoanTat ? '<h2 class="ok">Em đã giữ vững kiến thức. Hoàn tất!</h2>' : '<h2 class="wa">Cần ôn lại: '+r.canOnLai.map(esc).join('; ')+'</h2>';
+  app.innerHTML = h+nut+'</div>'; typeset(); window.scrollTo(0,0);
+}
+function thoat(){ sessionStorage.removeItem('ptd_st'); st=''; dangNhap(); }
+window.addEventListener('beforeunload', e => { if (bai) { e.preventDefault(); e.returnValue = ''; } });
+st ? trangChu() : dangNhap();
+</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
