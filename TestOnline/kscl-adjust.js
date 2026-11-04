@@ -1,4 +1,4 @@
-/* kscl-adjust.js v1.1
+/* kscl-adjust.js v1.2
    Chọn lớp -> đọc thống kê KSCL (TX1 lần đầu) từ Script -> tính tỉ lệ câu cần giảm theo khoảng cách so với mặt bằng chung
    tỉ lệ = K x (M - điểm TB lớp) / M  (M = điểm TB KSCL chung có trọng số sĩ số) -> AI viết lại một phần câu cho dễ hơn.
    Giữ nguyên loại câu, vị trí, điểm và _slot nên tỉ lệ B/H/VD của đề không đổi.
@@ -15,6 +15,8 @@
     nhieu: 'GIẢM NHIỀU: chỉ còn 1-2 bước cơ bản, áp dụng trực tiếp công thức, số liệu tròn, dữ kiện cho trực tiếp; phương án nhiễu rõ sai.'
   };
   let cache = null;
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwZtFufSTnRDLon-AIfnPWmafcPqbgBEeFOW7FvYfcKkAtk65bGOJUS_NxthoQcXawLbw/exec';
+  if (!window.KSCL_API_URL) window.KSCL_API_URL = API_URL;
 
   function note(msg, type) {
     if (typeof showNotification === 'function') showNotification(msg, type || 'info');
@@ -236,6 +238,28 @@
     }
   }
 
-  window.KSCL = { version: '1.1', apply: apply, rewrite: rewrite, loadStats: loadStats, pickClass: pickClass,
+  window.KSCL = { version: '1.2', apply: apply, rewrite: rewrite, loadStats: loadStats, pickClass: pickClass,
                   tyLeGiam: tyLeGiam, matBangChung: matBangChung };
+
+  // Tự gắn vào ExamQA.prepareOriginals (chạy trên đề gốc, trước khi xáo đề)
+  function install() {
+    const qa = window.ExamQA;
+    if (!qa || typeof qa.prepareOriginals !== 'function') return false;
+    if (qa.__ksclWrapped) return true;
+    const orig = qa.prepareOriginals;
+    try {
+      qa.prepareOriginals = async function (originals, opts) {
+        try { await apply(originals, (opts && opts.exportConfig) || null); }
+        catch (e) { console.warn('[KSCL]', e); }
+        return orig.apply(this, arguments);
+      };
+      qa.__ksclWrapped = true;
+      console.log('[KSCL] đã gắn vào ExamQA.prepareOriginals');
+      return true;
+    } catch (e) { console.warn('[KSCL] không gắn được:', e); return true; }
+  }
+  if (!install()) {
+    let n = 0;
+    const t = setInterval(function () { if (install() || ++n > 100) clearInterval(t); }, 300);
+  }
 })();
