@@ -813,4 +813,4 @@
 
 /* === KSCL: nạp bộ điều chỉnh độ khó theo lớp (ghim commit 5742258) === */
 ;(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@5b999c7/TestOnline/kscl-adjust.js';document.head.appendChild(s);})();
-;(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@main/TestOnline/kscl-rewrite.js';document.head.appendChild(s);})();
+
