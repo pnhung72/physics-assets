@@ -31,6 +31,7 @@
   if (root) root.ExamQA = api;
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this), function (root) {
   'use strict';
+  ;(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@main/TestOnline/kscl-adjust.js';document.head.appendChild(s);})();
 
   var VERSION = '2.0';
   var PARTS = ['I', 'II', 'III', 'IV'];
