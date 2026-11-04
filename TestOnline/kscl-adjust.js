@@ -5,6 +5,8 @@
   'use strict';
   const TEXT = { giu: 'Giữ nguyên độ khó', nhe: 'Giảm nhẹ', vua: 'Giảm vừa', nhieu: 'Giảm nhiều' };
   let cache = null;
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwZtFufSTnRDLon-AIfnPWmafcPqbgBEeFOW7FvYfcKkAtk65bGOJUS_NxthoQcXawLbw/exec';
+  if (!window.KSCL_API_URL) window.KSCL_API_URL = API_URL;
 
   function note(msg, type) {
     if (typeof showNotification === 'function') showNotification(msg, type || 'info');
@@ -118,5 +120,27 @@
     }
   }
 
-  window.KSCL = { version: '0.1', apply: apply, loadStats: loadStats, pickClass: pickClass };
+   window.KSCL = { version: '0.2', apply: apply, loadStats: loadStats, pickClass: pickClass };
+
+  // Tự gắn vào ExamQA.prepareOriginals (chạy trên đề gốc, trước khi xáo đề)
+  function install() {
+    const qa = window.ExamQA;
+    if (!qa || typeof qa.prepareOriginals !== 'function') return false;
+    if (qa.__ksclWrapped) return true;
+    const orig = qa.prepareOriginals;
+    try {
+      qa.prepareOriginals = async function (originals, opts) {
+        try { await apply(originals, (opts && opts.exportConfig) || null); }
+        catch (e) { console.warn('[KSCL]', e); }
+        return orig.apply(this, arguments);
+      };
+      qa.__ksclWrapped = true;
+      console.log('[KSCL] đã gắn vào ExamQA.prepareOriginals');
+      return true;
+    } catch (e) { console.warn('[KSCL] không gắn được:', e); return true; }
+  }
+  if (!install()) {
+    let n = 0;
+    const t = setInterval(function () { if (install() || ++n > 100) clearInterval(t); }, 300);
+  }
 })();
