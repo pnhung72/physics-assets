@@ -1,5 +1,7 @@
 /* exam_khoi_plan.js — Đề chung toàn khối (lớp 10: A7,A9,A13 | lớp 11: B11,B12,B15)
-   Nguồn điểm: action ksclDiem của Apps Script (TX1 HK1, lần làm đầu tiên, ẩn danh).
+   Nguồn điểm: action ksclStats của Apps Script (TX1 HK1, lần làm đầu tiên, ẩn danh).
+   v2: ràng buộc đúng yêu cầu GV (lớp yếu nhất: sàn mức TB, trần yếu/kém; lớp giỏi nhất: trần ≥9);
+   dùng điểm thật từng em (diemLan1) khi đã đăng nhập Admin và Apps Script đã cập nhật.
    Không dùng AI để tính; AI chỉ là tùy chọn qua nút "Sao chép kế hoạch" / ô dán kết quả.
    Nối vào trang bằng 1 thẻ <script> ở cuối TestOline (giống exam_qa_gate.js). */
 (function (root) {
@@ -23,7 +25,9 @@ function defaultCfg() {
     reps: 24,                                          // số lần mô phỏng mỗi học sinh
     step: 5,                                           // bước lưới tỉ lệ điểm (%)
     limits: { B: [20, 80], H: [10, 50], VD: [0, 30], VDC: [0, 10] },
-    target: { kem: 0.05, yeu: 0.10, tb: 0.40, kha: 0.38, gioi: 0.05, xs: 0.02, tol: 0.03, scope: 'khoi' },   // trần từng mức; scope: khoi | weak | all
+    // LỚP YẾU NHẤT: mức TB (5–<6,5) tối thiểu tbMin; mức yếu tối đa yeu; mức kém tối đa kem
+    // LỚP GIỎI NHẤT: mức xuất sắc (>=9) tối đa xs;  tol = dung sai cho sai số mô phỏng
+    target: { kem: 0.05, yeu: 0.10, tbMin: 0.50, xs: 0.05, tol: 0.02 },
     structure: { multipleChoice: { n: 18, pt: 0.25 }, trueFalse: { n: 4, pt: 1 }, essay: { n: 6, pt: 0.25 } },
     seed: 20261105
   };
@@ -135,25 +139,20 @@ function simulate(items, classes, mu, sd, cfg) {
   return { byClass: out, pooled: pooled, sd: sdev(all, m) };
 }
 
-function scopeList(sim, weakKey, cfg) {
-  var sc = cfg.target.scope;
-  if (sc === 'weak') return [sim.byClass[weakKey]];
-  if (sc === 'all') return Object.keys(sim.byClass).map(function (k) { return sim.byClass[k]; });
-  return [sim.pooled];
+// Các ràng buộc theo yêu cầu GV. miss = mức thiếu hụt/vượt (sau khi trừ dung sai), 0 nếu đạt.
+function checksOf(sim, weakKey, strongKey, cfg) {
+  var T = cfg.target, w = sim.byClass[weakKey], g = sim.byClass[strongKey], e = 1e-9;
+  return [
+    { id: 'tb',  lop: w.lop, text: 'TB 5–<6,5 ≥ ' + pct(T.tbMin), val: w.tb,  ok: w.tb  >= T.tbMin - T.tol - e, miss: Math.max(0, T.tbMin - T.tol - w.tb) },
+    { id: 'yeu', lop: w.lop, text: 'Yếu 3,5–<5 ≤ ' + pct(T.yeu),  val: w.yeu, ok: w.yeu <= T.yeu + T.tol + e,   miss: Math.max(0, w.yeu - T.yeu - T.tol) },
+    { id: 'kem', lop: w.lop, text: 'Kém <3,5 ≤ ' + pct(T.kem),    val: w.kem, ok: w.kem <= T.kem + T.tol + e,   miss: Math.max(0, w.kem - T.kem - T.tol) },
+    { id: 'xs',  lop: g.lop, text: 'Xuất sắc ≥9 ≤ ' + pct(T.xs),  val: g.xs,  ok: g.xs  <= T.xs + T.tol + e,    miss: Math.max(0, g.xs - T.xs - T.tol) }
+  ];
 }
-// vi phạm = phần vượt trần + dung sai, cộng dồn trên các mức
 function penaltyOf(sim, weakKey, strongKey, cfg) {
-  var T = cfg.target, p = 0;
-  scopeList(sim, weakKey, cfg).forEach(function (v) {
-    BANDS.forEach(function (k) { p += Math.max(0, v[k] - T[k] - T.tol); });
-  });
-  return p;
+  return checksOf(sim, weakKey, strongKey, cfg).reduce(function (s, c) { return s + c.miss; }, 0);
 }
-function passOf(sim, weakKey, strongKey, cfg) {
-  var T = cfg.target, ok = {};
-  BANDS.forEach(function (k) { ok[k] = scopeList(sim, weakKey, cfg).every(function (v) { return v[k] <= T[k] + T.tol + 1e-9; }); });
-  return ok;
-}
+function passOf(sim, weakKey, strongKey, cfg) { return checksOf(sim, weakKey, strongKey, cfg); }
 
 // Tìm cơ cấu mức độ B/H/VD/VDC (theo điểm) thỏa các ràng buộc và phân hóa tốt nhất (SD toàn khối lớn nhất)
 function planKhoi(classes, cfg) {
@@ -219,8 +218,10 @@ function planText(plan, cfg, khoi, lessonKeys) {
          '; lớp giỏi nhất: ' + plan.classes.filter(function (x) { return x.key === plan.strongKey; })[0].lop);
   t.push('');
   t.push('2) RÀNG BUỘC CẦN ĐẠT (xếp loại: kém <3,5; yếu 3,5-<5; TB 5-<6,5; khá 6,5-<8; giỏi 8-<9; xuất sắc >=9)');
-  t.push('- Tỉ lệ tối đa mỗi mức: ' + BANDS.map(function (k) { return BAND_NAME[k] + ' <= ' + pct(cfg.target[k]); }).join('; ') + ' (dung sai ' + pct(cfg.target.tol) + ' mỗi mức)');
-  t.push('- Áp dụng cho: ' + (cfg.target.scope === 'weak' ? 'lớp yếu nhất' : cfg.target.scope === 'all' ? 'từng lớp' : 'toàn khối gộp'));
+  var T0 = cfg.target;
+  t.push('- Lớp yếu nhất (' + plan.classes.filter(function (x) { return x.key === plan.weakKey; })[0].lop + '): mức TB 5-<6,5 >= ' + pct(T0.tbMin) + '; mức yếu 3,5-<5 <= ' + pct(T0.yeu) + '; mức kém <3,5 <= ' + pct(T0.kem));
+  t.push('- Lớp giỏi nhất (' + plan.classes.filter(function (x) { return x.key === plan.strongKey; })[0].lop + '): mức xuất sắc >=9 <= ' + pct(T0.xs));
+  t.push('- Dung sai cho sai số mô phỏng: ' + pct(T0.tol));
   t.push('- Đề không dễ lấy điểm 10 nhưng dễ đạt trung bình, có phân hóa.');
   t.push('');
   t.push('3) KẾ HOẠCH HỆ THỐNG ĐỀ XUẤT (mô phỏng, chưa kiểm chứng thực tế)');
@@ -230,6 +231,7 @@ function planText(plan, cfg, khoi, lessonKeys) {
   });
   var fmtB = function (s) { return BANDS.map(function (k) { return BAND_NAME[k] + ' ' + pct(s[k]); }).join('; '); };
   t.push('Dự báo toàn khối: TB ' + f1(b.sim.pooled.mean) + ' (' + fmtB(b.sim.pooled) + ')');
+  t.push('Kiểm tra ràng buộc (dự báo): ' + b.pass.map(function (c) { return (c.ok ? 'ĐẠT ' : 'CHƯA ĐẠT ') + c.lop + ' ' + c.text + ' → ' + pct(c.val); }).join('; '));
   t.push('Dự báo từng lớp: ' + plan.classes.map(function (x) { var s = b.sim.byClass[x.key]; return x.lop + ' (TB ' + f1(s.mean) + '; ' + fmtB(s) + ')'; }).join(' | '));
   t.push('');
   t.push('4) PHẠM VI BÀI: ' + (lessonKeys.length ? lessonKeys.join(', ') : '(chưa nhập — hãy liệt kê các bài cần kiểm tra)'));
@@ -270,14 +272,16 @@ function readCfg() {
   c.shift = parseFloat(String($('ekp-shift').value).replace(',', '.')) || 0;
   var tol = parseFloat(String($('ekp-margin').value).replace(',', '.'));
   if (tol >= 0 && tol <= 20) c.target.tol = tol / 100;
-  c.target.scope = $('ekp-scope').value;
+  var tm = parseFloat(String($('ekp-tbmin').value).replace(',', '.')); if (tm >= 0 && tm <= 100) c.target.tbMin = tm / 100;
+  var xm = parseFloat(String($('ekp-xs').value).replace(',', '.')); if (xm >= 0 && xm <= 100) c.target.xs = xm / 100;
   return c;
 }
 
 var KHOI_LOP = { '10': ['10a7', '10a9', '10a13'], '11': ['11b11', '11b12', '11b15'] };
 async function loadData() {
   msg('Đang tải số liệu KSCL...');
-  var r = await fetch(apiUrl() + '?action=ksclStats'), j = await r.json();
+  var tok = ''; try { tok = root.sessionStorage.getItem('adminAuthToken') || ''; } catch (e) {}
+  var r = await fetch(apiUrl() + '?action=ksclStats' + (tok ? '&token=' + encodeURIComponent(tok) : '')), j = await r.json();
   if (j && j.success === false) throw new Error(j.message || j.error || 'Máy chủ báo lỗi');
   var d = (j && (j.data || j.result)) || j;
   if (!d || !d.cacLop) throw new Error('Máy chủ không trả số liệu KSCL (kiểm tra action ksclStats)');
@@ -291,7 +295,8 @@ async function loadData() {
 function classesFrom(d) {
   return Object.keys(d.cacLop).map(function (k) {
     var x = d.cacLop[k];
-    return { key: k, lop: x.lop, ds: (x.diemLan1 && x.diemLan1.length ? x.diemLan1.slice() : rebuildScores(x)) };
+    var real = !!(x.diemLan1 && x.diemLan1.length);
+    return { key: k, lop: x.lop, approx: !real, ds: (real ? x.diemLan1.slice() : rebuildScores(x)) };
   });
 }
 
@@ -307,6 +312,8 @@ async function compute() {
     var miss = (d.thieuLop || []);
     msg(ST.plan.feasible ? 'Xong: có ' + ST.plan.feasible + '/' + ST.plan.tested + ' phương án đạt đủ ràng buộc.' :
         'Không phương án nào đạt đủ ràng buộc; hiển thị phương án gần nhất.' , ST.plan.feasible ? 'ok' : 'err');
+    var ap = ST.plan.classes.filter(function (c) { return c.approx; }).map(function (c) { return c.lop; });
+    if (ap.length) msg($('ekp-msg').textContent + ' LƯU Ý: lớp ' + ap.join(', ') + ' đang dùng điểm ƯỚC LƯỢNG (chưa nhận điểm thật từng em: cần đăng nhập Admin và cập nhật Apps Script).', 'err');
     if (miss.length) msg($('ekp-msg').textContent + ' Thiếu dữ liệu lớp: ' + miss.join(', '), 'err');
   } catch (e) { msg(String(e && e.message ? e.message : e), 'err'); }
 }
@@ -319,16 +326,15 @@ function render() {
     Object.keys(c).map(function (t) { return '<tr><td style="border:1px solid #cbd5e1;padding:3px 8px">' + TYPE_NAME[t] + '</td>' + LEVELS.map(function (l) { return '<td style="border:1px solid #cbd5e1;padding:3px 8px;text-align:center">' + c[t][l] + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>');
   var td = 'border:1px solid #cbd5e1;padding:3px 6px;text-align:center';
   var row = function (cells) { return '<tr>' + cells.map(function (v) { return '<td style="' + td + '">' + v + '</td>'; }).join('') + '</tr>'; };
-  var T = ST.cfg.target;
   h.push('<table style="border-collapse:collapse;font-size:13px"><tr>' + ['Lớp', 'HS', 'TB KSCL', 'TB dự báo'].concat(BANDS.map(function (k) { return BAND_NAME[k]; })).map(function (x) { return '<th style="' + td + '">' + x + '</th>'; }).join('') + '</tr>' +
-    row(['<b>Trần yêu cầu</b>', '', '', ''].concat(BANDS.map(function (k) { return '≤ ' + pct(T[k]); }))) +
     p.classes.map(function (x) {
       var s = b.sim.byClass[x.key], tag = x.key === p.weakKey ? ' (yếu nhất)' : x.key === p.strongKey ? ' (giỏi nhất)' : '';
       return row([x.lop + tag, x.ds.length, f1(x.tb), f1(s.mean)].concat(BANDS.map(function (k) { return pct(s[k]); })));
     }).join('') +
-    row(['<b>Toàn khối</b>', p.classes.reduce(function (a, x) { return a + x.ds.length; }, 0), f1(p.mu), f1(b.sim.pooled.mean)].concat(BANDS.map(function (k) { return pct(b.sim.pooled[k]) + ' ' + (b.sim.pooled[k] <= T[k] + T.tol + 1e-9 ? '✔' : '✘'); }))) +
+    row(['<b>Toàn khối</b>', p.classes.reduce(function (a, x) { return a + x.ds.length; }, 0), f1(p.mu), f1(b.sim.pooled.mean)].concat(BANDS.map(function (k) { return pct(b.sim.pooled[k]); }))) +
     '</table>');
-  h.push('<div style="margin-top:6px">Đạt trần (có dung sai) theo phạm vi "' + (T.scope === 'weak' ? 'lớp yếu nhất' : T.scope === 'all' ? 'từng lớp' : 'toàn khối') + '": ' + BANDS.map(function (k) { return BAND_NAME[k] + ' ' + tick(b.pass[k]); }).join(' · ') + '</div>');
+  h.push('<div style="margin-top:6px"><b>Kiểm tra ràng buộc (dự báo, dung sai ' + pct(ST.cfg.target.tol) + '):</b><br>' +
+    b.pass.map(function (c) { return tick(c.ok) + ' Lớp ' + c.lop + ': ' + c.text + ' → dự báo <b>' + pct(c.val) + '</b>'; }).join('<br>') + '</div>');
   h.push('<div style="color:#64748b;font-size:12px;margin-top:4px">Đây là dự báo bằng mô hình, không phải cam kết. Sau khi chấm đề thật, so sánh với bảng trên rồi chỉnh ô "Hiệu chỉnh độ khó".</div>');
   $('ekp-result').innerHTML = h.join('');
 }
@@ -390,8 +396,7 @@ function buildUI() {
     '<div style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">' +
     'Khối <select id="ekp-khoi"><option value="10">10 (A7, A9, A13)</option><option value="11">11 (B11, B12, B15)</option></select>' +
     ' Số câu TN <input id="ekp-n-tn" type="number" value="18" min="0" style="width:52px"> Đ/S <input id="ekp-n-ds" type="number" value="4" min="0" style="width:46px"> TLN <input id="ekp-n-tln" type="number" value="6" min="0" style="width:46px">' +
-    ' Áp trần cho <select id="ekp-scope"><option value="khoi">toàn khối</option><option value="weak">lớp yếu nhất</option><option value="all">từng lớp</option></select>' +
-        ' Hiệu chỉnh độ khó <input id="ekp-shift" type="text" value="0" style="width:46px" title="+ nếu đề thật khó hơn dự báo, − nếu dễ hơn"> Dung sai mỗi mức (điểm %) <input id="ekp-margin" type="text" value="3" style="width:40px"></div>' +
+        ' Hiệu chỉnh độ khó <input id="ekp-shift" type="text" value="0" style="width:46px" title="+ nếu đề thật khó hơn dự báo, − nếu dễ hơn"> Dung sai mỗi mức (điểm %) <input id="ekp-margin" type="text" value="2" style="width:40px"> Sàn mức TB 5–&lt;6,5 của lớp yếu nhất (%) <input id="ekp-tbmin" type="text" value="50" style="width:40px"> Trần mức ≥9 của lớp giỏi nhất (%) <input id="ekp-xs" type="text" value="5" style="width:40px"></div>' +
     '<div>Phạm vi bài (nhãn, cách nhau bởi dấu phẩy; bỏ trống nếu ma trận đã có bài): <input id="ekp-lessons" type="text" style="width:100%;box-sizing:border-box" placeholder="L10-C1-B1, L10-C1-B2"></div>' +
     '<div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap">' +
     '<button id="ekp-go" type="button" style="padding:7px 12px">Tính kế hoạch</button>' +
