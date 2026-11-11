@@ -1,0 +1,961 @@
+{
+ "schema": 2,
+ "nam_hoc": "2026-2027",
+ "bo_sach": "Kết nối tri thức với cuộc sống",
+ "mon": "Vật lí",
+ "nguon": "",
+ "tao_luc": "2026-11-11T23:39:14.811Z",
+ "data": {
+  "L10-B1": {
+   "t": "Bài 1. Làm quen với Vật lí",
+   "y": [
+    "Nêu được đối tượng nghiên cứu của Vật lí học và mục tiêu của môn Vật lí.",
+    "Phân tích được một số ảnh hưởng của vật lí đối với cuộc sống, đối với sự phát triển của khoa học, công nghệ và kĩ thuật.",
+    "Nêu được ví dụ chứng tỏ kiến thức, kĩ năng vật lí được sử dụng trong một số lĩnh vực khác nhau.",
+    "Nêu được một số ví dụ về phương pháp nghiên cứu vật lí (phương pháp thực nghiệm và phương pháp lí thuyết).",
+    "Mô tả được các bước trong tiến trình tìm hiểu thế giới tự nhiên dưới góc độ vật lí."
+   ]
+  },
+  "L10-B2": {
+   "t": "Bài 2. Các quy tắc an toàn trong phòng thực hành Vật lí",
+   "y": [
+    "Thảo luận để nêu được các quy tắc an toàn trong nghiên cứu và học tập môn Vật lí.",
+    "Thảo luận và vẽ được bảng hướng dẫn an toàn trong phòng thí nghiệm Vật lí."
+   ]
+  },
+  "L10-B3": {
+   "t": "Bài 3. Thực hành tính sai số trong phép đo. Ghi kết quả đo",
+   "y": [
+    "Thảo luận để nêu được định nghĩa và công thức tính một số loại sai số đơn giản hay gặp khi đo các đại lượng vật lí và cách khắc phục chúng.",
+    "Giải một số bài tập về tính các loại sai số và ghi kết quả đo."
+   ]
+  },
+  "L10-B4": {
+   "t": "Bài 4. Độ dịch chuyển và quãng đường đi được",
+   "y": [
+    "Từ hình ảnh hoặc ví dụ thực tiễn, định nghĩa được độ dịch chuyển.",
+    "So sánh được quãng đường đi được và độ dịch chuyển.",
+    "Xác định được độ dịch chuyển tổng hợp."
+   ]
+  },
+  "L10-B5": {
+   "t": "Bài 5. Tốc độ và vận tốc",
+   "y": [
+    "Nêu định nghĩa, công thức, phân biệt được tốc độ và vận tốc.",
+    "Xác định được vận tốc tổng hợp.",
+    "Vận dụng giải được bài toán tính tốc độ, vận tốc."
+   ],
+   "n": [
+    "L10-B4"
+   ]
+  },
+  "L10-B6": {
+   "t": "Bài 6. Thực hành đo tốc độ của vật chuyển động",
+   "y": [
+    "Mô tả được một vài phương pháp đo tốc độ thông dụng và đánh giá được ưu, nhược điểm của chúng.",
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được tốc độ bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L10-B3",
+    "L10-B5"
+   ]
+  },
+  "L10-B7": {
+   "t": "Bài 7. Đồ thị độ dịch chuyển – thời gian",
+   "y": [
+    "Vẽ được đồ thị độ dịch chuyển – thời gian.",
+    "Biết cách đọc đồ thị độ dịch chuyển – thời gian (xác định vị trí, vận tốc, thời gian chuyển động...)."
+   ],
+   "n": [
+    "L10-B4",
+    "L10-B5"
+   ]
+  },
+  "L10-B8": {
+   "t": "Bài 8. Chuyển động biến đổi. Gia tốc",
+   "y": [
+    "Định nghĩa được chuyển động biến đổi.",
+    "Thực hiện thí nghiệm và lập luận dựa vào sự biến đổi vận tốc trong chuyển động thẳng, rút ra được công thức tính gia tốc; nêu được ý nghĩa, đơn vị của gia tốc."
+   ],
+   "n": [
+    "L10-B5"
+   ]
+  },
+  "L10-B9": {
+   "t": "Bài 9. Chuyển động thẳng biến đổi đều",
+   "y": [
+    "Thực hiện thí nghiệm (hoặc dựa trên số liệu cho trước), vẽ được đồ thị vận tốc – thời gian trong chuyển động thẳng.",
+    "Vận dụng đồ thị vận tốc – thời gian để tính được độ dịch chuyển và gia tốc trong một số trường hợp đơn giản.",
+    "Rút ra được các công thức của chuyển động thẳng biến đổi đều (không dùng tích phân).",
+    "Vận dụng được các công thức của chuyển động thẳng biến đổi đều."
+   ],
+   "n": [
+    "L10-B4",
+    "L10-B5",
+    "L10-B8"
+   ]
+  },
+  "L10-B10": {
+   "t": "Bài 10. Sự rơi tự do",
+   "y": [
+    "Nêu được định nghĩa, tính chất, công thức của sự rơi tự do.",
+    "Vận dụng giải bài tập về sự rơi tự do."
+   ],
+   "n": [
+    "L10-B8",
+    "L10-B9"
+   ]
+  },
+  "L10-B11": {
+   "t": "Bài 11. Thực hành: Đo gia tốc rơi tự do",
+   "y": [
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được gia tốc rơi tự do bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L10-B3",
+    "L10-B9",
+    "L10-B10"
+   ]
+  },
+  "L10-B12": {
+   "t": "Bài 12. Chuyển động ném",
+   "y": [
+    "Nêu được định nghĩa, quỹ đạo, các công thức tính tầm cao, tầm xa, thời gian của chuyển động ném; vận dụng giải bài tập.",
+    "Thực hiện được dự án hay đề tài nghiên cứu tìm điều kiện ném vật trong không khí ở độ cao nào đó để đạt độ cao hoặc tầm xa lớn nhất."
+   ],
+   "n": [
+    "L10-B5",
+    "L10-B9",
+    "L10-B10"
+   ]
+  },
+  "L10-B13": {
+   "t": "Bài 13. Tổng hợp và phân tích lực. Cân bằng lực",
+   "y": [
+    "Dùng hình vẽ, tổng hợp được các lực trên một mặt phẳng.",
+    "Dùng hình vẽ, phân tích được một lực thành các lực thành phần vuông góc.",
+    "Thảo luận để thiết kế/lựa chọn phương án và thực hiện phương án, tổng hợp được hai lực đồng quy bằng dụng cụ thực hành.",
+    "Thảo luận để thiết kế/lựa chọn phương án và thực hiện phương án, tổng hợp được hai lực song song bằng dụng cụ thực hành.",
+    "Hiểu cặp lực cân bằng."
+   ]
+  },
+  "L10-B14": {
+   "t": "Bài 14. Định luật 1 Newton",
+   "y": [
+    "Phát biểu được định luật 1 Newton và minh hoạ được bằng ví dụ cụ thể."
+   ],
+   "n": [
+    "L10-B13"
+   ]
+  },
+  "L10-B15": {
+   "t": "Bài 15. Định luật 2 Newton",
+   "y": [
+    "Thực hiện thí nghiệm hoặc sử dụng số liệu cho trước để rút ra được a ~ F, a ~ 1/m, từ đó rút ra được biểu thức a = F/m hoặc F = ma (định luật 2 Newton).",
+    "Nêu được khối lượng là đại lượng đặc trưng cho mức quán tính của vật.",
+    "Vận dụng được mối liên hệ đơn vị dẫn xuất với 7 đơn vị cơ bản của hệ SI.",
+    "Mô tả được bằng ví dụ thực tế về lực bằng nhau, không bằng nhau."
+   ],
+   "n": [
+    "L10-B8",
+    "L10-B13",
+    "L10-B14"
+   ]
+  },
+  "L10-B16": {
+   "t": "Bài 16. Định luật 3 Newton",
+   "y": [
+    "Phát biểu được định luật 3 Newton, minh hoạ được bằng ví dụ cụ thể.",
+    "Vận dụng được định luật 3 Newton trong một số trường hợp đơn giản."
+   ],
+   "n": [
+    "L10-B13",
+    "L10-B14",
+    "L10-B15"
+   ]
+  },
+  "L10-B17": {
+   "t": "Bài 17. Trọng lực và lực căng",
+   "y": [
+    "Nêu được: trọng lực tác dụng lên vật là lực hấp dẫn giữa Trái Đất và vật; trọng tâm của vật là điểm đặt của trọng lực; trọng lượng của vật được tính bằng tích khối lượng của vật với gia tốc rơi tự do.",
+    "Mô tả được bằng ví dụ thực tiễn và biểu diễn được bằng hình vẽ: trọng lực, lực căng dây.",
+    "Vận dụng tính trọng lượng P và lực căng T."
+   ],
+   "n": [
+    "L10-B13",
+    "L10-B15"
+   ]
+  },
+  "L10-B18": {
+   "t": "Bài 18. Lực ma sát",
+   "y": [
+    "Mô tả được bằng ví dụ thực tiễn và biểu diễn được bằng hình vẽ lực ma sát.",
+    "Nêu được biểu thức, đơn vị của lực ma sát; hệ số ma sát và lực ma sát phụ thuộc vào yếu tố nào."
+   ],
+   "n": [
+    "L10-B13",
+    "L10-B15"
+   ]
+  },
+  "L10-B19": {
+   "t": "Bài 19. Lực cản và lực nâng",
+   "y": [
+    "Biết môi trường chất lưu là gì; lực cản và lực nâng phụ thuộc vào yếu tố nào.",
+    "Mô tả được bằng ví dụ thực tiễn và biểu diễn được bằng hình vẽ lực cản, lực nâng."
+   ],
+   "n": [
+    "L10-B13",
+    "L10-B15"
+   ]
+  },
+  "L10-B20": {
+   "t": "Bài 20. Một số ví dụ về cách giải các bài toán thuộc phần động lực học",
+   "y": [
+    "Nêu được thế nào là phương pháp động lực học.",
+    "Giải bài toán mẫu; bài tập vận dụng phương pháp động lực học (kết hợp các định luật Newton và các lực cơ học đã học)."
+   ],
+   "bt": [
+    "L10-B13",
+    "L10-B14",
+    "L10-B15",
+    "L10-B16",
+    "L10-B17",
+    "L10-B18",
+    "L10-B19"
+   ]
+  },
+  "L10-B21": {
+   "t": "Bài 21. Moment lực. Cân bằng của vật rắn",
+   "y": [
+    "Nêu được khái niệm moment lực, moment ngẫu lực; nêu được tác dụng của ngẫu lực lên một vật chỉ làm quay vật.",
+    "Phát biểu và vận dụng được quy tắc moment cho một số trường hợp đơn giản trong thực tế.",
+    "Thảo luận để rút ra được điều kiện để vật cân bằng: lực tổng hợp tác dụng lên vật bằng không và tổng moment lực tác dụng lên vật (đối với một điểm bất kì) bằng không."
+   ],
+   "n": [
+    "L10-B13"
+   ]
+  },
+  "L10-B22": {
+   "t": "Bài 22. Thực hành: Tổng hợp lực",
+   "y": [
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, tổng hợp được hai lực song song bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L10-B13",
+    "L10-B21"
+   ]
+  },
+  "L10-B23": {
+   "t": "Bài 23. Năng lượng. Công cơ học",
+   "y": [
+    "Chế tạo mô hình đơn giản minh hoạ được định luật bảo toàn năng lượng, liên quan đến một số dạng năng lượng khác nhau.",
+    "Trình bày được ví dụ chứng tỏ có thể truyền năng lượng từ vật này sang vật khác bằng cách thực hiện công.",
+    "Nêu được biểu thức tính công bằng tích của lực tác dụng và độ dịch chuyển theo phương của lực, nêu được đơn vị đo công là đơn vị đo năng lượng (1 J = 1 Nm); tính được công trong một số trường hợp đơn giản."
+   ],
+   "n": [
+    "L10-B13"
+   ]
+  },
+  "L10-B24": {
+   "t": "Bài 24. Công suất",
+   "y": [
+    "Từ một số tình huống thực tế, thảo luận để nêu được ý nghĩa vật lí và định nghĩa công suất.",
+    "Vận dụng được mối liên hệ công suất (hay tốc độ thực hiện công) với tích của lực và vận tốc trong một số tình huống thực tế.",
+    "Từ tình huống thực tế, thảo luận để nêu được định nghĩa hiệu suất, vận dụng được hiệu suất trong một số trường hợp thực tế."
+   ],
+   "n": [
+    "L10-B23"
+   ]
+  },
+  "L10-B25": {
+   "t": "Bài 25. Động năng và thế năng",
+   "y": [
+    "Từ phương trình chuyển động thẳng biến đổi đều với vận tốc ban đầu bằng không, rút ra động năng của vật có giá trị bằng công của lực tác dụng lên vật.",
+    "Nêu được công thức tính thế năng trong trường trọng lực đều, vận dụng được trong một số trường hợp đơn giản."
+   ],
+   "n": [
+    "L10-B9",
+    "L10-B23"
+   ]
+  },
+  "L10-B26": {
+   "t": "Bài 26. Cơ năng. Định luật bảo toàn cơ năng",
+   "y": [
+    "Phân tích được sự chuyển hoá động năng và thế năng của vật trong một số trường hợp đơn giản.",
+    "Nêu được khái niệm cơ năng; phát biểu được định luật bảo toàn cơ năng và vận dụng được định luật bảo toàn cơ năng trong một số trường hợp đơn giản."
+   ],
+   "n": [
+    "L10-B23",
+    "L10-B25"
+   ]
+  },
+  "L10-B27": {
+   "t": "Bài 27. Hiệu suất",
+   "y": [
+    "Từ tình huống thực tế, thảo luận để nêu được định nghĩa hiệu suất, vận dụng được hiệu suất trong một số trường hợp thực tế."
+   ],
+   "n": [
+    "L10-B23",
+    "L10-B24"
+   ]
+  },
+  "L10-B28": {
+   "t": "Bài 28. Động lượng",
+   "y": [
+    "Nêu được định nghĩa, biểu thức, đơn vị của động lượng và xung của lực.",
+    "Biết cách tính động lượng của một vật hoặc hệ vật.",
+    "Liên hệ được xung lượng với độ biến thiên động lượng; vận dụng công thức giải bài tập."
+   ],
+   "n": [
+    "L10-B15"
+   ]
+  },
+  "L10-B29": {
+   "t": "Bài 29. Định luật bảo toàn động lượng",
+   "y": [
+    "Từ tình huống thực tế, thảo luận để nêu được ý nghĩa vật lí và định nghĩa động lượng.",
+    "Vận dụng được định luật bảo toàn động lượng trong một số trường hợp đơn giản.",
+    "Thực hiện thí nghiệm và thảo luận được sự thay đổi năng lượng trong một số trường hợp va chạm đơn giản; thảo luận để giải thích được một số hiện tượng."
+   ],
+   "n": [
+    "L10-B16",
+    "L10-B28"
+   ]
+  },
+  "L10-B30": {
+   "t": "Bài 30. Thực hành: Xác định động lượng của vật trước và sau va chạm",
+   "y": [
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án, thực hiện phương án, xác định được tốc độ và đánh giá được động lượng của vật trước và sau va chạm bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L10-B28",
+    "L10-B29"
+   ]
+  },
+  "L10-B31": {
+   "t": "Bài 31. Động học của chuyển động tròn đều",
+   "y": [
+    "Từ tình huống thực tế, thảo luận để nêu được định nghĩa radian và biểu diễn được độ dịch chuyển góc theo radian.",
+    "Vận dụng được khái niệm tốc độ góc."
+   ],
+   "n": [
+    "L10-B5"
+   ],
+   "g": "Gồm các đại lượng cơ bản của chuyển động tròn đều: chu kì, tần số, tốc độ dài, tốc độ góc."
+  },
+  "L10-B32": {
+   "t": "Bài 32. Lực hướng tâm và gia tốc hướng tâm",
+   "y": [
+    "Vận dụng được biểu thức gia tốc hướng tâm a = rω², a = v²/r.",
+    "Nêu được khái niệm lực hướng tâm (không phải là một lực cơ học mới mà là lực hoặc tổng hợp các lực gây ra gia tốc hướng tâm).",
+    "Vận dụng được biểu thức lực hướng tâm F = mrω², F = mv²/r.",
+    "Thảo luận và đề xuất giải pháp an toàn cho một số tình huống chuyển động tròn trong thực tế."
+   ],
+   "n": [
+    "L10-B15",
+    "L10-B31"
+   ]
+  },
+  "L10-B33": {
+   "t": "Bài 33. Biến dạng của vật rắn",
+   "y": [
+    "Thực hiện thí nghiệm đơn giản (hoặc sử dụng tài liệu đa phương tiện), nêu được sự biến dạng kéo, biến dạng nén; mô tả được các đặc tính của lò xo: giới hạn đàn hồi, độ dãn, độ cứng.",
+    "Nêu được định luật Hooke; vận dụng được định luật Hooke giải bài tập."
+   ],
+   "n": [
+    "L10-B15"
+   ]
+  },
+  "L10-B34": {
+   "t": "Bài 34. Khối lượng riêng. Áp suất chất lỏng",
+   "y": [
+    "Nêu được khối lượng riêng của một chất là khối lượng của một đơn vị thể tích của chất đó.",
+    "Thành lập và vận dụng được phương trình Δp = ρgΔh trong một số trường hợp đơn giản; đề xuất thiết kế được mô hình minh hoạ."
+   ]
+  },
+  "L11-B1": {
+   "t": "Bài 1. Dao động điều hòa",
+   "y": [
+    "Thực hiện thí nghiệm đơn giản tạo ra được dao động và mô tả được một số ví dụ đơn giản về dao động tự do.",
+    "Dùng đồ thị li độ – thời gian có dạng hình sin (tạo ra bằng thí nghiệm, hoặc hình vẽ cho trước), nêu được định nghĩa: biên độ, chu kì, tần số, tần số góc, độ lệch pha."
+   ]
+  },
+  "L11-B2": {
+   "t": "Bài 2. Mô tả dao động điều hòa",
+   "y": [
+    "Vận dụng được các khái niệm: biên độ, chu kì, tần số, tần số góc, độ lệch pha để mô tả dao động điều hoà."
+   ],
+   "n": [
+    "L11-B1"
+   ]
+  },
+  "L11-B3": {
+   "t": "Bài 3. Vận tốc, gia tốc trong dao động điều hòa",
+   "y": [
+    "Sử dụng đồ thị, phân tích và thực hiện phép tính cần thiết để xác định được: độ dịch chuyển, vận tốc và gia tốc trong dao động điều hoà.",
+    "Vận dụng được các phương trình về li độ, vận tốc, gia tốc của dao động điều hoà.",
+    "Vận dụng được phương trình a = –ω²x của dao động điều hoà."
+   ],
+   "n": [
+    "L11-B1",
+    "L11-B2"
+   ]
+  },
+  "L11-B4": {
+   "t": "Bài 4. Bài tập về dao động điều hòa",
+   "y": [
+    "Xác định các đại lượng biên độ, chu kì, tần số, tần số góc, pha... khi biết phương trình hoặc đồ thị của vật dao động điều hoà và ngược lại."
+   ],
+   "bt": [
+    "L11-B1",
+    "L11-B2",
+    "L11-B3"
+   ]
+  },
+  "L11-B5": {
+   "t": "Bài 5. Động năng, thế năng. Sự chuyển hóa giữa động năng và thế năng trong dao động điều hòa",
+   "y": [
+    "Sử dụng đồ thị, phân tích và thực hiện phép tính cần thiết để mô tả được sự chuyển hoá động năng và thế năng trong dao động điều hoà."
+   ],
+   "n": [
+    "L11-B1",
+    "L11-B2",
+    "L11-B3"
+   ]
+  },
+  "L11-B6": {
+   "t": "Bài 6. Dao động tắt dần. Dao động cưỡng bức. Hiện tượng cộng hưởng",
+   "y": [
+    "Nêu được ví dụ thực tế về dao động tắt dần, dao động cưỡng bức và hiện tượng cộng hưởng.",
+    "Thảo luận, đánh giá được sự có lợi hay có hại của cộng hưởng trong một số trường hợp cụ thể."
+   ],
+   "n": [
+    "L11-B1",
+    "L11-B2"
+   ]
+  },
+  "L11-B7": {
+   "t": "Bài 7. Bài tập về sự chuyển hóa năng lượng trong dao động điều hòa",
+   "y": [
+    "Xác định các đại lượng vận tốc, gia tốc, năng lượng, động năng, thế năng... khi biết phương trình hoặc đồ thị của vật dao động điều hoà và ngược lại."
+   ],
+   "bt": [
+    "L11-B1",
+    "L11-B2",
+    "L11-B3",
+    "L11-B4",
+    "L11-B5"
+   ]
+  },
+  "L11-B8": {
+   "t": "Bài 8. Mô tả sóng",
+   "y": [
+    "Từ đồ thị độ dịch chuyển – khoảng cách (tạo ra bằng thí nghiệm, hoặc hình vẽ cho trước), mô tả được sóng qua các khái niệm bước sóng, biên độ, tần số, tốc độ và cường độ sóng.",
+    "Từ định nghĩa của vận tốc, tần số và bước sóng, rút ra được biểu thức v = λf.",
+    "Vận dụng được biểu thức v = λf.",
+    "Nêu được ví dụ chứng tỏ sóng truyền năng lượng.",
+    "Sử dụng mô hình sóng giải thích được một số tính chất đơn giản của âm thanh và ánh sáng.",
+    "Thực hiện thí nghiệm (hoặc sử dụng tài liệu đa phương tiện), thảo luận để nêu được mối liên hệ các đại lượng đặc trưng của sóng với các đại lượng đặc trưng cho dao động của phần tử môi trường."
+   ],
+   "n": [
+    "L11-B1",
+    "L11-B2",
+    "L11-B3"
+   ]
+  },
+  "L11-B9": {
+   "t": "Bài 9. Sóng ngang, sóng dọc. Sự truyền năng lượng của sóng cơ",
+   "y": [
+    "Quan sát hình ảnh (hoặc tài liệu đa phương tiện) về chuyển động của phần tử môi trường, thảo luận để so sánh được sóng dọc và sóng ngang."
+   ],
+   "n": [
+    "L11-B1",
+    "L11-B2",
+    "L11-B3",
+    "L11-B8"
+   ],
+   "g": "Tên bài có cụm 'Sự truyền năng lượng của sóng cơ' nên câu định tính về việc sóng truyền năng lượng cũng được chấp nhận."
+  },
+  "L11-B10": {
+   "t": "Bài 10. Thực hành đo tần số của sóng âm",
+   "y": [
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được tần số của sóng âm bằng dao động kí hoặc dụng cụ thực hành."
+   ],
+   "n": [
+    "L11-B8",
+    "L11-B9"
+   ]
+  },
+  "L11-B11": {
+   "t": "Bài 11. Sóng điện từ",
+   "y": [
+    "Nêu được trong chân không, tất cả các sóng điện từ đều truyền với cùng tốc độ.",
+    "Liệt kê được bậc độ lớn bước sóng của các bức xạ chủ yếu trong thang sóng điện từ."
+   ],
+   "n": [
+    "L11-B8",
+    "L11-B9"
+   ]
+  },
+  "L11-B12": {
+   "t": "Bài 12. Giao thoa sóng",
+   "y": [
+    "Thực hiện (hoặc mô tả) được thí nghiệm chứng minh sự giao thoa hai sóng kết hợp bằng dụng cụ thực hành sử dụng sóng nước (hoặc sóng ánh sáng).",
+    "Phân tích, đánh giá kết quả thu được từ thí nghiệm, nêu được các điều kiện cần thiết để quan sát được hệ vân giao thoa.",
+    "Vận dụng được biểu thức i = λD/a cho giao thoa ánh sáng qua hai khe hẹp."
+   ],
+   "n": [
+    "L11-B8",
+    "L11-B9"
+   ]
+  },
+  "L11-B13": {
+   "t": "Bài 13. Sóng dừng",
+   "y": [
+    "Thực hiện thí nghiệm tạo sóng dừng và giải thích được sự hình thành sóng dừng.",
+    "Sử dụng hình ảnh (tạo ra bằng thí nghiệm, hoặc hình vẽ cho trước), xác định được nút và bụng của sóng dừng.",
+    "Sử dụng các cách biểu diễn đại số và đồ thị để phân tích, xác định được vị trí nút và bụng của sóng dừng."
+   ],
+   "n": [
+    "L11-B8",
+    "L11-B9"
+   ]
+  },
+  "L11-B14": {
+   "t": "Bài 14. Bài tập về sóng",
+   "y": [
+    "Xác định các đại lượng đặc trưng (chu kì, bước sóng, tốc độ truyền sóng,...) khi biết phương trình hoặc đồ thị của sóng và ngược lại."
+   ],
+   "bt": [
+    "L11-B8",
+    "L11-B9",
+    "L11-B10",
+    "L11-B11",
+    "L11-B12",
+    "L11-B13"
+   ]
+  },
+  "L11-B15": {
+   "t": "Bài 15. Đo tốc độ truyền âm",
+   "y": [
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được tốc độ truyền âm bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L11-B8",
+    "L11-B9",
+    "L11-B10",
+    "L11-B13"
+   ]
+  },
+  "L11-B16": {
+   "t": "Bài 16. Lực tương tác giữa hai điện tích",
+   "y": [
+    "Thực hiện thí nghiệm hoặc bằng ví dụ thực tế, mô tả được sự hút (hoặc đẩy) của một điện tích vào một điện tích khác.",
+    "Phát biểu được định luật Coulomb và nêu được đơn vị đo điện tích.",
+    "Sử dụng biểu thức F = q₁q₂/(4πε₀r²), tính và mô tả được lực tương tác giữa hai điện tích điểm đặt trong chân không (hoặc trong không khí)."
+   ]
+  },
+  "L11-B17": {
+   "t": "Bài 17. Khái niệm điện trường",
+   "y": [
+    "Nêu được khái niệm điện trường là trường lực được tạo ra bởi điện tích, là dạng vật chất tồn tại quanh điện tích và truyền tương tác giữa các điện tích.",
+    "Sử dụng biểu thức E = Q/(4πε₀r²), tính và mô tả được cường độ điện trường do một điện tích điểm Q đặt trong chân không hoặc trong không khí gây ra tại một điểm cách nó một khoảng r.",
+    "Nêu được ý nghĩa của cường độ điện trường và định nghĩa được cường độ điện trường tại một điểm được đo bằng tỉ số giữa lực tác dụng lên một điện tích dương đặt tại điểm đó và độ lớn của điện tích đó.",
+    "Dùng dụng cụ tạo ra (hoặc vẽ) được điện phổ trong một số trường hợp đơn giản."
+   ],
+   "n": [
+    "L11-B16"
+   ]
+  },
+  "L11-B18": {
+   "t": "Bài 18. Điện trường đều",
+   "y": [
+    "Sử dụng biểu thức E = U/d, tính được cường độ của điện trường đều giữa hai bản phẳng nhiễm điện đặt song song, xác định được lực tác dụng lên điện tích đặt trong điện trường đều.",
+    "Thảo luận để mô tả được tác dụng của điện trường đều lên chuyển động của điện tích bay vào điện trường đều theo phương vuông góc với đường sức và nêu được ví dụ về ứng dụng của hiện tượng này."
+   ],
+   "n": [
+    "L11-B16",
+    "L11-B17"
+   ]
+  },
+  "L11-B19": {
+   "t": "Bài 19. Thế năng điện",
+   "y": [
+    "Nêu được thế năng của một điện tích q trong điện trường đặc trưng cho khả năng sinh công của điện trường khi đặt điện tích q tại điểm đang xét."
+   ],
+   "n": [
+    "L11-B16",
+    "L11-B17",
+    "L11-B18"
+   ]
+  },
+  "L11-B20": {
+   "t": "Bài 20. Điện thế",
+   "y": [
+    "Thảo luận qua quan sát hình ảnh (hoặc tài liệu đa phương tiện) nêu được điện thế tại một điểm trong điện trường đặc trưng cho điện trường tại điểm đó về thế năng, được xác định bằng công dịch chuyển một đơn vị điện tích dương từ vô cực về điểm đó.",
+    "Vận dụng được mối liên hệ thế năng điện với điện thế V = A/q; mối liên hệ cường độ điện trường với điện thế."
+   ],
+   "n": [
+    "L11-B16",
+    "L11-B17",
+    "L11-B18",
+    "L11-B19"
+   ]
+  },
+  "L11-B21": {
+   "t": "Bài 21. Tụ điện",
+   "y": [
+    "Định nghĩa được điện dung và đơn vị đo điện dung (fara).",
+    "Vận dụng được (không yêu cầu thiết lập) công thức điện dung của bộ tụ điện ghép nối tiếp, ghép song song.",
+    "Thảo luận để xây dựng được biểu thức tính năng lượng tụ điện.",
+    "Lựa chọn và sử dụng thông tin để xây dựng được báo cáo tìm hiểu một số ứng dụng của tụ điện trong cuộc sống."
+   ],
+   "n": [
+    "L11-B17",
+    "L11-B18",
+    "L11-B20"
+   ]
+  },
+  "L11-B22": {
+   "t": "Bài 22. Cường độ dòng điện",
+   "y": [
+    "Thực hiện thí nghiệm (hoặc dựa vào tài liệu đa phương tiện), nêu được cường độ dòng điện đặc trưng cho tác dụng mạnh yếu của dòng điện và được xác định bằng điện lượng chuyển qua tiết diện thẳng của vật dẫn trong một đơn vị thời gian.",
+    "Vận dụng được biểu thức I = Snve cho dây dẫn có dòng điện, với n là mật độ hạt mang điện, S là tiết diện thẳng của dây, v là tốc độ dịch chuyển của hạt mang điện tích e.",
+    "Định nghĩa được đơn vị đo điện lượng coulomb là lượng điện tích chuyển qua tiết diện thẳng của dây dẫn trong 1 s khi có cường độ dòng điện 1 A chạy qua dây dẫn."
+   ]
+  },
+  "L11-B23": {
+   "t": "Bài 23. Điện trở. Định luật Ôm",
+   "y": [
+    "Định nghĩa được điện trở, đơn vị đo điện trở và nêu được các nguyên nhân chính gây ra điện trở.",
+    "Vẽ phác và thảo luận được về đường đặc trưng I – U của vật dẫn kim loại ở nhiệt độ xác định.",
+    "Mô tả được sơ lược ảnh hưởng của nhiệt độ lên điện trở của đèn sợi đốt, điện trở nhiệt (thermistor).",
+    "Phát biểu được định luật Ohm cho vật dẫn kim loại."
+   ],
+   "n": [
+    "L11-B22"
+   ]
+  },
+  "L11-B24": {
+   "t": "Bài 24. Nguồn điện",
+   "y": [
+    "Định nghĩa được suất điện động qua năng lượng dịch chuyển một điện tích đơn vị theo vòng kín.",
+    "Mô tả được ảnh hưởng của điện trở trong của nguồn điện lên hiệu điện thế giữa hai cực của nguồn.",
+    "So sánh được suất điện động và hiệu điện thế."
+   ],
+   "n": [
+    "L11-B22",
+    "L11-B23"
+   ]
+  },
+  "L11-B25": {
+   "t": "Bài 25. Năng lượng điện và công suất điện",
+   "y": [
+    "Nêu được năng lượng điện tiêu thụ của đoạn mạch được đo bằng công của lực điện thực hiện khi dịch chuyển các điện tích; công suất tiêu thụ năng lượng điện của một đoạn mạch là năng lượng điện mà đoạn mạch tiêu thụ trong một đơn vị thời gian.",
+    "Tính được năng lượng điện và công suất tiêu thụ năng lượng điện của đoạn mạch."
+   ],
+   "n": [
+    "L11-B22",
+    "L11-B23",
+    "L11-B24"
+   ]
+  },
+  "L11-B26": {
+   "t": "Bài 26. Đo suất điện động và điện trở trong của pin điện hóa",
+   "y": [
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được suất điện động và điện trở trong của pin hoặc acquy bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L11-B22",
+    "L11-B23",
+    "L11-B24",
+    "L11-B25"
+   ]
+  },
+  "L12-B1": {
+   "t": "Bài 1. Cấu trúc của chất. Sự chuyển thể",
+   "y": [
+    "Sử dụng mô hình động học phân tử, nêu được sơ lược cấu trúc của chất rắn, chất lỏng, chất khí.",
+    "Giải thích được sơ lược một số hiện tượng vật lí liên quan đến sự chuyển thể: sự nóng chảy, sự hóa hơi."
+   ]
+  },
+  "L12-B2": {
+   "t": "Bài 2. Nội năng. Định luật I của nhiệt động lực học",
+   "y": [
+    "Thực hiện thí nghiệm, nêu được mối liên hệ nội năng của vật với năng lượng của các phân tử cấu tạo nên vật, định luật 1 của nhiệt động lực học.",
+    "Vận dụng được định luật 1 của nhiệt động lực học trong một số trường hợp đơn giản."
+   ],
+   "n": [
+    "L12-B1"
+   ]
+  },
+  "L12-B3": {
+   "t": "Bài 3. Nhiệt độ. Thang nhiệt độ – Nhiệt kế",
+   "y": [
+    "Thực hiện thí nghiệm đơn giản, thảo luận để nêu được sự chênh lệch nhiệt độ giữa hai vật tiếp xúc nhau cho biết chiều truyền năng lượng nhiệt giữa chúng; khi hai vật tiếp xúc với nhau ở cùng nhiệt độ thì không có sự truyền năng lượng nhiệt giữa chúng.",
+    "Thảo luận để nêu được mỗi độ chia (1 °C) trong thang Celsius bằng 1/100 khoảng cách giữa nhiệt độ tan chảy của nước tinh khiết đóng băng và nhiệt độ sôi của nước tinh khiết (ở áp suất tiêu chuẩn); mỗi độ chia (1 K) trong thang Kelvin bằng 1/273,16 khoảng cách giữa nhiệt độ không tuyệt đối và nhiệt độ điểm ba của nước.",
+    "Nêu được nhiệt độ không tuyệt đối là nhiệt độ mà tại đó tất cả các chất có động năng chuyển động nhiệt của các phân tử hoặc nguyên tử bằng không và thế năng của chúng là tối thiểu.",
+    "Chuyển đổi được nhiệt độ đo theo thang Celsius sang nhiệt độ đo theo thang Kelvin và ngược lại."
+   ]
+  },
+  "L12-B4": {
+   "t": "Bài 4. Nhiệt dung riêng",
+   "y": [
+    "Nêu được định nghĩa nhiệt dung riêng.",
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được nhiệt dung riêng bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L12-B2",
+    "L12-B3"
+   ]
+  },
+  "L12-B5": {
+   "t": "Bài 5. Nhiệt nóng chảy riêng",
+   "y": [
+    "Nêu được định nghĩa nhiệt nóng chảy riêng.",
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được nhiệt nóng chảy riêng bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L12-B1",
+    "L12-B2",
+    "L12-B3",
+    "L12-B4"
+   ]
+  },
+  "L12-B6": {
+   "t": "Bài 6. Nhiệt hóa hơi riêng",
+   "y": [
+    "Nêu được định nghĩa nhiệt hoá hơi riêng.",
+    "Thảo luận để thiết kế phương án hoặc lựa chọn phương án và thực hiện phương án, đo được nhiệt hoá hơi riêng bằng dụng cụ thực hành."
+   ],
+   "n": [
+    "L12-B1",
+    "L12-B2",
+    "L12-B3",
+    "L12-B4"
+   ]
+  },
+  "L12-B7": {
+   "t": "Bài 7. Bài tập về vật lí nhiệt",
+   "y": [
+    "Trình bày được những kiến thức cơ bản đã học trong Chương I Vật lí nhiệt.",
+    "Biết cách giải các bài tập định tính và định lượng có liên quan đến các kiến thức của chương."
+   ],
+   "bt": [
+    "L12-B1",
+    "L12-B2",
+    "L12-B3",
+    "L12-B4",
+    "L12-B5",
+    "L12-B6"
+   ]
+  },
+  "L12-B8": {
+   "t": "Bài 8. Mô hình động học phân tử chất khí",
+   "y": [
+    "Phân tích mô hình chuyển động Brown, nêu được các phân tử trong chất khí chuyển động hỗn loạn.",
+    "Từ kết quả thực nghiệm và mô hình nêu được thuyết động học phân tử chất khí."
+   ],
+   "n": [
+    "L12-B1"
+   ]
+  },
+  "L12-B9": {
+   "t": "Bài 9. Định luật Boyle",
+   "y": [
+    "Thực hiện thí nghiệm khảo sát được định luật Boyle: khi giữ không đổi nhiệt độ của một khối lượng khí xác định thì áp suất gây ra bởi khí tỉ lệ nghịch với thể tích của nó."
+   ],
+   "n": [
+    "L12-B8"
+   ]
+  },
+  "L12-B10": {
+   "t": "Bài 10. Định luật Charles",
+   "y": [
+    "Thực hiện thí nghiệm minh hoạ được định luật Charles: khi giữ không đổi áp suất của một khối lượng khí xác định thì thể tích của khí tỉ lệ với nhiệt độ tuyệt đối của nó."
+   ],
+   "n": [
+    "L12-B3",
+    "L12-B8",
+    "L12-B9"
+   ]
+  },
+  "L12-B11": {
+   "t": "Bài 11. Phương trình trạng thái khí lí tưởng",
+   "y": [
+    "Sử dụng định luật Boyle và định luật Charles rút ra được phương trình trạng thái của khí lí tưởng.",
+    "Vận dụng được phương trình trạng thái của khí lí tưởng."
+   ],
+   "n": [
+    "L12-B3",
+    "L12-B8",
+    "L12-B9",
+    "L12-B10"
+   ]
+  },
+  "L12-B12": {
+   "t": "Bài 12. Áp suất khí theo mô hình động học phân tử. Quan hệ giữa động năng phân tử và nhiệt độ",
+   "y": [
+    "Giải thích được chuyển động của các phân tử ảnh hưởng như thế nào đến áp suất tác dụng lên thành bình và từ đó rút ra được hệ thức p = (1/3)·n·m·v̄² với n là số phân tử trong một đơn vị thể tích (không yêu cầu chứng minh chính xác và chi tiết).",
+    "Nêu được biểu thức hằng số Boltzmann, k = R/N_A.",
+    "So sánh pV = (1/3)·N·m·v̄² với pV = nRT, rút ra được động năng tịnh tiến trung bình của phân tử tỉ lệ với nhiệt độ T."
+   ],
+   "n": [
+    "L12-B8",
+    "L12-B11"
+   ]
+  },
+  "L12-B13": {
+   "t": "Bài 13. Bài tập về khí lí tưởng",
+   "y": [
+    "Vận dụng phương trình trạng thái của khí lí tưởng giải thích được hiện tượng, nguyên lí hoạt động của một số thiết bị trong cuộc sống.",
+    "Áp dụng được phương trình trạng thái của khí lí tưởng để giải một số bài tập định lượng: tính toán tìm đại lượng, bài tập liên quan đến đồ thị...",
+    "Phân tích được bảng số liệu nghiên cứu một quá trình biến đổi trạng thái nào đó (đẳng áp, đẳng nhiệt, đẳng tích) để tìm ra quy luật, xử lí số liệu, rút ra kết luận, vẽ đồ thị."
+   ],
+   "bt": [
+    "L12-B8",
+    "L12-B9",
+    "L12-B10",
+    "L12-B11",
+    "L12-B12"
+   ]
+  },
+  "L12-B14": {
+   "t": "Bài 14. Từ trường",
+   "y": [
+    "Thực hiện thí nghiệm tạo ra được các đường sức từ bằng các dụng cụ đơn giản.",
+    "Nêu được từ trường là trường lực gây ra bởi dòng điện hoặc nam châm, là một dạng của vật chất tồn tại xung quanh dòng điện hoặc nam châm mà biểu hiện cụ thể là sự xuất hiện của lực từ tác dụng lên một dòng điện hay một nam châm đặt trong đó."
+   ]
+  },
+  "L12-B15": {
+   "t": "Bài 15. Lực từ tác dụng lên dây dẫn mang dòng điện. Cảm ứng từ",
+   "y": [
+    "Thực hiện thí nghiệm để mô tả được hướng của lực từ tác dụng lên đoạn dây dẫn mang dòng điện đặt trong từ trường.",
+    "Xác định được độ lớn và hướng của lực từ tác dụng lên đoạn dây dẫn mang dòng điện đặt trong từ trường.",
+    "Định nghĩa được cảm ứng từ B và đơn vị tesla.",
+    "Nêu được đơn vị cơ bản và dẫn xuất để đo các đại lượng từ.",
+    "Vận dụng được biểu thức tính lực F = BILsinθ."
+   ],
+   "n": [
+    "L12-B14"
+   ]
+  },
+  "L12-B16": {
+   "t": "Bài 16. Từ thông. Hiện tượng cảm ứng điện từ",
+   "y": [
+    "Định nghĩa được từ thông và đơn vị weber.",
+    "Tiến hành các thí nghiệm đơn giản minh hoạ được hiện tượng cảm ứng điện từ.",
+    "Vận dụng được định luật Faraday và định luật Lenz về cảm ứng điện từ.",
+    "Giải thích được một số ứng dụng đơn giản của hiện tượng cảm ứng điện từ."
+   ],
+   "n": [
+    "L12-B14",
+    "L12-B15"
+   ]
+  },
+  "L12-B17": {
+   "t": "Bài 17. Máy phát điện xoay chiều",
+   "y": [
+    "Thảo luận để thiết kế phương án (hoặc mô tả được phương pháp) tạo ra dòng điện xoay chiều.",
+    "Nêu được: chu kì, tần số, giá trị cực đại, giá trị hiệu dụng của cường độ dòng điện và điện áp xoay chiều.",
+    "Thảo luận để nêu được một số ứng dụng của dòng điện xoay chiều trong cuộc sống, tầm quan trọng của việc tuân thủ quy tắc an toàn khi sử dụng dòng điện xoay chiều trong cuộc sống."
+   ],
+   "n": [
+    "L12-B16"
+   ]
+  },
+  "L12-B18": {
+   "t": "Bài 18. Ứng dụng hiện tượng cảm ứng điện từ",
+   "y": [
+    "Vận dụng định luật Faraday và định luật Lenz để giải thích được một số ứng dụng của hiện tượng cảm ứng điện từ trong cuộc sống như phanh điện từ, bếp từ, sạc điện thoại không dây,..."
+   ],
+   "n": [
+    "L12-B16",
+    "L12-B17"
+   ]
+  },
+  "L12-B19": {
+   "t": "Bài 19. Điện từ trường. Mô hình sóng điện từ",
+   "y": [
+    "Mô tả được mô hình sóng điện từ và ứng dụng để giải thích sự tạo thành và lan truyền của các sóng điện từ trong thang sóng điện từ."
+   ],
+   "n": [
+    "L12-B14",
+    "L12-B16"
+   ]
+  },
+  "L12-B20": {
+   "t": "Bài 20. Bài tập về từ trường",
+   "y": [
+    "Vận dụng các kiến thức về từ trường, lực từ tác dụng lên đoạn dây dẫn thẳng mang dòng điện, cảm ứng từ, dòng điện xoay chiều, sóng điện từ để giải các bài tập có liên quan."
+   ],
+   "bt": [
+    "L12-B14",
+    "L12-B15",
+    "L12-B16",
+    "L12-B17",
+    "L12-B18",
+    "L12-B19"
+   ]
+  },
+  "L12-B21": {
+   "t": "Bài 21. Cấu trúc hạt nhân",
+   "y": [
+    "Rút ra được sự tồn tại và đánh giá được kích thước của hạt nhân từ phân tích kết quả thí nghiệm tán xạ hạt α.",
+    "Biểu diễn được kí hiệu hạt nhân của nguyên tử bằng số nucleon và số proton.",
+    "Mô tả được mô hình đơn giản của nguyên tử gồm proton, neutron và electron."
+   ]
+  },
+  "L12-B22": {
+   "t": "Bài 22. Phản ứng hạt nhân và năng lượng liên kết",
+   "y": [
+    "Viết được đúng phương trình phân rã hạt nhân đơn giản.",
+    "Thảo luận hệ thức E = mc², nêu được liên hệ giữa khối lượng và năng lượng.",
+    "Nêu được mối liên hệ giữa năng lượng liên kết riêng và độ bền vững của hạt nhân.",
+    "Nêu được sự phân hạch và sự tổng hợp hạt nhân."
+   ],
+   "n": [
+    "L12-B21"
+   ]
+  },
+  "L12-B23": {
+   "t": "Bài 23. Hiện tượng phóng xạ",
+   "y": [
+    "Nêu được bản chất tự phát và ngẫu nhiên của sự phân rã phóng xạ.",
+    "Định nghĩa được độ phóng xạ, hằng số phóng xạ và vận dụng được liên hệ H = λN.",
+    "Vận dụng được công thức x = x₀e^(–λt), với x là độ phóng xạ, số hạt chưa phân rã hoặc tốc độ số hạt đếm được.",
+    "Định nghĩa được chu kì bán rã.",
+    "Mô tả được sơ lược một số tính chất của các phóng xạ α, β và γ.",
+    "Nhận biết được dấu hiệu vị trí có phóng xạ thông qua các biển báo; nêu được các nguyên tắc an toàn phóng xạ."
+   ],
+   "n": [
+    "L12-B21",
+    "L12-B22"
+   ]
+  },
+  "L12-B24": {
+   "t": "Bài 24. Công nghiệp hạt nhân",
+   "y": [
+    "Nêu được ví dụ về vai trò và ứng dụng phóng xạ của một số ngành công nghiệp hạt nhân trong đời sống.",
+    "Giải thích được vì sao cần khai thác năng lượng hạt nhân vào mục đích hoà bình."
+   ],
+   "n": [
+    "L12-B21",
+    "L12-B22",
+    "L12-B23"
+   ]
+  },
+  "L12-B25": {
+   "t": "Bài 25. Bài tập về vật lí hạt nhân",
+   "y": [
+    "Vận dụng các kiến thức về cấu trúc hạt nhân, phản ứng hạt nhân, phóng xạ và ứng dụng công nghệ hạt nhân để giải các bài tập."
+   ],
+   "bt": [
+    "L12-B21",
+    "L12-B22",
+    "L12-B23",
+    "L12-B24"
+   ]
+  }
+ }
+}
