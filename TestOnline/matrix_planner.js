@@ -275,12 +275,15 @@
       var k = q.grade + '_' + q.chapter + '_' + lesson;
       (idx[k] = idx[k] || []).push({ type: type, level: q.level, q: q });
     });
-    var tfCount = opts.tfCount || function (list) { return list.length * 4; };   // mặc định 4 ý/câu; trong trang dùng tfCountItems
+    // Đúng/Sai tính theo ý: nếu trang có tfCountItems(câuCủaBài, mức) thì truyền vào opts.tfCountLesson; không thì tạm tính 4 ý/câu
+    var tfLesson = opts.tfCountLesson || null;
     return {
       chapterOf: function (grade, lesson) { return chapterOf[grade + '|' + lesson]; },
       avail: function (key, type, level) {
-        var list = (idx[key] || []).filter(function (x) { return x.type === type && x.level === level; });
-        return type === 'trueFalse' ? tfCount(list.map(function (x) { return x.q; }), level) : list.length;
+        var all = idx[key] || [];
+        if (type === 'trueFalse' && tfLesson) return tfLesson(all.map(function (x) { return x.q; }), level) || 0;
+        var n = all.filter(function (x) { return x.type === type && x.level === level; }).length;
+        return type === 'trueFalse' ? n * 4 : n;
       }
     };
   }
