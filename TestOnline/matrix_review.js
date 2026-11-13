@@ -1,5 +1,5 @@
 /* ============================================================
- * matrix_review.js (bản 2: thêm Hẹn gửi tự động) - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
+ * matrix_review.js (bản 3: thêm Hẹn gửi tự động, chuyển mẫu điểm TX/GK khi Duyệt) - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
  * Cần nạp SAU matrix_planner.js. Đặt trên GitHub pnhung72/physics-assets/TestOnline/,
  * nối vào TestOline bằng thẻ <script> ở cuối file (như luyende_drive.js).
  *
@@ -197,6 +197,19 @@
   }
   function refreshStats() { var el = document.getElementById('mxr-stats'); if (el) el.innerHTML = statsHtml(); }
 
+  // Chuyen mau diem cua trang cho khop loai bai vua duyet (TX: 0,5 / 0,75 moi y / 3,0 ; GK-CK: mau mac dinh)
+  function applyScoring() {
+    try {
+      var ES = root.ExamScoring;
+      if (!ES) return;
+      if (kindOf(S.taskType) === 'TX') {
+        var u = P.PRESETS.TX.unit, t = u.trueFalse;
+        ES.apply({ preset: 'custom', mc: u.multipleChoice, tf: [t, t * 2, t * 3, t * 4], sa: u.essay, es: u.essay });
+      } else {
+        ES.applyFrom(null);
+      }
+    } catch (e) { console.warn('[MXR] ExamScoring', e); }
+  }
   function approve() {
     if (!S.matrix) return;
     var m = JSON.parse(JSON.stringify(S.matrix)), n = S.notices[S.idx];
@@ -207,6 +220,7 @@
       if (ti) { ti.value = S.taskType; ti.dispatchEvent(new Event('input', { bubbles: true })); }
       var g = document.getElementById('grade');
       if (g && n) g.value = String(n.grade);
+      applyScoring();
       ['displayMatrix', 'updateMatrixStatus', 'updateActionButtonsState'].forEach(function (f) {
         try { if (typeof root[f] === 'function') root[f](); } catch (e) { console.warn('[MXR] ' + f, e); }
       });
