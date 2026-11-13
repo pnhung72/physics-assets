@@ -15,7 +15,7 @@
   if (!P) { console.warn('[MXR] Chưa nạp matrix_planner.js'); return; }
 
   var LS_URL = 'mxr_lbg_url', LS_KEY = 'mxr_lbg_key';
-  var AUTH_PARAM = root.MXR_AUTH_PARAM || 'key';      // tên tham số mã truy cập của Lịch báo giảng
+  var AUTH_PARAM = root.MXR_AUTH_PARAM || 'token';    // tên tham số mã truy cập của Lịch báo giảng
   var TASKS = ['TX1', 'TX2', 'TX3', 'TX4', 'TX5', 'TX6', 'GK1', 'GK2', 'CK1', 'CK2'];
   var S = { notices: [], showPast: false, idx: -1, taskType: '', useVDC: false, plan: null, matrix: null, skipped: [], msg: '' };
 
