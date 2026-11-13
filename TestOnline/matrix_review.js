@@ -1,12 +1,13 @@
 /* ============================================================
- * matrix_review.js - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
+ * matrix_review.js (v2) - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
  * Cần nạp SAU matrix_planner.js. Đặt trên GitHub pnhung72/physics-assets/TestOnline/,
  * nối vào TestOline bằng thẻ <script> ở cuối file (như luyende_drive.js).
  *
  * Luồng: lấy thông báo kiểm tra từ Lịch báo giảng (action ktNotices) -> chọn bài kiểm tra
  *        -> "Lập ma trận nháp" -> chỉnh tay từng ô -> "Duyệt: nạp vào trang".
- * "Duyệt" chỉ nạp ma trận vào matrixData và hiển thị như khi tự tạo; việc LƯU vẫn do nút
- * "Lưu ma trận" có sẵn của TestOline đảm nhiệm (không đổi luồng lưu cũ).
+ * Ô "có VDC": bỏ tích = B:H:VD 4:3:3 ; tích = B:H:VD:VDC 4:3:2:1 (áp dụng cho cả TX và GK/CK).
+ * "Duyệt" nạp ma trận vào matrixData, tự chuyển mẫu điểm của trang (TX hoặc GK) cho khớp;
+ * việc LƯU vẫn do nút "Lưu ma trận" có sẵn của TestOline đảm nhiệm (không đổi luồng lưu cũ).
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -145,7 +146,7 @@
       h += '</select> ';
       h += '<label><input type="checkbox" data-mxr="past"' + (S.showPast ? ' checked' : '') + '> hiện cả bài đã qua</label>';
       h += '<label>Loại bài: <select data-mxr="task">' + TASKS.map(function (t) { return '<option' + (t === S.taskType ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>';
-      if (kindOf(S.taskType) === 'GK') h += '<label><input type="checkbox" data-mxr="vdc"' + (S.useVDC ? ' checked' : '') + '> có VDC (4:3:2:1)</label>';
+      h += '<label title="Bỏ tích: B:H:VD = 4:3:3. Tích: B:H:VD:VDC = 4:3:2:1"><input type="checkbox" data-mxr="vdc"' + (S.useVDC ? ' checked' : '') + '> có VDC (4:3:2:1)</label>';
       h += '<button data-mxr="plan">⚙ Lập ma trận nháp</button></div>';
       if (n) h += '<div style="color:#444;font-size:0.9em;margin-bottom:8px">Các bài sẽ kiểm tra: ' + (n.lessons || []).map(function (l) { return esc(l.name); }).join(' | ') + '</div>';
     }
@@ -177,7 +178,7 @@
     var tgt = p ? p.levelTarget : {};
     h += '<table style="border-collapse:collapse;margin:8px 0"><tr><th style="' + td + '">Mức</th>' + P.LEVELS.map(function (l) { return '<th style="' + td + '">' + l + '</th>'; }).join('') + '</tr>';
     h += '<tr><td style="' + td + '">% điểm hiện tại</td>' + P.LEVELS.map(function (l) { return '<td style="' + td + '">' + f1(st.pct[l]) + '%</td>'; }).join('') + '</tr>';
-    if (kind === 'GK') {
+    if (p) {
       h += '<tr><td style="' + td + '">Quy định</td>' + P.LEVELS.map(function (l) { return '<td style="' + td + '">' + f1(tgt[l] || 0) + '%</td>'; }).join('') + '</tr>';
       h += '<tr><td style="' + td + '">Chênh lệch</td>' + P.LEVELS.map(function (l) {
         var d = st.pct[l] - (tgt[l] || 0), ok = Math.abs(d) <= 2.5;
@@ -185,7 +186,7 @@
       }).join('') + '</tr>';
     }
     h += '</table>';
-    if (kind === 'TX') h += '<small>Với TX, tỉ lệ 4:3:2:1 áp dụng trong từng phần (xem số câu theo mức ở bảng trên).</small><br>';
+    if (kind === 'TX') h += '<small>TX: câu tự luận 3đ chiếm 30% điểm và đặt ở mức VD nên khi tích VDC tỉ lệ chỉ xấp xỉ 4:3:2:1.</small><br>';
     var w = [];
     if (p) { (p.warnings || []).forEach(function (x) { w.push(x); }); (p.shortages || []).forEach(function (x) { w.push('Thiếu câu: ' + typeName(x.type, kind) + ' mức ' + x.level + ' cần ' + x.need + ', ngân hàng có ' + x.have + '.'); }); }
     S.skipped.forEach(function (x) { w.push('Không đưa vào ma trận: ' + x); });
@@ -195,6 +196,20 @@
     return h + '</div>';
   }
   function refreshStats() { var el = document.getElementById('mxr-stats'); if (el) el.innerHTML = statsHtml(); }
+
+  // Chuyển mẫu điểm của trang cho khớp loại bài vừa duyệt (TX: 0,5 / 0,75 mỗi ý / 3,0 ; GK-CK: mẫu mặc định)
+  function applyScoring() {
+    try {
+      var ES = root.ExamScoring;
+      if (!ES) return;
+      if (kindOf(S.taskType) === 'TX') {
+        var u = P.PRESETS.TX.unit, t = u.trueFalse;
+        ES.apply({ preset: 'custom', mc: u.multipleChoice, tf: [t, t * 2, t * 3, t * 4], sa: u.essay, es: u.essay });
+      } else {
+        ES.applyFrom(null);
+      }
+    } catch (e) { console.warn('[MXR] ExamScoring', e); }
+  }
 
   function approve() {
     if (!S.matrix) return;
@@ -206,6 +221,7 @@
       if (ti) { ti.value = S.taskType; ti.dispatchEvent(new Event('input', { bubbles: true })); }
       var g = document.getElementById('grade');
       if (g && n) g.value = String(n.grade);
+      applyScoring();
       ['displayMatrix', 'updateMatrixStatus', 'updateActionButtonsState'].forEach(function (f) {
         try { if (typeof root[f] === 'function') root[f](); } catch (e) { console.warn('[MXR] ' + f, e); }
       });
