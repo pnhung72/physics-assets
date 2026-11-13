@@ -1,13 +1,16 @@
 /* ============================================================
- * matrix_planner.js (v2) - Bộ lập MA TRẬN NHÁP cho TX / GK / CK (chờ Admin duyệt, chỉnh tay)
+ * matrix_planner.js (v3) - Bộ lập MA TRẬN NHÁP cho TX / GK / CK (chờ Admin duyệt, chỉnh tay)
  * Đặt trên GitHub pnhung72/physics-assets/TestOnline/, nối vào TestOline bằng 1 thẻ <script>.
  * KHÔNG sửa hàm nào của TestOline; chỉ đọc allQuestions và trả về đối tượng matrixData.
  *
  * GK / CK  (ma trận chung toàn khối): khung 27 mục = 12 TN + 8 ý Đ/S + 4 TLN + 3 TL = 10,00 điểm
  *          điểm: TN 0,25 | Đ/S 0,25/ý | TLN 0,5 | TL 1,0
- *          tỉ lệ ĐIỂM theo mức B:H:VD = 4:3:3 ; bật useVDC thì 4:3:2:1
- * TX1,TX2,TX4,TX5...: 15 phút = 8 TN x 0,5 (4đ) + 1 câu Đ/S 4 ý (3đ; 0,75/ý) + tự luận 3đ
- *          tỉ lệ B:H:VD:VDC = 4:3:2:1 trong TỪNG PHẦN (làm tròn theo phần dư lớn nhất)
+ * TX1,TX2,TX4,TX5...: 15 phút = 8 TN x 0,5 (4đ) + 1 câu Đ/S 4 ý (3đ; 0,75/ý) + 1 tự luận 3đ (mức VD)
+ *
+ * Tỉ lệ ĐIỂM theo mức (áp dụng cho CẢ GK/CK và TX, giải trên toàn đề):
+ *          useVDC = false (mặc định) : B:H:VD     = 4:3:3
+ *          useVDC = true             : B:H:VD:VDC = 4:3:2:1
+ * Riêng TX: câu tự luận 3đ cố định ở mức VD nên khi bật VDC, tỉ lệ chỉ xấp xỉ 4:3:2:1.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -28,10 +31,10 @@
       unit: { multipleChoice: 0.25, trueFalse: 0.25, essay: 0.5, essay_multi: 1.0 }
     },
     TX: {
-      mode: 'perPart', minutes: 15,
+      mode: 'global', minutes: 15,
       frame: { multipleChoice: 8, trueFalse: 4, essay: 1, essay_multi: 0 },
       unit: { multipleChoice: 0.5, trueFalse: 0.75, essay: 3.0, essay_multi: 0 },
-      essayLevel: 'VD'     // 1 câu tự luận 3đ: mặc định mức VD (như các ma trận TX1 đã dùng)
+      essayLevel: 'VD'     // 1 câu tự luận 3đ: cố định mức VD (như các ma trận TX1 đã dùng)
     }
   };
 
@@ -58,7 +61,7 @@
     return { points: p, total: total, pct: pct };
   }
 
-  /* ---------- chế độ GLOBAL (GK/CK): tối ưu điểm theo mức trên toàn đề ---------- */
+  /* ---------- chế độ GLOBAL (GK/CK và TX): tối ưu điểm theo mức trên toàn đề ---------- */
   function comps(n, allowed, capT) {
     var out = [];
     (function rec(i, left, cur) {
@@ -83,9 +86,17 @@
       return { c: c, p: c.map(function (x) { return x * unit[type]; }), d: d };
     });
   }
-  function solveGlobal(frame, unit, tgtPts, capFn, ref, useVDC, rv) {
+  function solveGlobal(frame, unit, tgtPts, capFn, ref, useVDC, rv, essayLevel) {
     var MC = entries(frame, unit, 'multipleChoice', capFn, ref, useVDC, rv), TF = entries(frame, unit, 'trueFalse', capFn, ref, useVDC, rv);
     var SA = entries(frame, unit, 'essay', capFn, ref, useVDC, rv), ES = entries(frame, unit, 'essay_multi', capFn, ref, useVDC, rv);
+    // TX: câu tự luận (essay) cố định ở một mức (mặc định VD) để không bị dồn sang mức khác
+    if (essayLevel) {
+      var eli = LEVELS.indexOf(essayLevel);
+      if (eli >= 0) {
+        var efix = SA.filter(function (e) { return e.c[eli] === (frame.essay || 0); });
+        if (efix.length) SA = efix;
+      }
+    }
     if (!MC.length || !TF.length || !SA.length || !ES.length) return null;
     var A = [], B = [], i, j;
     for (i = 0; i < MC.length; i++) for (j = 0; j < TF.length; j++)
@@ -99,6 +110,8 @@
         var b = B[j];
         var cost = Math.abs(a.p[0] + b.p[0] - tgtPts[0]) + Math.abs(a.p[1] + b.p[1] - tgtPts[1]) +
                    Math.abs(a.p[2] + b.p[2] - tgtPts[2]) + Math.abs(a.p[3] + b.p[3] - tgtPts[3]) + 0.01 * (a.d + b.d);
+        // Đã bật VDC mà đề không có điểm VDC nào: phạt để luôn có câu VDC (quan trọng với TX vì tự luận 3đ đã chiếm mức VD)
+        if (useVDC && tgtPts[3] > 0 && (a.p[3] + b.p[3]) === 0) cost += 0.6;
         if (cost < bestCost) { bestCost = cost; best = { a: a, b: b }; }
       }
     }
@@ -107,7 +120,7 @@
     return res;
   }
 
-  /* ---------- chế độ PER-PART (TX): chia theo tỉ lệ trong từng phần ---------- */
+  /* ---------- chế độ PER-PART (dự phòng): chia theo tỉ lệ trong từng phần ---------- */
   // Chia n mục theo tỉ lệ (phần dư lớn nhất), rồi dồn phần vượt cap sang mức kề
   function splitByRatio(n, ratioVec, capVec, mask) {
     var rv = ratioVec.map(function (r, i) { return mask[i] ? r : 0; });
@@ -192,13 +205,13 @@
    *   grade:'11', taskType:'GK2' | 'CK1' | 'TX1' ..., topic:'GK2',
    *   lessons:[{chapter:2, lesson:8, name:'Bài 8...', periods:2}, ...],      // các bài sẽ kiểm tra
    *   avail:(key,type,level)=>số câu khả dụng,                                // key = 'lớp_chương_bài'
-   *   useVDC:false,            // GK/CK: false = 4:3:3 ; true = 4:3:2:1.  TX luôn 4:3:2:1 (trừ khi truyền false)
+   *   useVDC:false,            // false (mặc định) = B:H:VD 4:3:3 ; true = B:H:VD:VDC 4:3:2:1 (GK/CK và TX)
    *   ratio, frame, unit, essayLevel, ref   // tuỳ chọn, ghi đè mặc định
    * }) */
   function plan(o) {
     var kind = kindOf(o.taskType), P = PRESETS[kind];
     var frame = o.frame || P.frame, unit = o.unit || P.unit;
-    var useVDC = (o.useVDC === undefined) ? (kind === 'TX') : !!o.useVDC;
+    var useVDC = !!o.useVDC;
     var ratio = o.ratio || (useVDC ? { B: 4, H: 3, VD: 2, VDC: 1 } : { B: 4, H: 3, VD: 3, VDC: 0 });
     var frameTotal = 0;
     TYPES.forEach(function (t) { frameTotal += (frame[t] || 0) * (unit[t] || 0); });
@@ -212,16 +225,17 @@
     var avail = o.avail;
     function capReal(t, l) { var s = 0; lessons.forEach(function (x) { s += avail(x.key, t, l); }); return s; }
 
+    var essayLevel = o.essayLevel || P.essayLevel;
     var warnings = [], shortages = [], fallback = false, counts;
     if (P.mode === 'global') {
       var rvec = LEVELS.map(function (l) { return ratio[l] || 0; });
-      counts = solveGlobal(frame, unit, tgtPts, capReal, o.ref, useVDC, rvec);
+      counts = solveGlobal(frame, unit, tgtPts, capReal, o.ref, useVDC, rvec, essayLevel);
       if (!counts) {
         fallback = true;
-        counts = solveGlobal(frame, unit, tgtPts, function () { return Infinity; }, o.ref, useVDC, rvec);
+        counts = solveGlobal(frame, unit, tgtPts, function () { return Infinity; }, o.ref, useVDC, rvec, essayLevel);
       }
     } else {
-      counts = solvePerPart(frame, ratio, capReal, o.essayLevel || P.essayLevel, useVDC, warnings);
+      counts = solvePerPart(frame, ratio, capReal, essayLevel, useVDC, warnings);
     }
     TYPES.forEach(function (t) {
       LEVELS.forEach(function (l) {
