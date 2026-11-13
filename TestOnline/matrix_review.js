@@ -1,13 +1,12 @@
 /* ============================================================
- * matrix_review.js (v2) - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
+ * matrix_review.js - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
  * Cần nạp SAU matrix_planner.js. Đặt trên GitHub pnhung72/physics-assets/TestOnline/,
  * nối vào TestOline bằng thẻ <script> ở cuối file (như luyende_drive.js).
  *
  * Luồng: lấy thông báo kiểm tra từ Lịch báo giảng (action ktNotices) -> chọn bài kiểm tra
  *        -> "Lập ma trận nháp" -> chỉnh tay từng ô -> "Duyệt: nạp vào trang".
- * Ô "có VDC": bỏ tích = B:H:VD 4:3:3 ; tích = B:H:VD:VDC 4:3:2:1 (áp dụng cho cả TX và GK/CK).
- * "Duyệt" nạp ma trận vào matrixData, tự chuyển mẫu điểm của trang (TX hoặc GK) cho khớp;
- * việc LƯU vẫn do nút "Lưu ma trận" có sẵn của TestOline đảm nhiệm (không đổi luồng lưu cũ).
+ * "Duyệt" chỉ nạp ma trận vào matrixData và hiển thị như khi tự tạo; việc LƯU vẫn do nút
+ * "Lưu ma trận" có sẵn của TestOline đảm nhiệm (không đổi luồng lưu cũ).
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -15,9 +14,9 @@
   if (!P) { console.warn('[MXR] Chưa nạp matrix_planner.js'); return; }
 
   var LS_URL = 'mxr_lbg_url', LS_KEY = 'mxr_lbg_key';
-  var AUTH_PARAM = root.MXR_AUTH_PARAM || 'token';    // tên tham số mã truy cập của Lịch báo giảng
+  var AUTH_PARAM = root.MXR_AUTH_PARAM || 'token';      // tên tham số mã truy cập của Lịch báo giảng
   var TASKS = ['TX1', 'TX2', 'TX3', 'TX4', 'TX5', 'TX6', 'GK1', 'GK2', 'CK1', 'CK2'];
-  var S = { notices: [], showPast: false, idx: -1, taskType: '', useVDC: false, plan: null, matrix: null, skipped: [], msg: '' };
+  var S = { notices: [], showPast: false, idx: -1, taskType: '', useVDC: false, plan: null, matrix: null, skipped: [], msg: '', snd: { date: '', period: '', resend: false } };
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function kindOf(t) { return /^TX/i.test(String(t || '')) ? 'TX' : 'GK'; }
@@ -118,6 +117,7 @@
   function select(i) {
     S.idx = i; var n = S.notices[i];
     S.taskType = n ? taskTypeOf(n) : ''; S.plan = null; S.matrix = null; S.skipped = [];
+    S.snd.date = n ? String(n.endDate || '').slice(0, 10) : ''; S.snd.period = ''; S.snd.resend = false;   // TL: gửi học sinh
   }
 
   /* ---------- giao diện ---------- */
@@ -146,12 +146,12 @@
       h += '</select> ';
       h += '<label><input type="checkbox" data-mxr="past"' + (S.showPast ? ' checked' : '') + '> hiện cả bài đã qua</label>';
       h += '<label>Loại bài: <select data-mxr="task">' + TASKS.map(function (t) { return '<option' + (t === S.taskType ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>';
-      h += '<label title="Bỏ tích: B:H:VD = 4:3:3. Tích: B:H:VD:VDC = 4:3:2:1"><input type="checkbox" data-mxr="vdc"' + (S.useVDC ? ' checked' : '') + '> có VDC (4:3:2:1)</label>';
+      if (kindOf(S.taskType) === 'GK') h += '<label><input type="checkbox" data-mxr="vdc"' + (S.useVDC ? ' checked' : '') + '> có VDC (4:3:2:1)</label>';
       h += '<button data-mxr="plan">⚙ Lập ma trận nháp</button></div>';
       if (n) h += '<div style="color:#444;font-size:0.9em;margin-bottom:8px">Các bài sẽ kiểm tra: ' + (n.lessons || []).map(function (l) { return esc(l.name); }).join(' | ') + '</div>';
     }
     if (S.matrix) h += '<div id="mxr-grid">' + gridHtml() + '</div><div id="mxr-stats">' + statsHtml() + '</div>' +
-      '<div style="margin-top:10px"><button data-mxr="approve" style="background:#198754;color:#fff;padding:8px 14px;border:0;border-radius:6px">✅ Duyệt: nạp vào ma trận của trang</button></div>';
+      '<div style="margin-top:10px"><button data-mxr="approve" style="background:#198754;color:#fff;padding:8px 14px;border:0;border-radius:6px">✅ Duyệt: nạp vào ma trận của trang</button></div>' + sendHtml();
     box.firstChild.innerHTML = h;
   }
   function gridHtml() {
@@ -178,7 +178,7 @@
     var tgt = p ? p.levelTarget : {};
     h += '<table style="border-collapse:collapse;margin:8px 0"><tr><th style="' + td + '">Mức</th>' + P.LEVELS.map(function (l) { return '<th style="' + td + '">' + l + '</th>'; }).join('') + '</tr>';
     h += '<tr><td style="' + td + '">% điểm hiện tại</td>' + P.LEVELS.map(function (l) { return '<td style="' + td + '">' + f1(st.pct[l]) + '%</td>'; }).join('') + '</tr>';
-    if (p) {
+    if (kind === 'GK') {
       h += '<tr><td style="' + td + '">Quy định</td>' + P.LEVELS.map(function (l) { return '<td style="' + td + '">' + f1(tgt[l] || 0) + '%</td>'; }).join('') + '</tr>';
       h += '<tr><td style="' + td + '">Chênh lệch</td>' + P.LEVELS.map(function (l) {
         var d = st.pct[l] - (tgt[l] || 0), ok = Math.abs(d) <= 2.5;
@@ -186,7 +186,7 @@
       }).join('') + '</tr>';
     }
     h += '</table>';
-    if (kind === 'TX') h += '<small>TX: câu tự luận 3đ chiếm 30% điểm và đặt ở mức VD nên khi tích VDC tỉ lệ chỉ xấp xỉ 4:3:2:1.</small><br>';
+    if (kind === 'TX') h += '<small>Với TX, tỉ lệ 4:3:2:1 áp dụng trong từng phần (xem số câu theo mức ở bảng trên).</small><br>';
     var w = [];
     if (p) { (p.warnings || []).forEach(function (x) { w.push(x); }); (p.shortages || []).forEach(function (x) { w.push('Thiếu câu: ' + typeName(x.type, kind) + ' mức ' + x.level + ' cần ' + x.need + ', ngân hàng có ' + x.have + '.'); }); }
     S.skipped.forEach(function (x) { w.push('Không đưa vào ma trận: ' + x); });
@@ -196,20 +196,6 @@
     return h + '</div>';
   }
   function refreshStats() { var el = document.getElementById('mxr-stats'); if (el) el.innerHTML = statsHtml(); }
-
-  // Chuyển mẫu điểm của trang cho khớp loại bài vừa duyệt (TX: 0,5 / 0,75 mỗi ý / 3,0 ; GK-CK: mẫu mặc định)
-  function applyScoring() {
-    try {
-      var ES = root.ExamScoring;
-      if (!ES) return;
-      if (kindOf(S.taskType) === 'TX') {
-        var u = P.PRESETS.TX.unit, t = u.trueFalse;
-        ES.apply({ preset: 'custom', mc: u.multipleChoice, tf: [t, t * 2, t * 3, t * 4], sa: u.essay, es: u.essay });
-      } else {
-        ES.applyFrom(null);
-      }
-    } catch (e) { console.warn('[MXR] ExamScoring', e); }
-  }
 
   function approve() {
     if (!S.matrix) return;
@@ -221,7 +207,6 @@
       if (ti) { ti.value = S.taskType; ti.dispatchEvent(new Event('input', { bubbles: true })); }
       var g = document.getElementById('grade');
       if (g && n) g.value = String(n.grade);
-      applyScoring();
       ['displayMatrix', 'updateMatrixStatus', 'updateActionButtonsState'].forEach(function (f) {
         try { if (typeof root[f] === 'function') root[f](); } catch (e) { console.warn('[MXR] ' + f, e); }
       });
@@ -232,6 +217,61 @@
     }
   }
 
+  /* ---------- gửi thông báo + ma trận cho học sinh (qua dự án Đăng ký học) ---------- */
+  function sendHtml() {
+    var sd = S.snd, h = '';
+    h += '<div style="margin-top:14px;padding:10px;border:1px solid #cfe2ff;background:#f4f8ff;border-radius:6px;color:#000">';
+    h += '<b>📧 Gửi lịch kiểm tra + ma trận cho học sinh (đã có tài khoản)</b>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0">';
+    h += '<label>Ngày kiểm tra: <input type="date" data-snd="date" value="' + esc(sd.date) + '"></label>';
+    h += '<label>Tiết: <input type="text" data-snd="period" value="' + esc(sd.period) + '" placeholder="vd: tiết cuối cùng trong tuần" style="width:220px"></label>';
+    h += '<label><input type="checkbox" data-mxr="snd-resend"' + (sd.resend ? ' checked' : '') + '> gửi lại (ma trận đã sửa)</label></div>';
+    h += '<button data-mxr="snd-count">👥 Xem số học sinh sẽ nhận</button> ';
+    h += '<button data-mxr="snd-test">✉ Gửi thử cho tôi</button> ';
+    h += '<button data-mxr="snd-send" style="background:#0d6efd;color:#fff;border:0;border-radius:6px;padding:6px 12px">🚀 Gửi cho học sinh</button>';
+    h += '<div id="mxr-snd-res" style="margin-top:8px;white-space:pre-wrap"></div></div>';
+    return h;
+  }
+  function setSndRes(txt) { var el = document.getElementById('mxr-snd-res'); if (el) el.textContent = txt; }
+  function buildSendPayload() {
+    var n = S.notices[S.idx], st = calcStats(S.matrix, S.taskType), kind = kindOf(S.taskType), titles = {}, types = {}, rows = [];
+    (n.lessons || []).forEach(function (l) { if ((l.nos || []).length === 1) titles[l.nos[0]] = l.name; });
+    P.TYPES.forEach(function (t) { types[t] = typeName(t, kind); });
+    Object.keys(S.matrix).forEach(function (k) {
+      var no = k.split('_')[2], cells = {}, sum = 0;
+      P.TYPES.forEach(function (t) {
+        cells[t] = {};
+        P.LEVELS.forEach(function (l) { var v = parseInt(S.matrix[k][t][l], 10) || 0; cells[t][l] = v; sum += v; });
+      });
+      if (sum) rows.push({ label: titles[no] || ('Bài ' + no), cells: cells });
+    });
+    return {
+      grade: String(n.grade), taskType: S.taskType, examRaw: n.examRaw, typeCode: n.type, semester: n.semester, week: n.week,
+      startDate: n.startDate, endDate: n.endDate, examDate: S.snd.date, period: S.snd.period, minutes: P.PRESETS[kind].minutes,
+      kind: kind, types: types, rows: rows, pct: st.pct, total: st.total, items: st.items, tf: st.tf,
+      pageUrl: root.location.origin + root.location.pathname, resend: !!S.snd.resend
+    };
+  }
+  function sendNotice(mode) {
+    if (!S.matrix) return;
+    var tok = ''; try { tok = root.sessionStorage.getItem('adminAuthToken') || ''; } catch (e) {}
+    var url = root.MXR_SEND_URL || (typeof ADMIN_AUTH_API !== 'undefined' ? ADMIN_AUTH_API : '');
+    if (!tok || !url) { setSndRes('Chưa đăng nhập Admin (thiếu token) hoặc thiếu địa chỉ máy chủ. Hãy đăng nhập Admin lại.'); return; }
+    if (mode !== 'count' && !S.snd.date) { setSndRes('Hãy chọn ngày kiểm tra trước.'); return; }
+    if (mode === 'send' && !root.confirm('Gửi thư lịch kiểm tra + ma trận cho học sinh khối ' + S.notices[S.idx].grade + '?\nBạn nên bấm "Gửi thử cho tôi" để xem thư trước.')) return;
+    var body = new URLSearchParams();
+    body.append('action', 'sendExamNotice'); body.append('token', tok); body.append('mode', mode);
+    body.append('payload', JSON.stringify(buildSendPayload()));
+    setSndRes('Đang xử lý...');
+    fetch(url, { method: 'POST', body: body })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.success) throw new Error((j && (j.message || j.error)) || 'Lỗi không rõ');
+        setSndRes((j.data && j.data.text) || 'Xong.');
+      })
+      .catch(function (e) { setSndRes('Lỗi: ' + e.message); });
+  }
+
   function onClick(ev) {
     var a = ev.target && ev.target.getAttribute && ev.target.getAttribute('data-mxr');
     if (!a) return;
@@ -240,6 +280,7 @@
     else if (a === 'load') loadNotices(false);
     else if (a === 'plan') { buildPlan(); render(); }
     else if (a === 'approve') approve();
+    else if (a === 'snd-count' || a === 'snd-test' || a === 'snd-send') sendNotice(a.slice(4));
   }
   function onChange(ev) {
     var t = ev.target, a = t && t.getAttribute && t.getAttribute('data-mxr');
@@ -247,9 +288,11 @@
     else if (a === 'past') { S.showPast = !!t.checked; render(); }
     else if (a === 'task') { S.taskType = t.value; S.plan = null; S.matrix = null; render(); }
     else if (a === 'vdc') { S.useVDC = !!t.checked; S.plan = null; S.matrix = null; render(); }
+    else if (a === 'snd-resend') { S.snd.resend = !!t.checked; }
   }
   function onInput(ev) {
     var t = ev.target;
+    if (t && t.getAttribute && t.getAttribute('data-snd')) { S.snd[t.getAttribute('data-snd')] = t.value; return; }
     if (!t || !t.getAttribute || !t.getAttribute('data-k') || !S.matrix) return;
     var v = parseInt(t.value, 10); if (isNaN(v) || v < 0) v = 0;
     S.matrix[t.getAttribute('data-k')][t.getAttribute('data-t')][t.getAttribute('data-l')] = v;
