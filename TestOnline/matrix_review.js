@@ -1,5 +1,5 @@
 /* ============================================================
- * matrix_review.js - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
+ * matrix_review.js (bản 2: thêm Hẹn gửi tự động) - Màn hình "Ma trận đề xuất (chờ duyệt)" cho TestOline (chỉ Admin)
  * Cần nạp SAU matrix_planner.js. Đặt trên GitHub pnhung72/physics-assets/TestOnline/,
  * nối vào TestOline bằng thẻ <script> ở cuối file (như luyende_drive.js).
  *
@@ -228,7 +228,12 @@
     h += '<label><input type="checkbox" data-mxr="snd-resend"' + (sd.resend ? ' checked' : '') + '> gửi lại (ma trận đã sửa)</label></div>';
     h += '<button data-mxr="snd-count">👥 Xem số học sinh sẽ nhận</button> ';
     h += '<button data-mxr="snd-test">✉ Gửi thử cho tôi</button> ';
-    h += '<button data-mxr="snd-send" style="background:#0d6efd;color:#fff;border:0;border-radius:6px;padding:6px 12px">🚀 Gửi cho học sinh</button>';
+    h += '<button data-mxr="snd-send" style="background:#0d6efd;color:#fff;border:0;border-radius:6px;padding:6px 12px">🚀 Gửi cho học sinh ngay</button>';
+    h += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #9ec5fe">';
+    h += '<b>⏰ Hẹn gửi tự động</b> (máy chủ tự gửi tối thứ Bảy trước tuần kiểm tra, khoảng 19h)<br>';
+    h += '<button data-mxr="snd-schedule" style="background:#198754;color:#fff;border:0;border-radius:6px;padding:6px 12px;margin-top:4px">⏰ Hẹn gửi tự động</button> ';
+    h += '<button data-mxr="snd-unschedule">✖ Hủy hẹn</button> ';
+    h += '<button data-mxr="snd-schedlist">📋 Xem các thư đã hẹn</button></div>';
     h += '<div id="mxr-snd-res" style="margin-top:8px;white-space:pre-wrap"></div></div>';
     return h;
   }
@@ -257,11 +262,15 @@
     var tok = ''; try { tok = root.sessionStorage.getItem('adminAuthToken') || ''; } catch (e) {}
     var url = root.MXR_SEND_URL || (typeof ADMIN_AUTH_API !== 'undefined' ? ADMIN_AUTH_API : '');
     if (!tok || !url) { setSndRes('Chưa đăng nhập Admin (thiếu token) hoặc thiếu địa chỉ máy chủ. Hãy đăng nhập Admin lại.'); return; }
-    if (mode !== 'count' && !S.snd.date) { setSndRes('Hãy chọn ngày kiểm tra trước.'); return; }
+    var sched = (mode === 'schedule' || mode === 'unschedule' || mode === 'schedlist');
+    if ((mode === 'test' || mode === 'send' || mode === 'schedule') && !S.snd.date) { setSndRes('Hãy chọn ngày kiểm tra trước.'); return; }
     if (mode === 'send' && !root.confirm('Gửi thư lịch kiểm tra + ma trận cho học sinh khối ' + S.notices[S.idx].grade + '?\nBạn nên bấm "Gửi thử cho tôi" để xem thư trước.')) return;
-    var body = new URLSearchParams();
-    body.append('action', 'sendExamNotice'); body.append('token', tok); body.append('mode', mode);
-    body.append('payload', JSON.stringify(buildSendPayload()));
+    if (mode === 'schedule' && !root.confirm('Hẹn gửi tự động cho học sinh khối ' + S.notices[S.idx].grade + ' (' + S.taskType + ')?\nHệ thống gửi vào tối thứ Bảy trước tuần kiểm tra (khoảng 19h), đúng ma trận đang hiển thị.\nNếu sau đó bạn sửa ma trận, hãy bấm hẹn gửi lại trước giờ gửi.')) return;
+    var nn = S.notices[S.idx], body = new URLSearchParams();
+    body.append('action', sched ? 'scheduleExamNotice' : 'sendExamNotice'); body.append('token', tok);
+    body.append('mode', mode === 'schedule' ? 'save' : mode === 'unschedule' ? 'cancel' : mode === 'schedlist' ? 'list' : mode);
+    if (mode === 'unschedule') body.append('schedKey', 'K' + nn.grade + '|' + S.taskType + '|' + (nn.startDate || nn.week));
+    else if (mode !== 'schedlist') body.append('payload', JSON.stringify(buildSendPayload()));
     setSndRes('Đang xử lý...');
     fetch(url, { method: 'POST', body: body })
       .then(function (r) { return r.json(); })
@@ -280,7 +289,7 @@
     else if (a === 'load') loadNotices(false);
     else if (a === 'plan') { buildPlan(); render(); }
     else if (a === 'approve') approve();
-    else if (a === 'snd-count' || a === 'snd-test' || a === 'snd-send') sendNotice(a.slice(4));
+    else if (a === 'snd-count' || a === 'snd-test' || a === 'snd-send' || a === 'snd-schedule' || a === 'snd-unschedule' || a === 'snd-schedlist') sendNotice(a.slice(4));
   }
   function onChange(ev) {
     var t = ev.target, a = t && t.getAttribute && t.getAttribute('data-mxr');
