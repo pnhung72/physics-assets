@@ -254,7 +254,15 @@
   function setSndRes(txt) { var el = document.getElementById('mxr-snd-res'); if (el) el.textContent = txt; }
   function buildSendPayload() {
     var n = S.notices[S.idx], st = calcStats(S.matrix, S.taskType), kind = kindOf(S.taskType), titles = {}, types = {}, rows = [];
-    (n.lessons || []).forEach(function (l) { if ((l.nos || []).length === 1) titles[l.nos[0]] = l.name; });
+    (n.lessons || []).forEach(function (l) {
+      var nos = l.nos || [];
+      if (nos.length === 1) { titles[nos[0]] = l.name; }
+      else if (nos.length > 1) {
+        // Muc gom nhieu bai (vd "Bai 9, 10. Ten chung"): bo phan so dau, gan phan chu con lai cho tung bai
+        var rest = String(l.name || '').replace(/^\s*Bài\s*(?:\d|\s|,|;|&|-|–|và)+[.:\-–]\s*/i, '').trim();
+        nos.forEach(function (no) { if (rest && !titles[no]) titles[no] = 'Bài ' + no + '. ' + rest; });
+      }
+    });
     P.TYPES.forEach(function (t) { types[t] = typeName(t, kind); });
     Object.keys(S.matrix).forEach(function (k) {
       var no = k.split('_')[2], cells = {}, sum = 0;
