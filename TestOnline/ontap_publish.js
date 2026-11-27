@@ -64,8 +64,8 @@
       '<label>Mật khẩu đăng ma trận<input id="op-pw" type="password" autocomplete="off" style="' + st + '"></label>' +
       '<div id="op-msg" role="status" style="min-height:1.4em;margin-bottom:10px;font-size:.9rem"></div>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end">' +
-      '<button type="button" id="op-cancel" style="padding:8px 14px;border:1px solid #bbb;background:#fff;border-radius:8px;cursor:pointer">Đóng</button>' +
-      '<button type="button" id="op-ok" style="padding:8px 16px;border:0;background:#6f42c1;color:#fff;border-radius:8px;cursor:pointer;font-weight:600">Đăng lên GitHub</button></div>';
+      '<button type="button" id="op-cancel" style="padding:8px 16px !important;border:1px solid #888 !important;background:#f1f1f1 !important;color:#222 !important;border-radius:8px !important;cursor:pointer;font:inherit;font-weight:600">Đóng</button>' +
+      '<button type="button" id="op-ok" style="padding:8px 16px !important;border:0 !important;background:#6f42c1 !important;color:#fff !important;border-radius:8px !important;cursor:pointer;font:inherit;font-weight:600">Đăng lên GitHub</button></div>';
     ov.appendChild(box);
     document.body.appendChild(ov);
 
@@ -101,6 +101,11 @@
     if (!holder) return;
     var admin = true;
     try { if (typeof isAdminAuthenticated !== 'undefined') admin = !!isAdminAuthenticated; } catch (e) {}
+    // Cũng cho hiện nếu có token quản trị đã đăng nhập, hoặc thầy bật cờ riêng trên máy này:
+    //   localStorage.setItem('ontap_show', '1')   (gõ 1 lần trong Console; tắt bằng localStorage.removeItem('ontap_show'))
+    try {
+      if (!admin && (localStorage.getItem('ontap_show') === '1' || sessionStorage.getItem('adminAuthToken'))) admin = true;
+    } catch (e) {}
     var b = document.getElementById(BTN_ID);
     if (!admin) { if (b) b.remove(); return; }
     if (b) return;
