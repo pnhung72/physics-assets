@@ -35842,6 +35842,7 @@ renderAdminRequiredTable();
 <script src="https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@8c5a463/TestOnline/exam_ai_batch.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@710af6c15e386412273efc324c004931c08bdb0c/TestOnline/matrix_planner.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/pnhung72/physics-assets@c6099b46045b1f77d60f0a0356ad58a0729afab0/TestOnline/matrix_review.js"></script>
+<script src="https://pnhung72.github.io/physics-assets/TestOnline/ontap_publish.js?v=2"></script>
    <script>
 /* MXFIX: nhãn ma trận lưu lấy Chương/Bài từ chính ma trận (khóa dạng lớp_chương_bài) */
 function mxLessonSummary(m) {
