@@ -38,44 +38,47 @@ nav.toc a{display:block;padding:6px 8px;border-radius:6px;text-decoration:none;c
 nav.toc a:hover{background:var(--bg)}
 @media (max-width:760px){.layout{grid-template-columns:1fr}nav.toc{position:static}}
 .chap{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:18px;overflow:hidden}
-.chap>h2{margin:0;padding:14px 16px;font-size:1.2rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.chap>h2{margin:0;padding:14px 16px;font-size:1.2rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .w{font-size:.8rem;font-weight:500;color:var(--mute);white-space:nowrap}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.85rem;background:var(--panel)}
-.chip.no{border-style:dashed;color:var(--mute)}
 details{border-bottom:1px solid var(--line)}
 details:last-child{border-bottom:0}
 summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none}
 summary::-webkit-details-marker{display:none}
 summary::before{content:"+";display:inline-block;width:1.2em;color:var(--acc)}
 details[open]>summary::before{content:"–"}
-.body{padding:0 16px 16px;overflow-wrap:anywhere}
+.body{padding:0 16px 16px}
 .body ul,.body ol{padding-left:1.2em;margin:6px 0}
+.body li.sub{list-style:none}
+.fm{border-left:4px solid var(--acc2);background:var(--bg);padding:10px 12px;border-radius:0 8px 8px 0;margin:10px 0;overflow-x:auto}
 .dang{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
 .dang h4{margin:0 0 6px}
 .note{background:var(--bg);border-radius:8px;padding:8px 12px;margin:8px 0}
-.empty{background:var(--panel);border:1px dashed var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;color:var(--mute)}
+.ex{border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:8px 0}
+.ex details{border:0}.ex summary{padding:6px 0;color:var(--acc)}
+.vid{position:relative;padding-top:56.25%;margin:10px 0;border-radius:8px;overflow:hidden;background:#000}
+.vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.cap{font-size:.85rem;color:var(--mute);margin:-4px 0 8px}
 .q{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
-.lv{display:inline-block;font-size:.75rem;font-weight:600;border:1px solid var(--acc);color:var(--acc);border-radius:999px;padding:0 8px;margin-right:6px}
+.lv{display:inline-block;font-size:.72rem;font-weight:700;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:0 6px;margin-right:6px}
 .opts{display:grid;gap:6px;margin-top:8px}
 .opt{text-align:left;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
 .opt:hover:not(:disabled){border-color:var(--acc)}
-.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--panel))}
-.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--panel))}
-.tf{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
-.tf span{flex:1 1 240px}
-.tf .opt{padding:5px 14px}
+.opt.ok,.sq.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--panel))}
+.opt.no,.sq.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--panel))}
+.sq{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:6px}
+.sq .tf{display:flex;gap:6px}
+.sq .tf button{padding:4px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+.exp{display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--bg)}
+.q.done .exp{display:block}
 .score{font-weight:600;margin:8px 0}
+.miss{background:var(--panel);border:1px solid var(--acc2);border-radius:var(--r);padding:12px 16px;margin-bottom:18px}
 .end{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:8px}
-.vbtn{margin:8px 0}
-iframe.yt{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;margin-top:8px}
-@media (prefers-reduced-motion:no-preference){.opt{transition:background .15s,border-color .15s}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Ôn tập Vật lí trước khi kiểm tra</h1>
-  <p class="sub">Chọn lớp và loại bài. Trang lấy các bài cần ôn theo ma trận đề của tổ bộ môn, kèm lí thuyết, dạng bài và câu luyện tập đã soạn sẵn.</p>
+  <p class="sub">Chọn lớp và loại bài. Bài ôn được ghép theo đúng ma trận đề của thầy.</p>
   <div class="pick">
     <label>Lớp
       <select id="lop"><option>10</option><option>11</option><option>12</option></select>
@@ -94,17 +97,15 @@ iframe.yt{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;margin-top:8px
 var API = 'https://script.google.com/macros/s/AKfycbyq99M8liZkOpFpfDHehz4j5sXCUrLcM_CkwYwMvBYLcfhnN8VvtTAYSG-A71GEN9Yh/exec';
 var TEST_URL = 'https://thayhungp.blogspot.com/p/he-thong-kiem-tra-truc-tuyen-div.html';
 var LOAI = ['TX1','TX2','TX3','TX4','TX5','TX6','GK1','GK2','CK1','CK2','TNPT','ĐGNL','TĐH'];
-var MUC = { NB: 'Biết', B: 'Biết', TH: 'Hiểu', H: 'Hiểu', VD: 'Vận dụng', VDC: 'Vận dụng cao' };
 
 var $ = function (id) { return document.getElementById(id); };
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escBr(s) { return esc(s).replace(/\n/g, '<br>'); }
+// Dữ liệu cd-bt lưu \\ (2 dấu) trước lệnh LaTeX: đổi về 1 dấu cho MathJax
+function tx(s) { return esc(String(s == null ? '' : s).replace(/\\\\/g, '\\')).replace(/\n/g, '<br>'); }
 function noDau(s) { return s.replace(/Đ/g,'D'); }
-function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]); }
 
 LOAI.forEach(function (l) { var o = document.createElement('option'); o.textContent = l; $('loai').appendChild(o); });
-// Cho phép mở thẳng bằng ?lop=11&loai=TX2
-(function () {
+(function () { // mở thẳng bằng ?lop=10&loai=GK1
   var p = new URLSearchParams(location.search);
   if (p.get('lop')) $('lop').value = p.get('lop');
   if (p.get('loai')) $('loai').value = p.get('loai');
@@ -115,157 +116,121 @@ function say(t, err) { var m = $('msg'); m.textContent = t; m.className = err ? 
 $('go').addEventListener('click', function () {
   var lop = $('lop').value, loai = noDau($('loai').value);
   $('go').disabled = true; $('out').innerHTML = '';
-  say('Đang lấy ma trận và các bài cần ôn…');
+  say('Đang lấy ma trận và ghép bài ôn. Lần đầu có thể mất vài chục giây…');
   fetch(API + '?action=onTapKichBan&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(loai))
     .then(function (r) { return r.json(); })
     .then(function (res) {
-      if (!res.success) throw new Error(res.error || 'Không lấy được dữ liệu');
+      if (!res.success) throw new Error(res.error || res.message || 'Không lấy được dữ liệu');
       say('');
       render(res.data, lop, $('loai').value);
     })
-    .catch(function (e) { say(e.message + '. Nếu thấy báo chưa có ma trận, hãy nhờ thầy lưu ma trận cho bài này.', true); })
+    .catch(function (e) { say(e.message + '. Nếu báo chưa có ma trận, hãy nhờ thầy lưu ma trận cho bài này.', true); })
     .then(function () { $('go').disabled = false; });
 });
 
 // ===== Hiển thị =====
-function ul(a) { return '<ul>' + (a || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
-function bai(g) { return g.bai.length > 1 ? 'Bài ' + g.bai.join(', ') : 'Bài ' + g.bai[0]; }
+function pts(a) {
+  return '<ul>' + (a || []).map(function (p) {
+    return (p && typeof p === 'object') ? '<li class="sub">' + pts(p.subpoints) + '</li>' : '<li>' + tx(p) + '</li>';
+  }).join('') + '</ul>';
+}
+function video(v) {
+  if (!v) return '';
+  var u = v.url || (v.youtubeId ? 'https://www.youtube.com/embed/' + encodeURIComponent(v.youtubeId) : '');
+  if (!/^https:\/\/www\.youtube(-nocookie)?\.com\/embed\//.test(u)) return '';
+  return '<div class="vid"><iframe src="' + esc(u) + '" allowfullscreen loading="lazy" title="Video"></iframe></div>' +
+    (v.caption ? '<div class="cap">' + tx(v.caption) + '</div>' : '');
+}
+function lv(q) { return q.level ? '<span class="lv">' + esc(q.level) + '</span>' : ''; }
 
-function render(d, lop, loai) {
-  var nhom = d.nhom || [], thieu = d.thieu || [];
-  var toc = '<nav class="toc" aria-label="Mục lục"><b>Nội dung ôn</b>' + nhom.map(function (g, i) {
-    return '<a href="#g' + i + '">' + esc(bai(g)) + (g.noiDung ? ': ' + esc(g.noiDung.title) : '') + '</a>';
-  }).join('') + (thieu.length ? '<a href="#thieu">Bài chưa có nội dung</a>' : '') + '<a href="#end">Kiểm tra</a></nav>';
-
-  var chips = (d.bai || []).map(function (b) {
-    var co = nhom.some(function (g) { return g.bai.indexOf(b.bai) >= 0; });
-    return '<span class="chip' + (co ? '' : ' no') + '">Bài ' + b.bai + (co ? '' : ' (chưa có nội dung ôn)') + '</span>';
-  }).join('');
-
-  var main = '<div><div class="note"><b>' + esc(d.tieuDe || ('Ôn ' + loai + ' – Lớp ' + lop)) + '</b><br>Các bài cần ôn theo ma trận:' +
-    '<div class="chips">' + chips + '</div></div>' +
-    nhom.map(groupHtml).join('') +
-    (thieu.length ? '<div class="empty" id="thieu"><b>Bài chưa có nội dung ôn:</b> ' + thieu.map(function (b) { return 'Bài ' + b.bai; }).join(', ') +
-      '. Phần này chưa được soạn, các em xem lại bài giảng trên lớp và sách giáo khoa.</div>' : '') +
-    '<div class="end" id="end"><h2 style="margin-top:0">Trước khi làm bài kiểm tra</h2>' +
-    '<p><a class="btn" target="_blank" rel="noopener" href="' + TEST_URL + '?from=ontap&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(noDau(loai)) + '">Làm bài kiểm tra trên TestOnline</a></p>' +
-    '<p style="color:var(--mute);font-size:.9rem">Vào TestOnline, chọn Chế độ Kiểm tra, Lớp ' + esc(lop) + ', Loại bài ' + esc(loai) + '.</p></div></div>';
-
-  $('out').innerHTML = '<div class="layout">' + toc + main + '</div>';
-  bindPractice();
-  typeset($('out'));
+function mcHtml(q, j) {
+  return '<div class="q"><div>' + lv(q) + 'Câu ' + (j + 1) + '. ' + tx(q.mainQuestion) + '</div><div class="opts">' +
+    (q.choices || []).map(function (c, k) {
+      return '<button class="opt" data-ok="' + (String(c.answer) === 'true' ? 1 : 0) + '"><b>' + 'ABCDEFGH'.charAt(k) + '.</b> ' + tx(c.choice) + '</button>';
+    }).join('') + '</div></div>';
+}
+function tfHtml(q, j) {
+  return '<div class="q"><div>' + lv(q) + 'Câu ' + (j + 1) + '. ' + tx(q.mainQuestion) + '</div>' +
+    (q.subQuestions || []).map(function (s) {
+      return '<div class="sq" data-a="' + (String(s.answer) === 'true' ? 1 : 0) + '"><span>' + tx(s.question) +
+        '</span><span class="tf"><button data-v="1">Đúng</button><button data-v="0">Sai</button></span></div>';
+    }).join('') + '</div>';
+}
+function esHtml(q, j) {
+  return '<div class="q"><div>' + lv(q) + 'Câu ' + (j + 1) + '. ' + tx(q.mainQuestion) + '</div>' +
+    '<details><summary>Xem đáp án</summary><div class="body">' + pts([].concat(q.answer || [])) + '</div></details></div>';
 }
 
-function pointHtml(p) {
-  if (typeof p === 'string') return '<li>' + esc(p) + '</li>';
-  var sub = (p && p.subpoints) || [];
-  return '<li>' + (p && p.text ? esc(p.text) : '') + ul(sub) + '</li>';
-}
-
-function videoBtn(url, nhan) {
-  var m = /youtube(?:-nocookie)?\.com\/embed\/([\w-]{11})(?:\?([^"'\s]*))?/.exec(url || '');
-  if (!m) return '';
-  var q = new URLSearchParams(m[2] || '');
-  var s = parseInt(q.get('start'), 10) || 0, e = parseInt(q.get('end'), 10) || 0;
-  return '<div class="vid"><button class="btn alt vbtn" data-v="' + m[1] + '" data-s="' + s + '" data-e="' + e + '">▶ ' + esc(nhan || 'Xem video') + '</button></div>';
-}
-
-function groupHtml(g, i) {
-  var c = g.noiDung;
-  var s = '<section class="chap" id="g' + i + '"><h2><span>' + esc(bai(g)) + (c ? ': ' + esc(c.title) : '') + '</span><span class="w">Mức ưu tiên ' + (g.trongSo || 3) + '/5</span></h2>';
-  if (!c) return s + '<div class="body"><p>Không đọc được file ôn của bài này (' + esc(g.label) + ').</p></div></section>';
-
-  var th = (c.theory && c.theory.content) || {};
-  s += '<details open><summary>Lí thuyết cần nhớ</summary><div class="body"><ul>' + (th.points || []).map(pointHtml).join('') + '</ul>' +
-    (th.formulas ? '<div class="note">' + esc(th.formulas) + '</div>' : '') + '</div></details>';
-
-  s += '<details><summary>Các dạng bài và phương pháp giải</summary><div class="body">' + (c.problemTypes || []).map(function (t) {
-    var m = t.methods || {};
-    return '<div class="dang"><h4>' + esc(t.title) + '</h4>' +
-      '<p style="margin:4px 0"><b>' + esc(m.heading || 'Phương pháp giải:') + '</b></p><ol>' + (m.steps || []).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol>' +
-      (m.note ? '<div class="note"><b>Lưu ý:</b> ' + esc(m.note) + '</div>' : '') +
-      (t.examples || []).map(function (ex, k) {
-        return '<details><summary>Ví dụ ' + (k + 1) + '</summary><div class="body"><p>' + escBr(ex.problem) + '</p><p><b>Lời giải:</b></p>' + ul(ex.solution) + '</div></details>';
-      }).join('') +
-      (t.video ? videoBtn(t.video.url, t.video.caption) : '') + '</div>';
-  }).join('') + '</div></details>';
-
-  s += practiceHtml(c.practice || {}, i);
-
-  if (c.video && c.video.youtubeId) {
-    s += '<details><summary>Video bài giảng</summary><div class="body">' + videoBtn('https://www.youtube.com/embed/' + c.video.youtubeId, c.video.caption) + '</div></details>';
+function chapHtml(g, i) {
+  var nd = g.noiDung, hd = nd.header || {}, bai = g.bai || [], pr = nd.practice || {};
+  var ten = 'Bài ' + bai.join(', ') + ' – ' + (hd.title || nd.title || g.label);
+  var s = '<section class="chap" id="c' + i + '"><h2><span>' + tx(ten) + '</span><span class="w">Mức ưu tiên ' + (g.trongSo || 3) + '/5</span></h2>';
+  var t = nd.theory && nd.theory.content;
+  if (t) s += '<details open><summary>Lí thuyết cần nhớ</summary><div class="body">' + (t.heading ? '<b>' + tx(t.heading) + '</b>' : '') +
+    pts(t.points) + (t.formulas ? '<div class="fm">' + tx(t.formulas) + '</div>' : '') + '</div></details>';
+  if ((nd.problemTypes || []).length) s += '<details><summary>Các dạng bài và phương pháp giải</summary><div class="body">' +
+    nd.problemTypes.map(function (d) {
+      var m = d.methods || {};
+      return '<div class="dang"><h4>' + tx(d.title) + '</h4>' +
+        '<ol>' + (m.steps || []).map(function (b) { return '<li>' + tx(b) + '</li>'; }).join('') + '</ol>' +
+        (m.note ? '<div class="note"><b>Lưu ý:</b> ' + tx(m.note) + '</div>' : '') +
+        (d.examples || []).map(function (e, k) {
+          return '<div class="ex"><b>Ví dụ ' + (k + 1) + ':</b> ' + tx(e.problem) +
+            '<details><summary>Xem lời giải</summary>' + pts(e.solution) + '</details></div>';
+        }).join('') + video(d.video) + '</div>';
+    }).join('') + '</div></details>';
+  var mc = pr.multipleChoice || [], tf = pr.trueFalse || [], sa = pr.shortAnswer || [], es = pr.essay || [];
+  if (mc.length + tf.length + sa.length + es.length) {
+    s += '<details><summary>Luyện tập</summary><div class="body">';
+    if (mc.length) s += '<h4>Phần I. Trắc nghiệm</h4><div data-mc>' + mc.map(mcHtml).join('') + '<p class="score"></p></div>';
+    if (tf.length) s += '<h4>Phần II. Đúng / Sai</h4>' + tf.map(tfHtml).join('');
+    if (sa.length) s += '<h4>Phần III. Trả lời ngắn</h4>' + sa.map(esHtml).join('');
+    if (es.length) s += '<h4>Tự luận</h4>' + es.map(esHtml).join('');
+    s += '</div></details>';
   }
-  if (c.postUrl) s += '<div class="body"><a target="_blank" rel="noopener" href="' + esc(c.postUrl) + '">Đọc bài chuyên đề đầy đủ</a></div>';
+  var v = video(nd.video);
+  if (v || nd.postUrl) s += '<details><summary>Bài giảng</summary><div class="body">' + v +
+    (/^https:\/\//.test(nd.postUrl || '') ? '<p><a target="_blank" rel="noopener" href="' + esc(nd.postUrl) + '">Mở bài giảng đầy đủ</a></p>' : '') + '</div></details>';
   return s + '</section>';
 }
 
-function lv(l) { return l ? '<span class="lv">' + esc(MUC[l] || l) + '</span>' : ''; }
-
-function practiceHtml(p, gi) {
-  var mc = p.multipleChoice || [], tf = p.trueFalse || [], es = p.essay || [];
-  if (!mc.length && !tf.length && !es.length) return '';
-  var n = 0;
-  var s = '<details><summary>Câu hỏi luyện tập (' + (mc.length + tf.length + es.length) + ' câu)</summary><div class="body" data-box="1">';
-  mc.forEach(function (q) {
-    n++;
-    var right = 0;
-    (q.choices || []).forEach(function (o, k) { if (String(o.answer) === 'true') right = k; });
-    s += '<div class="q" data-t="mc" data-ans="' + right + '"><div>' + lv(q.level) + '<b>Câu ' + n + '.</b> ' + escBr(q.mainQuestion) + '</div><div class="opts">' +
-      (q.choices || []).map(function (o, k) { return '<button class="opt" data-k="' + k + '">' + esc(o.choice) + '</button>'; }).join('') + '</div></div>';
-  });
-  tf.forEach(function (q) {
-    n++;
-    s += '<div class="q" data-t="tf"><div>' + lv(q.level) + '<b>Câu ' + n + '.</b> ' + escBr(q.mainQuestion) + '</div>' +
-      (q.subQuestions || []).map(function (sq) {
-        return '<div class="tf" data-ans="' + (String(sq.answer) === 'true' ? 1 : 0) + '"><span>' + esc(sq.question) + '</span>' +
-          '<button class="opt" data-k="1">Đúng</button><button class="opt" data-k="0">Sai</button></div>';
-      }).join('') + '</div>';
-  });
-  es.forEach(function (q) {
-    n++;
-    s += '<div class="q" data-t="es"><div>' + lv(q.level) + '<b>Câu ' + n + '.</b> ' + escBr(q.mainQuestion) + '</div>' +
-      '<details><summary>Xem lời giải</summary><div class="body">' + ul(Array.isArray(q.answer) ? q.answer : [q.answer]) + '</div></details></div>';
-  });
-  return s + '<p class="score"></p></div></details>';
+function render(d, lop, loai) {
+  var all = d.nhom || [], nhom = all.filter(function (g) { return g.noiDung; }), thieu = (d.thieu || []).map(function (b) { return b.bai; });
+  all.forEach(function (g) { if (!g.noiDung) thieu = thieu.concat(g.bai || []); });
+  thieu.sort(function (a, b) { return a - b; });
+  var toc = '<nav class="toc" aria-label="Mục lục"><b>Nội dung ôn</b>' + nhom.map(function (g, i) {
+    return '<a href="#c' + i + '">Bài ' + esc((g.bai || []).join(', ')) + '</a>';
+  }).join('') + '<a href="#end">Kiểm tra</a></nav>';
+  var main = '<div><div class="note"><b>' + tx(d.tieuDe || ('Ôn ' + loai + ' – Lớp ' + lop)) + '</b><br>Gồm ' + (d.bai || []).length +
+    ' bài trong ma trận' + (d.capNhat ? ' (ma trận cập nhật ' + esc(d.capNhat) + ')' : '') + '.</div>' +
+    (thieu.length ? '<div class="miss">' + thieu.map(function (b) { return 'Bài ' + esc(b) + ': bài này chưa có nội dung ôn.'; }).join('<br>') + '</div>' : '') +
+    nhom.map(chapHtml).join('') +
+    '<div class="end" id="end"><h2 style="margin-top:0">Trước khi làm bài kiểm tra</h2>' +
+    '<p><a class="btn" target="_blank" rel="noopener" href="' + TEST_URL + '?from=ontap&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(loai) + '">Làm bài kiểm tra trên TestOnline</a></p>' +
+    '<p style="color:var(--mute);font-size:.9rem">Vào TestOnline, chọn Chế độ Kiểm tra, Lớp ' + esc(lop) + ', Loại bài ' + esc(loai) + '.</p></div></div>';
+  $('out').innerHTML = '<div class="layout">' + toc + main + '</div>';
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('out')]);
 }
 
-function bindPractice() {
-  document.querySelectorAll('.q[data-t="mc"] .opt').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var q = b.closest('.q'), right = +q.dataset.ans;
-      q.classList.add('done');
-      q.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (+o.dataset.k === right) o.classList.add('ok'); });
-      if (+b.dataset.k !== right) { b.classList.add('no'); q.classList.add('wrong'); }
-      score(q.closest('[data-box]'));
-    });
-  });
-  document.querySelectorAll('.q[data-t="tf"] .tf .opt').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var row = b.closest('.tf'), right = +row.dataset.ans, ok = +b.dataset.k === right;
-      row.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (+o.dataset.k === right) o.classList.add('ok'); });
-      if (!ok) { b.classList.add('no'); row.classList.add('wrong'); }
-      row.classList.add('done');
-      score(row.closest('[data-box]'));
-    });
-  });
-  document.querySelectorAll('.vbtn').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var src = 'https://www.youtube-nocookie.com/embed/' + b.dataset.v + '?rel=0' + (+b.dataset.s ? '&start=' + b.dataset.s : '') + (+b.dataset.e ? '&end=' + b.dataset.e : '');
-      var f = document.createElement('iframe');
-      f.className = 'yt'; f.src = src; f.title = 'Video bài giảng'; f.loading = 'lazy'; f.allowFullscreen = true;
-      f.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture';
-      b.parentNode.appendChild(f); b.hidden = true;
-    });
-  });
-}
-
-// Mỗi ý Đúng/Sai tính một đơn vị, mỗi câu trắc nghiệm tính một đơn vị
-function score(box) {
-  var units = box.querySelectorAll('.q[data-t="mc"], .q[data-t="tf"] .tf');
-  var done = 0, good = 0;
-  units.forEach(function (u) { if (u.classList.contains('done')) { done++; if (!u.classList.contains('wrong')) good++; } });
-  box.querySelector('.score').textContent = done ? ('Đúng ' + good + '/' + done + ' ý đã làm (tổng ' + units.length + ' ý; tự luận xem lời giải).') : '';
-}
+// ===== Tương tác (ủy quyền sự kiện) =====
+$('out').addEventListener('click', function (e) {
+  var b = e.target.closest ? e.target.closest('button') : null;
+  if (!b) return;
+  var box;
+  if (b.classList.contains('opt')) {
+    var q = b.closest('.q');
+    q.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (o.dataset.ok === '1') o.classList.add('ok'); });
+    q.classList.add('done');
+    if (b.dataset.ok !== '1') b.classList.add('no');
+    box = b.closest('[data-mc]');
+    var qs = box.querySelectorAll('.q'), dn = box.querySelectorAll('.q.done'), dung = box.querySelectorAll('.q.done .opt.no');
+    box.querySelector('.score').textContent = 'Đúng ' + (dn.length - dung.length) + '/' + dn.length + ' câu đã làm (tổng ' + qs.length + ' câu).';
+  } else if (b.dataset.v !== undefined && b.closest('.sq')) {
+    var s = b.closest('.sq');
+    s.classList.add(b.dataset.v === s.dataset.a ? 'ok' : 'no');
+    s.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+  }
+});
 </script>
 </body>
 </html>
