@@ -29,6 +29,9 @@ h1{font-size:1.7rem;line-height:1.25;margin:0 0 4px}
 .btn.alt{background:transparent;color:var(--acc);border:1.5px solid var(--acc)}
 .btn:disabled{opacity:.5;cursor:wait}
 input[type=file]{max-width:100%}
+.row label{display:flex;flex-direction:column;font-weight:600;font-size:.9rem;gap:4px}
+select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:120px}
+#pub{margin-bottom:14px}
 textarea{width:100%;min-height:70px;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:13px monospace}
 #msg{margin:14px 0;color:var(--mute)}
 #msg.err{color:var(--bad);font-weight:600}
@@ -64,10 +67,20 @@ details[open]>summary::before{content:"–"}
 <body>
 <div class="wrap">
   <h1>Ôn tập Vật lí trước khi kiểm tra</h1>
-  <p class="sub">Tải ma trận đề lên, trang sẽ gom đúng nội dung cần ôn.</p>
+  <p class="sub">Chọn ma trận có sẵn của thầy, hoặc tải ma trận riêng lên. Trang sẽ gom đúng nội dung cần ôn.</p>
+
+  <div class="up" id="pub">
+    <b>Ma trận có sẵn của thầy</b>
+    <div class="row" style="margin-top:8px">
+      <label>Lớp <select id="lop"><option>10</option><option>11</option><option>12</option></select></label>
+      <label>Loại bài <select id="loai"></select></label>
+      <button class="btn" id="goPub">Ôn theo ma trận này</button>
+    </div>
+  </div>
 
   <div class="up">
-    <ol>
+    <b>Hoặc dùng ma trận riêng</b>
+    <ol style="margin-top:8px">
       <li>Mở <a href="https://thayhungp.blogspot.com/p/he-thong-kiem-tra-truc-tuyen-div.html" target="_blank" rel="noopener">TestOnline</a>, chọn ma trận của bài kiểm tra, bấm <b>Tải ma trận (JSON)</b>.</li>
       <li>Quay lại đây, chọn file vừa tải về (hoặc dán nội dung vào ô bên dưới).</li>
     </ol>
@@ -165,6 +178,31 @@ $('go').addEventListener('click', function () {
   try { localStorage.setItem(KEY, JSON.stringify(tl)); $('last').hidden = false; } catch (e) {}
   chay(tl);
 });
+
+// ===== Ma trận do thầy đăng sẵn: OnTap/matran/<lớp>-<loại>.json (ví dụ 11-TX2.json) =====
+var LOAI = ['TX1','TX2','TX3','TX4','TX5','TX6','GK1','GK2','CK1','CK2','TNPT','ĐGNL','TĐH'];
+function noDau(s) { return s.replace(/Đ/g, 'D'); }
+LOAI.forEach(function (l) { var o = document.createElement('option'); o.textContent = l; $('loai').appendChild(o); });
+function layMaTran(lop, loai) {
+  say('Đang lấy ma trận…');
+  fetch('matran/' + lop + '-' + noDau(loai) + '.json?t=' + Math.floor(Date.now() / 300000))
+    .then(function (r) {
+      if (!r.ok) throw new Error('Chưa có ma trận Lớp ' + lop + ' – ' + loai + '. Hãy nhờ thầy đăng ma trận, hoặc tải file ma trận lên ở phần bên dưới.');
+      return r.text();
+    })
+    .then(function (txt) {
+      var tl = docMaTran(txt);
+      if (!Object.keys(tl).length) throw new Error('Ma trận này chưa đọc được mã bài.');
+      chay(tl);
+    })
+    .catch(function (e) { say(e.message, true); });
+}
+$('goPub').addEventListener('click', function () { layMaTran($('lop').value, $('loai').value); });
+// Mở thẳng bằng ?lop=11&loai=TX2 (dùng cho nút "Ôn tập" đặt ở trang khác)
+(function () {
+  var p = new URLSearchParams(location.search), l = p.get('lop'), t = p.get('loai');
+  if (l && t && LOAI.indexOf(t) >= 0 && ['10','11','12'].indexOf(l) >= 0) { $('lop').value = l; $('loai').value = t; layMaTran(l, t); }
+})();
 
 function chay(theoLop) {
   $('go').disabled = true; $('out').innerHTML = ''; say('Đang gom nội dung ôn tập…');
