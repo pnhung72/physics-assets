@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ôn tập Vật lí – Thầy Hùng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+:root{--bg:#eef3f5;--panel:#fff;--ink:#12222d;--mute:#5b6d79;--line:#d3dde3;--acc:#0a6c8b;--acc2:#d99a1e;--ok:#1f8a4c;--bad:#c2412d;--r:10px}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a21;--panel:#172630;--ink:#e6eef2;--mute:#9db0bb;--line:#2a3d49;--acc:#5ec0dc;--acc2:#f0b84a;--ok:#4fc17f;--bad:#f07a68}}
+*{box-sizing:border-box}
+html{scroll-padding-top:12px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Be Vietnam Pro",system-ui,sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+a{color:var(--acc)}
+:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:16px}
+h1{font-size:1.7rem;line-height:1.25;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px}
+.pick{display:flex;flex-wrap:wrap;gap:12px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.pick label{display:flex;flex-direction:column;font-weight:600;font-size:.9rem;gap:4px}
+select,button{font:inherit}
+select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:120px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+@media (prefers-color-scheme:dark){.btn{color:#0f1a21}}
+.btn.alt{background:transparent;color:var(--acc);border:1.5px solid var(--acc)}
+.btn:disabled{opacity:.5;cursor:wait}
+#msg{margin:14px 0;color:var(--mute)}
+#msg.err{color:var(--bad);font-weight:600}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:20px;margin-top:20px}
+nav.toc{position:sticky;top:12px;align-self:start;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+nav.toc b{display:block;margin-bottom:6px}
+nav.toc a{display:block;padding:6px 8px;border-radius:6px;text-decoration:none;color:var(--ink);font-size:.92rem}
+nav.toc a:hover{background:var(--bg)}
+nav.toc small{color:var(--mute)}
+@media (max-width:760px){.layout{grid-template-columns:1fr}nav.toc{position:static}}
+.chap{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:18px;overflow:hidden}
+.chap>h2{margin:0;padding:14px 16px;font-size:1.2rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.w{font-size:.8rem;font-weight:500;color:var(--mute);white-space:nowrap}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:inline-block;width:1.2em;color:var(--acc)}
+details[open]>summary::before{content:"–"}
+.body{padding:0 16px 16px}
+.body ul,.body ol{padding-left:1.2em;margin:6px 0}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.f{border-left:4px solid var(--acc2);background:var(--bg);padding:10px 12px;border-radius:0 8px 8px 0;overflow-x:auto}
+.f b{display:block;font-size:.92rem}.f span{color:var(--mute);font-size:.85rem}
+.dang{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.dang h4{margin:0 0 6px}
+.note{background:var(--bg);border-radius:8px;padding:8px 12px;margin:8px 0}
+.q{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.opts{display:grid;gap:6px;margin-top:8px}
+.opt{text-align:left;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--acc)}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--panel))}
+.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--panel))}
+.exp{display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--bg)}
+.q.done .exp{display:block}
+.score{font-weight:600;margin:8px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.card{min-height:88px;border:1.5px dashed var(--acc);border-radius:10px;padding:12px;background:var(--panel);color:var(--ink);cursor:pointer;text-align:left}
+.card.flip{border-style:solid;background:var(--bg)}
+.end{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:8px}
+.vid{font-size:.9rem}
+@media (prefers-reduced-motion:no-preference){.opt,.card{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ôn tập Vật lí trước khi kiểm tra</h1>
+  <p class="sub">Chọn lớp và loại bài. Bài ôn được soạn theo đúng ma trận đề của thầy.</p>
+  <div class="pick">
+    <label>Lớp
+      <select id="lop"><option>10</option><option>11</option><option>12</option></select>
+    </label>
+    <label>Loại bài
+      <select id="loai"></select>
+    </label>
+    <button class="btn" id="go">Tạo bài ôn</button>
+  </div>
+  <div id="msg" role="status" aria-live="polite"></div>
+  <div id="out"></div>
+</div>
+
+<script>
+// ===== Cấu hình =====
+var API = 'https://script.google.com/macros/s/AKfycbyq99M8liZkOpFpfDHehz4j5sXCUrLcM_CkwYwMvBYLcfhnN8VvtTAYSG-A71GEN9Yh/exec';
+var TEST_URL = 'https://thayhungp.blogspot.com/p/he-thong-kiem-tra-truc-tuyen-div.html';
+var LOAI = ['TX1','TX2','TX3','TX4','TX5','TX6','GK1','GK2','CK1','CK2','TNPT','ĐGNL','TĐH'];
+
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function noDau(s) { return s.replace(/Đ/g,'D'); }
+
+LOAI.forEach(function (l) { var o = document.createElement('option'); o.textContent = l; $('loai').appendChild(o); });
+// Cho phép mở thẳng bằng ?lop=10&loai=GK1
+(function () {
+  var p = new URLSearchParams(location.search);
+  if (p.get('lop')) $('lop').value = p.get('lop');
+  if (p.get('loai')) $('loai').value = p.get('loai');
+})();
+
+function say(t, err) { var m = $('msg'); m.textContent = t; m.className = err ? 'err' : ''; }
+
+$('go').addEventListener('click', function () {
+  var lop = $('lop').value, loai = noDau($('loai').value);
+  $('go').disabled = true; $('out').innerHTML = '';
+  say('Đang lấy ma trận và soạn bài ôn. Lần đầu có thể mất khoảng 1 phút…');
+  fetch(API + '?action=onTapKichBan&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(loai))
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res.success) throw new Error(res.error || 'Không lấy được dữ liệu');
+      say('');
+      render(res.data.kichBan, lop, $('loai').value);
+    })
+    .catch(function (e) { say(e.message + '. Nếu thấy báo chưa có ma trận, hãy nhờ thầy lưu ma trận cho bài này.', true); })
+    .then(function () { $('go').disabled = false; });
+});
+
+// ===== Hiển thị =====
+function ul(a) { return '<ul>' + (a || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
+
+function render(kb, lop, loai) {
+  var ch = kb.chuong || [];
+  var toc = '<nav class="toc" aria-label="Mục lục"><b>Nội dung ôn</b>' + ch.map(function (c, i) {
+    return '<a href="#c' + i + '">' + esc(c.ten) + '</a>';
+  }).join('') + '<a href="#end">Lời khuyên và kiểm tra</a></nav>';
+
+  var main = '<div><div class="note"><b>' + esc(kb.tieuDe || ('Ôn ' + loai + ' – Lớp ' + lop)) + '</b><br>' + esc(kb.tongQuan || '') + '</div>' +
+    ch.map(chapHtml).join('') +
+    '<div class="end" id="end"><h2 style="margin-top:0">Trước khi làm bài kiểm tra</h2>' + ul(kb.loiKhuyen) +
+    '<p><a class="btn" target="_blank" rel="noopener" href="' + TEST_URL + '?from=ontap&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(loai) + '">Làm bài kiểm tra trên TestOnline</a></p>' +
+    '<p style="color:var(--mute);font-size:.9rem">Vào TestOnline, chọn Chế độ Kiểm tra, Lớp ' + esc(lop) + ', Loại bài ' + esc(loai) + '.</p></div></div>';
+
+  $('out').innerHTML = '<div class="layout">' + toc + main + '</div>';
+  bindPractice();
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('out')]);
+}
+
+function chapHtml(c, i) {
+  var s = '<section class="chap" id="c' + i + '"><h2><span>' + esc(c.ten) + '</span><span class="w">Mức ưu tiên ' + (c.trongSo || 3) + '/5</span></h2>';
+  s += '<details open><summary>Lí thuyết cần nhớ</summary><div class="body">' + ul(c.lyThuyet) + '</div></details>';
+  s += '<details><summary>Công thức</summary><div class="body"><div class="fgrid">' + (c.congThuc || []).map(function (f) {
+    return '<div class="f"><b>' + esc(f.ten) + '</b>$$' + (f.latex || '').replace(/\$/g, '') + '$$<span>' + esc(f.chuThich) + '</span></div>';
+  }).join('') + '</div></div></details>';
+  s += '<details><summary>Các dạng bài và phương pháp giải</summary><div class="body">' + (c.dangBai || []).map(function (d) {
+    var v = d.viDu || {};
+    return '<div class="dang"><h4>' + esc(d.ten) + '</h4><ol>' + (d.cacBuoc || []).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol>' +
+      (d.luuY ? '<div class="note"><b>Lưu ý:</b> ' + esc(d.luuY) + '</div>' : '') +
+      (v.de ? '<details><summary>Ví dụ minh họa</summary><div class="body"><p>' + esc(v.de) + '</p><p><b>Lời giải:</b> ' + esc(v.loiGiai) + '</p>' + (v.dapSo ? '<p><b>Đáp số:</b> ' + esc(v.dapSo) + '</p>' : '') + '</div></details>' : '') +
+      (d.tuKhoaVideo ? '<p class="vid"><a target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=' + encodeURIComponent(d.tuKhoaVideo + ' vật lí') + '">Tìm video: ' + esc(d.tuKhoaVideo) + '</a></p>' : '') + '</div>';
+  }).join('') + '</div></details>';
+  s += '<details><summary>Luyện nhớ nhanh</summary><div class="body" data-chap="' + i + '">' + (c.luyenTap || []).map(function (q, j) {
+    return '<div class="q" data-ans="' + (q.dapAn | 0) + '"><div>Câu ' + (j + 1) + '. ' + esc(q.hoi) + '</div><div class="opts">' +
+      (q.chon || []).map(function (o, k) { return '<button class="opt" data-k="' + k + '">' + esc(o) + '</button>'; }).join('') +
+      '</div><div class="exp"><b></b> ' + esc(q.giaiThich) + '</div></div>';
+  }).join('') + '<p class="score"></p><button class="btn alt retry" hidden>Làm lại các câu sai</button></div></details>';
+  s += '<details><summary>Thẻ nhớ (bấm để lật)</summary><div class="body"><div class="cards">' + (c.theNho || []).map(function (t) {
+    return '<button class="card" data-a="' + esc(t.mat2).replace(/"/g, '&quot;') + '" data-q="' + esc(t.mat1).replace(/"/g, '&quot;') + '">' + esc(t.mat1) + '</button>';
+  }).join('') + '</div></div></details></section>';
+  return s;
+}
+
+function bindPractice() {
+  document.querySelectorAll('.card').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.classList.toggle('flip');
+      b.innerHTML = f ? b.dataset.a.replace(/&/g,'&amp;').replace(/</g,'&lt;') : b.dataset.q.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([b]);
+    });
+  });
+  document.querySelectorAll('.q').forEach(function (q) {
+    q.querySelectorAll('.opt').forEach(function (b) {
+      b.addEventListener('click', function () { answer(q, b); });
+    });
+  });
+  document.querySelectorAll('.retry').forEach(function (r) {
+    r.addEventListener('click', function () {
+      var box = r.parentNode;
+      box.querySelectorAll('.q.wrong').forEach(function (q) {
+        q.classList.remove('done', 'wrong');
+        q.querySelectorAll('.opt').forEach(function (o) { o.disabled = false; o.className = 'opt'; });
+      });
+      r.hidden = true; score(box);
+    });
+  });
+}
+
+function answer(q, b) {
+  var right = +q.dataset.ans, pick = +b.dataset.k;
+  q.classList.add('done');
+  q.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (+o.dataset.k === right) o.classList.add('ok'); });
+  var good = pick === right;
+  if (!good) { b.classList.add('no'); q.classList.add('wrong'); }
+  q.querySelector('.exp b').textContent = good ? 'Đúng.' : 'Chưa đúng.';
+  score(q.parentNode);
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([q]);
+}
+
+function score(box) {
+  var all = box.querySelectorAll('.q'), done = box.querySelectorAll('.q.done'), bad = box.querySelectorAll('.q.wrong');
+  box.querySelector('.score').textContent = done.length ? ('Đúng ' + (done.length - bad.length) + '/' + done.length + ' câu đã làm (tổng ' + all.length + ' câu).') : '';
+  box.querySelector('.retry').hidden = !(bad.length && done.length === all.length);
+}
+</script>
+</body>
+</html>
