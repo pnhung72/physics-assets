@@ -36,46 +36,46 @@ nav.toc{position:sticky;top:12px;align-self:start;background:var(--panel);border
 nav.toc b{display:block;margin-bottom:6px}
 nav.toc a{display:block;padding:6px 8px;border-radius:6px;text-decoration:none;color:var(--ink);font-size:.92rem}
 nav.toc a:hover{background:var(--bg)}
-nav.toc small{color:var(--mute)}
 @media (max-width:760px){.layout{grid-template-columns:1fr}nav.toc{position:static}}
 .chap{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:18px;overflow:hidden}
-.chap>h2{margin:0;padding:14px 16px;font-size:1.2rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.chap>h2{margin:0;padding:14px 16px;font-size:1.2rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
 .w{font-size:.8rem;font-weight:500;color:var(--mute);white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.85rem;background:var(--panel)}
+.chip.no{border-style:dashed;color:var(--mute)}
 details{border-bottom:1px solid var(--line)}
 details:last-child{border-bottom:0}
 summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none}
 summary::-webkit-details-marker{display:none}
 summary::before{content:"+";display:inline-block;width:1.2em;color:var(--acc)}
 details[open]>summary::before{content:"–"}
-.body{padding:0 16px 16px}
+.body{padding:0 16px 16px;overflow-wrap:anywhere}
 .body ul,.body ol{padding-left:1.2em;margin:6px 0}
-.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-.f{border-left:4px solid var(--acc2);background:var(--bg);padding:10px 12px;border-radius:0 8px 8px 0;overflow-x:auto}
-.f b{display:block;font-size:.92rem}.f span{color:var(--mute);font-size:.85rem}
 .dang{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
 .dang h4{margin:0 0 6px}
 .note{background:var(--bg);border-radius:8px;padding:8px 12px;margin:8px 0}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;color:var(--mute)}
 .q{border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.lv{display:inline-block;font-size:.75rem;font-weight:600;border:1px solid var(--acc);color:var(--acc);border-radius:999px;padding:0 8px;margin-right:6px}
 .opts{display:grid;gap:6px;margin-top:8px}
 .opt{text-align:left;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
 .opt:hover:not(:disabled){border-color:var(--acc)}
 .opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--panel))}
 .opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--panel))}
-.exp{display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--bg)}
-.q.done .exp{display:block}
+.tf{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.tf span{flex:1 1 240px}
+.tf .opt{padding:5px 14px}
 .score{font-weight:600;margin:8px 0}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-.card{min-height:88px;border:1.5px dashed var(--acc);border-radius:10px;padding:12px;background:var(--panel);color:var(--ink);cursor:pointer;text-align:left}
-.card.flip{border-style:solid;background:var(--bg)}
 .end{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:8px}
-.vid{font-size:.9rem}
-@media (prefers-reduced-motion:no-preference){.opt,.card{transition:background .15s,border-color .15s}}
+.vbtn{margin:8px 0}
+iframe.yt{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;margin-top:8px}
+@media (prefers-reduced-motion:no-preference){.opt{transition:background .15s,border-color .15s}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Ôn tập Vật lí trước khi kiểm tra</h1>
-  <p class="sub">Chọn lớp và loại bài. Bài ôn được soạn theo đúng ma trận đề của thầy.</p>
+  <p class="sub">Chọn lớp và loại bài. Trang lấy các bài cần ôn theo ma trận đề của tổ bộ môn, kèm lí thuyết, dạng bài và câu luyện tập đã soạn sẵn.</p>
   <div class="pick">
     <label>Lớp
       <select id="lop"><option>10</option><option>11</option><option>12</option></select>
@@ -94,13 +94,16 @@ details[open]>summary::before{content:"–"}
 var API = 'https://script.google.com/macros/s/AKfycbyq99M8liZkOpFpfDHehz4j5sXCUrLcM_CkwYwMvBYLcfhnN8VvtTAYSG-A71GEN9Yh/exec';
 var TEST_URL = 'https://thayhungp.blogspot.com/p/he-thong-kiem-tra-truc-tuyen-div.html';
 var LOAI = ['TX1','TX2','TX3','TX4','TX5','TX6','GK1','GK2','CK1','CK2','TNPT','ĐGNL','TĐH'];
+var MUC = { NB: 'Biết', B: 'Biết', TH: 'Hiểu', H: 'Hiểu', VD: 'Vận dụng', VDC: 'Vận dụng cao' };
 
 var $ = function (id) { return document.getElementById(id); };
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escBr(s) { return esc(s).replace(/\n/g, '<br>'); }
 function noDau(s) { return s.replace(/Đ/g,'D'); }
+function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]); }
 
 LOAI.forEach(function (l) { var o = document.createElement('option'); o.textContent = l; $('loai').appendChild(o); });
-// Cho phép mở thẳng bằng ?lop=10&loai=GK1
+// Cho phép mở thẳng bằng ?lop=11&loai=TX2
 (function () {
   var p = new URLSearchParams(location.search);
   if (p.get('lop')) $('lop').value = p.get('lop');
@@ -112,13 +115,13 @@ function say(t, err) { var m = $('msg'); m.textContent = t; m.className = err ? 
 $('go').addEventListener('click', function () {
   var lop = $('lop').value, loai = noDau($('loai').value);
   $('go').disabled = true; $('out').innerHTML = '';
-  say('Đang lấy ma trận và soạn bài ôn. Lần đầu có thể mất khoảng 1 phút…');
+  say('Đang lấy ma trận và các bài cần ôn…');
   fetch(API + '?action=onTapKichBan&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(loai))
     .then(function (r) { return r.json(); })
     .then(function (res) {
       if (!res.success) throw new Error(res.error || 'Không lấy được dữ liệu');
       say('');
-      render(res.data.kichBan, lop, $('loai').value);
+      render(res.data, lop, $('loai').value);
     })
     .catch(function (e) { say(e.message + '. Nếu thấy báo chưa có ma trận, hãy nhờ thầy lưu ma trận cho bài này.', true); })
     .then(function () { $('go').disabled = false; });
@@ -126,88 +129,142 @@ $('go').addEventListener('click', function () {
 
 // ===== Hiển thị =====
 function ul(a) { return '<ul>' + (a || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
+function bai(g) { return g.bai.length > 1 ? 'Bài ' + g.bai.join(', ') : 'Bài ' + g.bai[0]; }
 
-function render(kb, lop, loai) {
-  var ch = kb.chuong || [];
-  var toc = '<nav class="toc" aria-label="Mục lục"><b>Nội dung ôn</b>' + ch.map(function (c, i) {
-    return '<a href="#c' + i + '">' + esc(c.ten) + '</a>';
-  }).join('') + '<a href="#end">Lời khuyên và kiểm tra</a></nav>';
+function render(d, lop, loai) {
+  var nhom = d.nhom || [], thieu = d.thieu || [];
+  var toc = '<nav class="toc" aria-label="Mục lục"><b>Nội dung ôn</b>' + nhom.map(function (g, i) {
+    return '<a href="#g' + i + '">' + esc(bai(g)) + (g.noiDung ? ': ' + esc(g.noiDung.title) : '') + '</a>';
+  }).join('') + (thieu.length ? '<a href="#thieu">Bài chưa có nội dung</a>' : '') + '<a href="#end">Kiểm tra</a></nav>';
 
-  var main = '<div><div class="note"><b>' + esc(kb.tieuDe || ('Ôn ' + loai + ' – Lớp ' + lop)) + '</b><br>' + esc(kb.tongQuan || '') + '</div>' +
-    ch.map(chapHtml).join('') +
-    '<div class="end" id="end"><h2 style="margin-top:0">Trước khi làm bài kiểm tra</h2>' + ul(kb.loiKhuyen) +
-    '<p><a class="btn" target="_blank" rel="noopener" href="' + TEST_URL + '?from=ontap&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(loai) + '">Làm bài kiểm tra trên TestOnline</a></p>' +
+  var chips = (d.bai || []).map(function (b) {
+    var co = nhom.some(function (g) { return g.bai.indexOf(b.bai) >= 0; });
+    return '<span class="chip' + (co ? '' : ' no') + '">Bài ' + b.bai + (co ? '' : ' (chưa có nội dung ôn)') + '</span>';
+  }).join('');
+
+  var main = '<div><div class="note"><b>' + esc(d.tieuDe || ('Ôn ' + loai + ' – Lớp ' + lop)) + '</b><br>Các bài cần ôn theo ma trận:' +
+    '<div class="chips">' + chips + '</div></div>' +
+    nhom.map(groupHtml).join('') +
+    (thieu.length ? '<div class="empty" id="thieu"><b>Bài chưa có nội dung ôn:</b> ' + thieu.map(function (b) { return 'Bài ' + b.bai; }).join(', ') +
+      '. Phần này chưa được soạn, các em xem lại bài giảng trên lớp và sách giáo khoa.</div>' : '') +
+    '<div class="end" id="end"><h2 style="margin-top:0">Trước khi làm bài kiểm tra</h2>' +
+    '<p><a class="btn" target="_blank" rel="noopener" href="' + TEST_URL + '?from=ontap&lop=' + encodeURIComponent(lop) + '&loai=' + encodeURIComponent(noDau(loai)) + '">Làm bài kiểm tra trên TestOnline</a></p>' +
     '<p style="color:var(--mute);font-size:.9rem">Vào TestOnline, chọn Chế độ Kiểm tra, Lớp ' + esc(lop) + ', Loại bài ' + esc(loai) + '.</p></div></div>';
 
   $('out').innerHTML = '<div class="layout">' + toc + main + '</div>';
   bindPractice();
-  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('out')]);
+  typeset($('out'));
 }
 
-function chapHtml(c, i) {
-  var s = '<section class="chap" id="c' + i + '"><h2><span>' + esc(c.ten) + '</span><span class="w">Mức ưu tiên ' + (c.trongSo || 3) + '/5</span></h2>';
-  s += '<details open><summary>Lí thuyết cần nhớ</summary><div class="body">' + ul(c.lyThuyet) + '</div></details>';
-  s += '<details><summary>Công thức</summary><div class="body"><div class="fgrid">' + (c.congThuc || []).map(function (f) {
-    return '<div class="f"><b>' + esc(f.ten) + '</b>$$' + (f.latex || '').replace(/\$/g, '') + '$$<span>' + esc(f.chuThich) + '</span></div>';
-  }).join('') + '</div></div></details>';
-  s += '<details><summary>Các dạng bài và phương pháp giải</summary><div class="body">' + (c.dangBai || []).map(function (d) {
-    var v = d.viDu || {};
-    return '<div class="dang"><h4>' + esc(d.ten) + '</h4><ol>' + (d.cacBuoc || []).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol>' +
-      (d.luuY ? '<div class="note"><b>Lưu ý:</b> ' + esc(d.luuY) + '</div>' : '') +
-      (v.de ? '<details><summary>Ví dụ minh họa</summary><div class="body"><p>' + esc(v.de) + '</p><p><b>Lời giải:</b> ' + esc(v.loiGiai) + '</p>' + (v.dapSo ? '<p><b>Đáp số:</b> ' + esc(v.dapSo) + '</p>' : '') + '</div></details>' : '') +
-      (d.tuKhoaVideo ? '<p class="vid"><a target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=' + encodeURIComponent(d.tuKhoaVideo + ' vật lí') + '">Tìm video: ' + esc(d.tuKhoaVideo) + '</a></p>' : '') + '</div>';
+function pointHtml(p) {
+  if (typeof p === 'string') return '<li>' + esc(p) + '</li>';
+  var sub = (p && p.subpoints) || [];
+  return '<li>' + (p && p.text ? esc(p.text) : '') + ul(sub) + '</li>';
+}
+
+function videoBtn(url, nhan) {
+  var m = /youtube(?:-nocookie)?\.com\/embed\/([\w-]{11})(?:\?([^"'\s]*))?/.exec(url || '');
+  if (!m) return '';
+  var q = new URLSearchParams(m[2] || '');
+  var s = parseInt(q.get('start'), 10) || 0, e = parseInt(q.get('end'), 10) || 0;
+  return '<div class="vid"><button class="btn alt vbtn" data-v="' + m[1] + '" data-s="' + s + '" data-e="' + e + '">▶ ' + esc(nhan || 'Xem video') + '</button></div>';
+}
+
+function groupHtml(g, i) {
+  var c = g.noiDung;
+  var s = '<section class="chap" id="g' + i + '"><h2><span>' + esc(bai(g)) + (c ? ': ' + esc(c.title) : '') + '</span><span class="w">Mức ưu tiên ' + (g.trongSo || 3) + '/5</span></h2>';
+  if (!c) return s + '<div class="body"><p>Không đọc được file ôn của bài này (' + esc(g.label) + ').</p></div></section>';
+
+  var th = (c.theory && c.theory.content) || {};
+  s += '<details open><summary>Lí thuyết cần nhớ</summary><div class="body"><ul>' + (th.points || []).map(pointHtml).join('') + '</ul>' +
+    (th.formulas ? '<div class="note">' + esc(th.formulas) + '</div>' : '') + '</div></details>';
+
+  s += '<details><summary>Các dạng bài và phương pháp giải</summary><div class="body">' + (c.problemTypes || []).map(function (t) {
+    var m = t.methods || {};
+    return '<div class="dang"><h4>' + esc(t.title) + '</h4>' +
+      '<p style="margin:4px 0"><b>' + esc(m.heading || 'Phương pháp giải:') + '</b></p><ol>' + (m.steps || []).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ol>' +
+      (m.note ? '<div class="note"><b>Lưu ý:</b> ' + esc(m.note) + '</div>' : '') +
+      (t.examples || []).map(function (ex, k) {
+        return '<details><summary>Ví dụ ' + (k + 1) + '</summary><div class="body"><p>' + escBr(ex.problem) + '</p><p><b>Lời giải:</b></p>' + ul(ex.solution) + '</div></details>';
+      }).join('') +
+      (t.video ? videoBtn(t.video.url, t.video.caption) : '') + '</div>';
   }).join('') + '</div></details>';
-  s += '<details><summary>Luyện nhớ nhanh</summary><div class="body" data-chap="' + i + '">' + (c.luyenTap || []).map(function (q, j) {
-    return '<div class="q" data-ans="' + (q.dapAn | 0) + '"><div>Câu ' + (j + 1) + '. ' + esc(q.hoi) + '</div><div class="opts">' +
-      (q.chon || []).map(function (o, k) { return '<button class="opt" data-k="' + k + '">' + esc(o) + '</button>'; }).join('') +
-      '</div><div class="exp"><b></b> ' + esc(q.giaiThich) + '</div></div>';
-  }).join('') + '<p class="score"></p><button class="btn alt retry" hidden>Làm lại các câu sai</button></div></details>';
-  s += '<details><summary>Thẻ nhớ (bấm để lật)</summary><div class="body"><div class="cards">' + (c.theNho || []).map(function (t) {
-    return '<button class="card" data-a="' + esc(t.mat2).replace(/"/g, '&quot;') + '" data-q="' + esc(t.mat1).replace(/"/g, '&quot;') + '">' + esc(t.mat1) + '</button>';
-  }).join('') + '</div></div></details></section>';
-  return s;
+
+  s += practiceHtml(c.practice || {}, i);
+
+  if (c.video && c.video.youtubeId) {
+    s += '<details><summary>Video bài giảng</summary><div class="body">' + videoBtn('https://www.youtube.com/embed/' + c.video.youtubeId, c.video.caption) + '</div></details>';
+  }
+  if (c.postUrl) s += '<div class="body"><a target="_blank" rel="noopener" href="' + esc(c.postUrl) + '">Đọc bài chuyên đề đầy đủ</a></div>';
+  return s + '</section>';
+}
+
+function lv(l) { return l ? '<span class="lv">' + esc(MUC[l] || l) + '</span>' : ''; }
+
+function practiceHtml(p, gi) {
+  var mc = p.multipleChoice || [], tf = p.trueFalse || [], es = p.essay || [];
+  if (!mc.length && !tf.length && !es.length) return '';
+  var n = 0;
+  var s = '<details><summary>Câu hỏi luyện tập (' + (mc.length + tf.length + es.length) + ' câu)</summary><div class="body" data-box="1">';
+  mc.forEach(function (q) {
+    n++;
+    var right = 0;
+    (q.choices || []).forEach(function (o, k) { if (String(o.answer) === 'true') right = k; });
+    s += '<div class="q" data-t="mc" data-ans="' + right + '"><div>' + lv(q.level) + '<b>Câu ' + n + '.</b> ' + escBr(q.mainQuestion) + '</div><div class="opts">' +
+      (q.choices || []).map(function (o, k) { return '<button class="opt" data-k="' + k + '">' + esc(o.choice) + '</button>'; }).join('') + '</div></div>';
+  });
+  tf.forEach(function (q) {
+    n++;
+    s += '<div class="q" data-t="tf"><div>' + lv(q.level) + '<b>Câu ' + n + '.</b> ' + escBr(q.mainQuestion) + '</div>' +
+      (q.subQuestions || []).map(function (sq) {
+        return '<div class="tf" data-ans="' + (String(sq.answer) === 'true' ? 1 : 0) + '"><span>' + esc(sq.question) + '</span>' +
+          '<button class="opt" data-k="1">Đúng</button><button class="opt" data-k="0">Sai</button></div>';
+      }).join('') + '</div>';
+  });
+  es.forEach(function (q) {
+    n++;
+    s += '<div class="q" data-t="es"><div>' + lv(q.level) + '<b>Câu ' + n + '.</b> ' + escBr(q.mainQuestion) + '</div>' +
+      '<details><summary>Xem lời giải</summary><div class="body">' + ul(Array.isArray(q.answer) ? q.answer : [q.answer]) + '</div></details></div>';
+  });
+  return s + '<p class="score"></p></div></details>';
 }
 
 function bindPractice() {
-  document.querySelectorAll('.card').forEach(function (b) {
+  document.querySelectorAll('.q[data-t="mc"] .opt').forEach(function (b) {
     b.addEventListener('click', function () {
-      var f = b.classList.toggle('flip');
-      b.innerHTML = f ? b.dataset.a.replace(/&/g,'&amp;').replace(/</g,'&lt;') : b.dataset.q.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([b]);
+      var q = b.closest('.q'), right = +q.dataset.ans;
+      q.classList.add('done');
+      q.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (+o.dataset.k === right) o.classList.add('ok'); });
+      if (+b.dataset.k !== right) { b.classList.add('no'); q.classList.add('wrong'); }
+      score(q.closest('[data-box]'));
     });
   });
-  document.querySelectorAll('.q').forEach(function (q) {
-    q.querySelectorAll('.opt').forEach(function (b) {
-      b.addEventListener('click', function () { answer(q, b); });
+  document.querySelectorAll('.q[data-t="tf"] .tf .opt').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var row = b.closest('.tf'), right = +row.dataset.ans, ok = +b.dataset.k === right;
+      row.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (+o.dataset.k === right) o.classList.add('ok'); });
+      if (!ok) { b.classList.add('no'); row.classList.add('wrong'); }
+      row.classList.add('done');
+      score(row.closest('[data-box]'));
     });
   });
-  document.querySelectorAll('.retry').forEach(function (r) {
-    r.addEventListener('click', function () {
-      var box = r.parentNode;
-      box.querySelectorAll('.q.wrong').forEach(function (q) {
-        q.classList.remove('done', 'wrong');
-        q.querySelectorAll('.opt').forEach(function (o) { o.disabled = false; o.className = 'opt'; });
-      });
-      r.hidden = true; score(box);
+  document.querySelectorAll('.vbtn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var src = 'https://www.youtube-nocookie.com/embed/' + b.dataset.v + '?rel=0' + (+b.dataset.s ? '&start=' + b.dataset.s : '') + (+b.dataset.e ? '&end=' + b.dataset.e : '');
+      var f = document.createElement('iframe');
+      f.className = 'yt'; f.src = src; f.title = 'Video bài giảng'; f.loading = 'lazy'; f.allowFullscreen = true;
+      f.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture';
+      b.parentNode.appendChild(f); b.hidden = true;
     });
   });
 }
 
-function answer(q, b) {
-  var right = +q.dataset.ans, pick = +b.dataset.k;
-  q.classList.add('done');
-  q.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; if (+o.dataset.k === right) o.classList.add('ok'); });
-  var good = pick === right;
-  if (!good) { b.classList.add('no'); q.classList.add('wrong'); }
-  q.querySelector('.exp b').textContent = good ? 'Đúng.' : 'Chưa đúng.';
-  score(q.parentNode);
-  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([q]);
-}
-
+// Mỗi ý Đúng/Sai tính một đơn vị, mỗi câu trắc nghiệm tính một đơn vị
 function score(box) {
-  var all = box.querySelectorAll('.q'), done = box.querySelectorAll('.q.done'), bad = box.querySelectorAll('.q.wrong');
-  box.querySelector('.score').textContent = done.length ? ('Đúng ' + (done.length - bad.length) + '/' + done.length + ' câu đã làm (tổng ' + all.length + ' câu).') : '';
-  box.querySelector('.retry').hidden = !(bad.length && done.length === all.length);
+  var units = box.querySelectorAll('.q[data-t="mc"], .q[data-t="tf"] .tf');
+  var done = 0, good = 0;
+  units.forEach(function (u) { if (u.classList.contains('done')) { done++; if (!u.classList.contains('wrong')) good++; } });
+  box.querySelector('.score').textContent = done ? ('Đúng ' + good + '/' + done + ' ý đã làm (tổng ' + units.length + ' ý; tự luận xem lời giải).') : '';
 }
 </script>
 </body>
