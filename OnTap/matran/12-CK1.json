@@ -1,0 +1,319 @@
+{
+ "matrixData": {
+  "12_1_1": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_1_2": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 1,
+    "H": 0,
+    "VD": 1,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 1
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_1_3": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 1,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_1_4": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 1,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 1
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_1_5": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 0,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 1
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_1_6": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 0,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_2_8": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 2,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 0,
+    "H": 0,
+    "VD": 1,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_2_9": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 1,
+    "H": 0,
+    "VD": 1,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 1
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_2_10": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 0,
+    "H": 1,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 1
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_2_11": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 1,
+    "H": 1,
+    "VD": 1,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 1
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  },
+  "12_2_12": {
+   "multipleChoice": {
+    "B": 1,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "trueFalse": {
+    "B": 0,
+    "H": 0,
+    "VD": 1,
+    "VDC": 0
+   },
+   "essay": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   },
+   "essay_multi": {
+    "B": 0,
+    "H": 0,
+    "VD": 0,
+    "VDC": 0
+   }
+  }
+ },
+ "testTopic": "CK1",
+ "requiredCounts": {
+  "multipleChoice": {
+   "B": 11,
+   "H": 6,
+   "VD": 0,
+   "VDC": 0
+  },
+  "trueFalse": {
+   "B": 5,
+   "H": 6,
+   "VD": 5,
+   "VDC": 0
+  },
+  "essay": {
+   "B": 0,
+   "H": 0,
+   "VD": 0,
+   "VDC": 6
+  },
+  "essay_multi": {
+   "B": 0,
+   "H": 0,
+   "VD": 0,
+   "VDC": 0
+  }
+ },
+ "timestamp": "2026-11-28T02:32:14.410Z",
+ "version": "1.0"
+}
